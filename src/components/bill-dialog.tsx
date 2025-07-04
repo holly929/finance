@@ -1,8 +1,9 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useReactToPrint } from 'react-to-print';
+import Barcode from 'react-barcode';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import type { Property } from '@/lib/types';
@@ -170,7 +171,6 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     const totalThisYear = (amountCharged != null ? amountCharged : 0) + (sanitationCharged != null ? sanitationCharged : 0);
     const totalAmountDue = (totalThisYear != null ? totalThisYear : 0) + (previousBalance != null ? previousBalance : 0) - (totalPayment != null ? totalPayment : 0);
 
-
     const formatDate = (date: Date) => {
         const day = date.getDate();
         const month = date.toLocaleString('default', { month: 'long' }).toUpperCase();
@@ -187,13 +187,13 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
         return `${getOrdinal(day)} ${month}, ${year}`;
     };
 
-    const formatAmount = (amount: number | null) => (amount != null ? amount.toFixed(2) : '0.00');
+    const formatAmount = useCallback((amount: number | null) => (amount != null ? amount.toFixed(2) : '0.00'), []);
     
-    const formatValue = (valueKey: string) => {
+    const formatValue = useCallback((valueKey: string) => {
         if (!normalizedProperty) return '...';
         const val = normalizedProperty[valueKey];
         return val != null && val !== '' ? String(val) : '...';
-    }
+    }, [normalizedProperty]);
     
     const normalizeDisplayKey = (key: string): string => {
         return (key || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
@@ -218,6 +218,16 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
         if (!shouldDisplay(valueKey)) return <div className="flex"><div className="w-1/2 font-bold border-b border-black p-1 min-h-[1.5em]"></div><div className="w-1/2 border-b border-l border-black p-1"></div></div>;
         return <div className="flex"><div className="w-1/2 font-bold border-b border-black p-1">{label}</div><div className="w-1/2 border-b border-l border-black p-1">{formatValue(valueKey)}</div></div>;
     };
+    
+    const barcodeValue = useMemo(() => {
+        if (!normalizedProperty) return '';
+        const propertyNo = formatValue('Property No');
+        const ownerName = formatValue('Owner Name');
+        const year = new Date().getFullYear();
+        const amount = formatAmount(totalAmountDue);
+        return `${propertyNo}|${ownerName}|${amount}|${year}`;
+    }, [normalizedProperty, totalAmountDue, formatValue, formatAmount]);
+
 
     return (
       <div ref={ref} className={cn("text-black bg-white w-full h-full box-border", fontClass, isCompact ? 'p-1' : 'p-2')} style={baseStyle}>
@@ -299,25 +309,33 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                 </div>
             </main>
             
-            <footer className="mt-auto pt-4">
-              <div className="flex">
-                  <div className="w-1/2">
-                      {/* Intentionally blank, for spacing */}
-                  </div>
-                  <div className="w-1/2 text-center">
-                      <div className="w-40 mx-auto flex items-center justify-center">
-                          {settings.appearance?.signature && (
-                                <img src={settings.appearance.signature} alt="Signature" style={{ maxHeight: isCompact ? '40px' : '64px', maxWidth: '100%', objectFit: 'contain' }} data-ai-hint="signature" />
-                          )}
-                      </div>
-                      <p className="border-t-2 border-black w-48 mx-auto mt-1 pt-1 font-bold">
-                          COORDINATING DIRECTOR
-                      </p>
-                  </div>
-              </div>
-              <div className="font-bold text-center mt-4">
-                  {settings.appearance?.billWarningText || 'PAY AT ONCE OR FACE LEGAL ACTION'}
-              </div>
+            <footer className="mt-auto pt-2">
+                <div className="flex items-end justify-between">
+                    <div className="w-1/2 text-left">
+                        {barcodeValue && (
+                            <Barcode 
+                                value={barcodeValue} 
+                                width={isCompact ? 1.2 : 1.5}
+                                height={isCompact ? 30 : 40}
+                                fontSize={isCompact ? 8 : 10}
+                                margin={0}
+                            />
+                        )}
+                    </div>
+                    <div className="w-1/2 text-center">
+                        <div className="w-40 mx-auto flex items-center justify-center min-h-[40px]">
+                            {settings.appearance?.signature && (
+                                <img src={settings.appearance.signature} alt="Signature" className="max-h-[64px] max-w-full object-contain" data-ai-hint="signature" />
+                            )}
+                        </div>
+                        <p className="border-t-2 border-black w-48 mx-auto mt-1 pt-1 font-bold">
+                            COORDINATING DIRECTOR
+                        </p>
+                    </div>
+                </div>
+                <div className="font-bold text-center mt-2">
+                    {settings.appearance?.billWarningText || 'PAY AT ONCE OR FACE LEGAL ACTION'}
+                </div>
             </footer>
           </div>
         </div>
