@@ -311,7 +311,7 @@ export default function BillsPage() {
         <CardHeader>
           <CardTitle>Bill History</CardTitle>
           <CardDescription>
-            A log of all bills that have been printed from the system. {selectedRows.length > 0 && `(${selectedRows.length} selected)`}
+            A log of all bills that have been printed from the system. {selectedRows.length > 0 && `(${selectedRows.length} selected of ${sortedData.length})`}
           </CardDescription>
         </CardHeader>
         <CardContent>
