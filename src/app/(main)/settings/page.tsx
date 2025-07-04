@@ -43,6 +43,9 @@ const appearanceFormSchema = z.object({
   ghanaLogo: z.any().optional(),
   signature: z.any().optional(),
   billWarningText: z.string().max(200).optional(),
+  fontFamily: z.enum(['sans', 'serif', 'mono']).default('sans'),
+  fontSize: z.coerce.number().min(8).max(14).default(12),
+  accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color code, e.g., #F1F5F9").default('#F1F5F9'),
 });
 
 type AppearanceSettings = {
@@ -50,6 +53,9 @@ type AppearanceSettings = {
     ghanaLogo: string;
     signature: string;
     billWarningText: string;
+    fontFamily: 'sans' | 'serif' | 'mono';
+    fontSize: number;
+    accentColor: string;
 };
 
 const ImageUploadPreview = ({ src, alt, dataAiHint }: { src: string | null, alt: string, dataAiHint?: string }) => {
@@ -154,6 +160,9 @@ export default function SettingsPage() {
     resolver: zodResolver(appearanceFormSchema),
     defaultValues: {
       billWarningText: 'PAY AT ONCE OR FACE LEGAL ACTION',
+      fontFamily: 'sans',
+      fontSize: 12,
+      accentColor: '#F1F5F9',
     },
   });
 
@@ -164,13 +173,21 @@ export default function SettingsPage() {
     appearance: {
       ...appearanceSettings,
       billWarningText: watchedAppearanceForm.billWarningText,
+      fontFamily: watchedAppearanceForm.fontFamily,
+      fontSize: watchedAppearanceForm.fontSize,
+      accentColor: watchedAppearanceForm.accentColor,
     },
   };
   
   useEffect(() => {
     if (generalSettings) generalForm.reset(generalSettings);
     if (appearanceSettings) {
-        appearanceForm.reset({ billWarningText: appearanceSettings.billWarningText });
+        appearanceForm.reset({
+            billWarningText: appearanceSettings.billWarningText,
+            fontFamily: appearanceSettings.fontFamily || 'sans',
+            fontSize: appearanceSettings.fontSize || 12,
+            accentColor: appearanceSettings.accentColor || '#F1F5F9',
+        });
     }
   }, [generalSettings, appearanceSettings, generalForm, appearanceForm]);
 
@@ -211,6 +228,9 @@ export default function SettingsPage() {
     const settingsToSave = {
         ...appearanceSettings,
         billWarningText: data.billWarningText,
+        fontFamily: data.fontFamily,
+        fontSize: data.fontSize,
+        accentColor: data.accentColor,
     };
     localStorage.setItem('appearanceSettings', JSON.stringify(settingsToSave));
     localStorage.setItem('billDisplaySettings', JSON.stringify(billFields));
@@ -424,6 +444,45 @@ export default function SettingsPage() {
                     />
 
                     <div className="border-t pt-6">
+                      <h3 className="text-lg font-medium">Printing Styles</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Customize fonts and colors on the printed bill.</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                          <FormField control={appearanceForm.control} name="fontFamily" render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Font Family</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                      <SelectContent>
+                                          <SelectItem value="sans">Sans-serif (Inter)</SelectItem>
+                                          <SelectItem value="serif">Serif (Tinos)</SelectItem>
+                                          <SelectItem value="mono">Monospace (Courier Prime)</SelectItem>
+                                      </SelectContent>
+                                  </Select>
+                              </FormItem>
+                          )} />
+                          <FormField control={appearanceForm.control} name="fontSize" render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Base Font Size (px)</FormLabel>
+                                  <FormControl><Input type="number" min="8" max="14" {...field} /></FormControl>
+                              </FormItem>
+                          )} />
+                      </div>
+                      <div className="mt-4">
+                          <FormField control={appearanceForm.control} name="accentColor" render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Accent Color</FormLabel>
+                                  <div className="flex items-center gap-2">
+                                      <FormControl><Input type="color" className="p-1 h-10 w-14" {...field} /></FormControl>
+                                      <Input type="text" placeholder="#F1F5F9" {...field} />
+                                  </div>
+                                  <FormDescription>Used for highlighting rows like 'Total Amount Due'.</FormDescription>
+                                  <FormMessage />
+                              </FormItem>
+                          )} />
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-6 mt-8">
                       <h3 className="text-lg font-medium">Bill Display Fields</h3>
                       <p className="text-sm text-muted-foreground mt-1">Select which fields to show on the printed bill.</p>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">

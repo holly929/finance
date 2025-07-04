@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import Image from 'next/image';
 import { useReactToPrint } from 'react-to-print';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -28,10 +27,13 @@ type AppearanceSettings = {
   ghanaLogo?: string;
   signature?: string;
   billWarningText?: string;
+  fontFamily?: 'sans' | 'serif' | 'mono';
+  fontSize?: number;
+  accentColor?: string;
 };
 
-const BillRow = ({ label, value, isBold = false, isCompact = false }: { label: string; value: string | number; isBold?: boolean; isCompact?: boolean }) => (
-  <div className={cn("flex justify-between p-1 border-b border-black items-center", isBold ? 'font-bold' : '', isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>
+const BillRow = ({ label, value, isBold = false }: { label: string; value: string | number; isBold?: boolean; }) => (
+  <div className={cn("flex justify-between p-1 border-b border-black items-center", isBold ? 'font-bold' : '')}>
     <span>{label}</span>
     <span className="text-right">{value}</span>
   </div>
@@ -99,6 +101,33 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     
     const normalizedProperty = useNormalizedProperty(property);
     const [displaySettings, setDisplaySettings] = useState<Record<string, boolean>>({});
+
+    const { 
+        fontFamily, 
+        fontSize, 
+        accentColor 
+    } = settings.appearance || {};
+
+    const fontClass = useMemo(() => ({
+        sans: 'font-sans',
+        serif: 'font-serif',
+        mono: 'font-mono'
+    }[fontFamily || 'sans']), [fontFamily]);
+
+    const finalFontSize = useMemo(() => {
+        const baseSize = fontSize || 12;
+        return isCompact ? Math.max(8, baseSize - 2) : baseSize;
+    }, [fontSize, isCompact]);
+
+    const baseStyle = useMemo(() => ({
+        fontSize: `${finalFontSize}px`,
+        lineHeight: `${finalFontSize * 1.3}px`,
+    }), [finalFontSize]);
+
+    const accentStyle = useMemo(() => ({
+        backgroundColor: accentColor || '#F1F5F9'
+    }), [accentColor]);
+
 
     useEffect(() => {
         if (displaySettingsProp) {
@@ -186,12 +215,12 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     };
 
     const DetailRowRight = ({ label, valueKey }: { label: string; valueKey: string; }) => {
-        if (!shouldDisplay(valueKey)) return <div className={cn("border-b border-black", isCompact ? 'min-h-[22px]' : 'min-h-[28px]')}></div>;
+        if (!shouldDisplay(valueKey)) return <div className="flex"><div className="w-1/2 font-bold border-b border-black p-1 min-h-[1.5em]"></div><div className="w-1/2 border-b border-l border-black p-1"></div></div>;
         return <div className="flex"><div className="w-1/2 font-bold border-b border-black p-1">{label}</div><div className="w-1/2 border-b border-l border-black p-1">{formatValue(valueKey)}</div></div>;
     };
 
     return (
-      <div ref={ref} className={cn("font-sans text-black bg-white w-full h-full box-border", isCompact ? 'text-[10px] p-1' : 'text-[12px] p-2')}>
+      <div ref={ref} className={cn("text-black bg-white w-full h-full box-border", fontClass, isCompact ? 'p-1' : 'p-2')} style={baseStyle}>
         <div className="border-[3px] border-black p-1 relative h-full flex flex-col">
           <div className="absolute inset-0 z-0 flex items-center justify-center opacity-10 pointer-events-none">
               {settings.appearance?.ghanaLogo && (
@@ -204,10 +233,10 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                     {settings.appearance?.ghanaLogo && <img src={settings.appearance.ghanaLogo} alt="Ghana Coat of Arms" width={isCompact ? 60 : 70} height={isCompact ? 60 : 70} style={{objectFit:"contain"}} />}
                 </div>
                 <div className="w-1/2 text-center">
-                    <h1 className={cn("font-bold tracking-wide", isCompact ? 'text-base' : 'text-lg')}>{settings.general?.assemblyName?.toUpperCase() || 'DISTRICT ASSEMBLY'}</h1>
-                    <h2 className={cn("font-bold tracking-wide", isCompact ? 'text-sm' : 'text-base')}>PROPERTY BILLING</h2>
-                    <p className={cn(isCompact ? 'text-[9px]' : 'text-[12px]')}>{settings.general?.postalAddress}</p>
-                    <p className={cn(isCompact ? 'text-[9px]' : 'text-[12px]')}>TEL: {settings.general?.contactPhone}</p>
+                    <h1 className="font-bold tracking-wide" style={{ fontSize: `${finalFontSize * 1.5}px` }}>{settings.general?.assemblyName?.toUpperCase() || 'DISTRICT ASSEMBLY'}</h1>
+                    <h2 className="font-bold tracking-wide" style={{ fontSize: `${finalFontSize * 1.3}px` }}>PROPERTY BILLING</h2>
+                    <p style={{ fontSize: `${finalFontSize * 0.9}px` }}>{settings.general?.postalAddress}</p>
+                    <p style={{ fontSize: `${finalFontSize * 0.9}px` }}>TEL: {settings.general?.contactPhone}</p>
                 </div>
                 <div className="w-1/4 flex justify-end items-center min-h-[70px]">
                     {settings.appearance?.assemblyLogo && <img src={settings.appearance.assemblyLogo} alt="Assembly Logo" width={isCompact ? 60 : 70} height={isCompact ? 60 : 70} style={{objectFit:"contain"}} />}
@@ -215,7 +244,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
             </header>
             
             <main className="border-t-2 border-b-2 border-black flex-grow">
-                <div className={cn("flex border-b-2 border-black", isCompact ? 'min-h-[90px]' : 'min-h-[112px]')}>
+                <div className="flex border-b-2 border-black">
                     <div className="w-[67%] border-r-2 border-black">
                         <DetailRow label="OWNER NAME" valueKey="Owner Name" />
                         <DetailRow label="TOWN" valueKey="Town" />
@@ -225,7 +254,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                     <div className="w-[33%]">
                         <DetailRowRight label="SUBURB" valueKey="Suburb" />
                         <DetailRowRight label="ACCOUNT NUMBER" valueKey="Account Number" />
-                        <div className="flex min-h-[28px]"><div className="w-1/2 font-bold border-b border-black p-1">BILL DATE</div><div className="w-1/2 border-b border-l border-black p-1">{formatDate(new Date())}</div></div>
+                        <div className="flex"><div className="w-1/2 font-bold border-b border-black p-1">BILL DATE</div><div className="w-1/2 border-b border-l border-black p-1">{formatDate(new Date())}</div></div>
                         <DetailRowRight label="PROPERTY TYPE" valueKey="Property Type" />
                         <div className="font-bold text-center p-1">AMOUNT (GH&#8373;)</div>
                     </div>
@@ -233,8 +262,8 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
 
                 <div className="flex">
                     <div className="w-[67%] border-r-2 border-black">
-                        <div className={cn("flex border-b-2 border-black", isCompact ? 'min-h-[44px]' : 'min-h-[50px]')}>
-                            <div className="w-1/3 font-bold flex items-center justify-center p-1">BILLING DETAILS</div>
+                        <div className="flex border-b-2 border-black">
+                            <div className="w-1/3 font-bold flex items-center justify-center p-1 text-center">BILLING DETAILS</div>
                             <div className="w-1/3 border-x border-black p-1">
                                 <div className="font-bold">RATEABLE VALUE</div>
                                 <div className="flex justify-between items-end"><span>GH&#8373;</span><span>{formatAmount(rateableValue)}</span></div>
@@ -244,26 +273,28 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                                 <div className="flex justify-end items-end h-full"><span>{formatValue('Rate Impost')}</span></div>
                             </div>
                         </div>
-                        <BillRow label="AMOUNT CHARGED (Rateable Value * Rate Impost)" value={formatAmount(amountCharged)} isCompact={isCompact} />
-                        <BillRow label="SANITATION CHARGED" value={formatAmount(sanitationCharged)} isCompact={isCompact} />
-                        <BillRow label="UNASSESSED RATE" value="..." isCompact={isCompact} />
-                        <BillRow label="TOTAL THIS YEAR" value={formatAmount(totalThisYear)} isBold isCompact={isCompact} />
-                        <BillRow label="PREVIOUS BALANCE" value={formatAmount(previousBalance)} isCompact={isCompact} />
-                        <BillRow label="TOTAL PAYMENT" value={formatAmount(totalPayment)} isCompact={isCompact} />
-                        <div className={cn("flex justify-between p-1 border-b border-black items-center font-bold bg-muted/60", isCompact ? 'min-h-[24px]' : 'min-h-[30px]')}>
+                        <BillRow label="AMOUNT CHARGED (Rateable Value * Rate Impost)" value={formatAmount(amountCharged)} />
+                        <BillRow label="SANITATION CHARGED" value={formatAmount(sanitationCharged)} />
+                        <BillRow label="UNASSESSED RATE" value="..." />
+                        <BillRow label="TOTAL THIS YEAR" value={formatAmount(totalThisYear)} isBold />
+                        <BillRow label="PREVIOUS BALANCE" value={formatAmount(previousBalance)} />
+                        <BillRow label="TOTAL PAYMENT" value={formatAmount(totalPayment)} />
+                        <div className="flex justify-between p-1 border-b border-black items-center font-bold" style={accentStyle}>
                             <span>TOTAL AMOUNT DUE</span>
-                            <span className={cn("text-right", isCompact ? 'text-sm' : 'text-base')}>{formatAmount(totalAmountDue)}</span>
+                            <span className="text-right" style={{ fontSize: `${finalFontSize * 1.2}px` }}>{formatAmount(totalAmountDue)}</span>
                         </div>
                     </div>
                     <div className="w-[33%] text-right font-bold">
-                        <div className={cn("border-b-2 border-black p-1 flex items-end justify-end", isCompact ? 'min-h-[44px]' : 'min-h-[50px]')}>FINANCIAL DETAILS</div>
-                        <div className={cn("p-1 border-b border-black", isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>{formatAmount(amountCharged)}</div>
-                        <div className={cn("p-1 border-b border-black", isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>{formatAmount(sanitationCharged)}</div>
-                        <div className={cn("p-1 border-b border-black", isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>...</div>
-                        <div className={cn("p-1 border-b border-black", isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>{formatAmount(totalThisYear)}</div>
-                        <div className={cn("p-1 border-b border-black", isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>{formatAmount(previousBalance)}</div>
-                        <div className={cn("p-1 border-b border-black", isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>{formatAmount(totalPayment)}</div>
-                        <div className={cn("p-1 border-b border-black flex items-center justify-end bg-muted/60", isCompact ? 'min-h-[24px] text-sm' : 'min-h-[30px] text-base')}>{formatAmount(totalAmountDue)}</div>
+                        <div className="p-1 border-b-2 border-black flex items-end justify-end">FINANCIAL DETAILS</div>
+                        <div className="p-1 border-b border-black">{formatAmount(amountCharged)}</div>
+                        <div className="p-1 border-b border-black">{formatAmount(sanitationCharged)}</div>
+                        <div className="p-1 border-b border-black">...</div>
+                        <div className="p-1 border-b border-black">{formatAmount(totalThisYear)}</div>
+                        <div className="p-1 border-b border-black">{formatAmount(previousBalance)}</div>
+                        <div className="p-1 border-b border-black">{formatAmount(totalPayment)}</div>
+                        <div className="p-1 border-b border-black flex items-center justify-end" style={accentStyle}>
+                            <span style={{ fontSize: `${finalFontSize * 1.2}px` }}>{formatAmount(totalAmountDue)}</span>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -274,7 +305,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                       {/* Intentionally blank, for spacing */}
                   </div>
                   <div className="w-1/2 text-center">
-                      <div className={cn("w-40 mx-auto flex items-center justify-center", isCompact ? 'min-h-[48px]' : 'min-h-[64px]')}>
+                      <div className="w-40 mx-auto flex items-center justify-center min-h-[64px]">
                           {settings.appearance?.signature && (
                                 <img src={settings.appearance.signature} alt="Signature" style={{ maxHeight: isCompact ? '40px' : '64px', maxWidth: '100%', objectFit: 'contain' }} data-ai-hint="signature" />
                           )}
