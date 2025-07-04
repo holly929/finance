@@ -12,6 +12,7 @@ interface PropertyContextType {
     updateProperty: (updatedProperty: Property) => void;
     deleteProperty: (id: string) => void;
     deleteProperties: (ids: string[]) => void;
+    deleteAllProperties: () => void;
     loading: boolean;
 }
 
@@ -102,9 +103,15 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         setPropertiesState(updatedProperties);
         saveData(updatedProperties, headers);
     }
+    
+    const deleteAllProperties = () => {
+        setPropertiesState([]);
+        setHeadersState([]);
+        saveData([], []);
+    };
 
     return (
-        <PropertyContext.Provider value={{ properties, headers, setProperties, addProperty, updateProperty, deleteProperty, deleteProperties, loading }}>
+        <PropertyContext.Provider value={{ properties, headers, setProperties, addProperty, updateProperty, deleteProperty, deleteProperties, deleteAllProperties, loading }}>
             {children}
         </PropertyContext.Provider>
     );

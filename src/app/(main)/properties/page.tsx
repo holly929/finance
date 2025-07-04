@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -25,6 +24,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -50,7 +60,7 @@ export default function PropertiesPage() {
   const { user: authUser } = useAuth();
   const isViewer = authUser?.role === 'Viewer';
 
-  const { properties, headers, setProperties, deleteProperty, updateProperty, loading } = usePropertyData();
+  const { properties, headers, setProperties, deleteProperty, updateProperty, loading, deleteAllProperties } = usePropertyData();
   
   const [filter, setFilter] = React.useState('');
   const [editingProperty, setEditingProperty] = React.useState<Property | null>(null);
@@ -195,6 +205,13 @@ export default function PropertiesPage() {
     toast({ title: 'Property Updated', description: 'The property has been successfully updated.' });
   };
 
+  const handleClearAll = () => {
+    deleteAllProperties();
+    toast({
+        title: 'All Properties Deleted',
+        description: 'Your property data has been cleared.',
+    });
+  };
 
   const renderDesktopView = () => (
     <div className="w-full overflow-x-auto">
@@ -434,6 +451,30 @@ export default function PropertiesPage() {
         <h1 className="text-3xl font-bold tracking-tight font-headline">Properties</h1>
         {!isViewer && 
           <div className="ml-auto flex items-center gap-2">
+              {properties.length > 0 && (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete All
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete all {properties.length} properties from the system.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleClearAll}>
+                            Yes, delete all
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+              )}
               <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
                 {isImporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin"/> : <FileUp className="h-4 w-4 mr-2" />}
                 Import
