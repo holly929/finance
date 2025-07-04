@@ -131,16 +131,6 @@ export default function DashboardPage() {
     }
   }, [properties]);
   
-  if (loading) {
-    return (
-        <div className="flex h-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-    );
-  }
-
-  const hasData = properties.length > 0;
-  
   const totalRevenueByType = React.useMemo(() => {
     if (!revenueByPropertyType) return 0;
     return revenueByPropertyType.reduce((acc, curr) => acc + curr.revenue, 0);
@@ -151,6 +141,15 @@ export default function DashboardPage() {
     return paymentStatus.reduce((acc, curr) => acc + curr.value, 0);
   }, [paymentStatus]);
 
+  if (loading) {
+    return (
+        <div className="flex h-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+    );
+  }
+
+  const hasData = properties.length > 0;
 
   return (
     <>
