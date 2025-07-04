@@ -245,7 +245,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     const barcodeValue = useMemo(() => {
         if (!normalizedProperty) return '';
         const propertyNo = formatValue('Property No');
-        const ownerName = formatValue('Owner Name');
+        const ownerName = (formatValue('Owner Name') || '').substring(0, 20); // Truncate name to keep barcode small
         const year = new Date().getFullYear();
         const amount = formatAmount(totalAmountDue);
         return `${propertyNo}|${ownerName}|${amount}|${year}`;
@@ -333,19 +333,19 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
             </main>
             
             <footer className="mt-auto pt-2">
-                <div className="flex items-end justify-between">
+                <div className="flex items-end justify-between gap-2">
                     <div className="w-1/2 text-left">
                         {barcodeValue && (
                            <BarcodeComponent value={barcodeValue} isCompact={isCompact} />
                         )}
                     </div>
                     <div className="w-1/2 text-center">
-                        <div className="w-40 mx-auto flex items-center justify-center min-h-[40px]">
+                        <div className="mx-auto flex items-center justify-center min-h-[40px] max-w-[10rem]">
                             {settings.appearance?.signature && (
                                 <img src={settings.appearance.signature} alt="Signature" className="max-h-[64px] max-w-full object-contain" data-ai-hint="signature" />
                             )}
                         </div>
-                        <p className="border-t-2 border-black w-48 mx-auto mt-1 pt-1 font-bold">
+                        <p className="border-t-2 border-black max-w-[12rem] mx-auto mt-1 pt-1 font-bold">
                             COORDINATING DIRECTOR
                         </p>
                     </div>
