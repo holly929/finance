@@ -269,8 +269,9 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                   </div>
                   <div className="w-1/2 text-center">
                       {settings.appearance?.signature && (
-                          <div className="relative w-40 h-16 mx-auto">
-                              <Image src={settings.appearance.signature} alt="Signature" fill style={{ objectFit: 'contain' }} data-ai-hint="signature" />
+                          <div className="w-40 h-16 mx-auto flex items-center justify-center">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={settings.appearance.signature} alt="Signature" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} data-ai-hint="signature" />
                           </div>
                       )}
                       <p className="border-t-2 border-black w-48 mx-auto mt-1 pt-1 font-bold">
