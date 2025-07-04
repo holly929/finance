@@ -29,7 +29,7 @@ type AppearanceSettings = {
 };
 
 const BillRow = ({ label, value, isBold = false }: { label: string; value: string | number; isBold?: boolean; }) => (
-  <div className={`flex justify-between p-1 border-b border-black h-[24px] items-center ${isBold ? 'font-bold' : ''}`}>
+  <div className={`flex justify-between p-1 border-b border-black min-h-[24px] items-center ${isBold ? 'font-bold' : ''}`}>
     <span>{label}</span>
     <span className="text-right">{value}</span>
   </div>
@@ -180,21 +180,21 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     };
 
     const DetailRowRight = ({ label, valueKey }: { label: string; valueKey: string; }) => {
-        if (!shouldDisplay(valueKey)) return <div className="h-[28px] border-b border-black"></div>;
+        if (!shouldDisplay(valueKey)) return <div className="min-h-[28px] border-b border-black"></div>;
         return <div className="flex"><div className="w-1/2 font-bold border-b border-black p-1">{label}</div><div className="w-1/2 border-b border-l border-black p-1">{formatValue(valueKey)}</div></div>;
     };
 
     return (
-      <div ref={ref} className="p-4 font-sans text-black bg-white print-container text-[12px]">
-        <div className="border-[3px] border-black p-1 relative">
+      <div ref={ref} className="font-sans text-black bg-white text-[12px] w-full h-full p-2 box-border">
+        <div className="border-[3px] border-black p-1 relative h-full flex flex-col">
           <div className="absolute inset-0 z-0 flex items-center justify-center opacity-10 pointer-events-none">
               {settings.appearance?.ghanaLogo && (
                   <Image src={settings.appearance.ghanaLogo} alt="Watermark" width={300} height={300} style={{objectFit: 'contain'}} />
               )}
           </div>
-          <div className="relative z-10">
+          <div className="relative z-10 flex flex-col flex-grow">
             <header className="flex justify-between items-start mb-2">
-                <div className="w-1/4 flex justify-start items-center h-[70px]">
+                <div className="w-1/4 flex justify-start items-center min-h-[70px]">
                     {settings.appearance?.ghanaLogo && <Image src={settings.appearance.ghanaLogo} alt="Ghana Coat of Arms" width={70} height={70} style={{objectFit:"contain"}} />}
                 </div>
                 <div className="w-1/2 text-center">
@@ -203,12 +203,12 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                     <p className="text-[12px]">{settings.general?.postalAddress}</p>
                     <p className="text-[12px]">TEL: {settings.general?.contactPhone}</p>
                 </div>
-                <div className="w-1/4 flex justify-end items-center h-[70px]">
+                <div className="w-1/4 flex justify-end items-center min-h-[70px]">
                     {settings.appearance?.assemblyLogo && <Image src={settings.appearance.assemblyLogo} alt="Assembly Logo" width={70} height={70} style={{objectFit:"contain"}} />}
                 </div>
             </header>
             
-            <main className="border-t-2 border-b-2 border-black">
+            <main className="border-t-2 border-b-2 border-black flex-grow">
                 <div className="flex border-b-2 border-black">
                     <div className="w-[67%] border-r-2 border-black">
                         <DetailRow label="OWNER NAME" valueKey="Owner Name" />
@@ -219,7 +219,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                     <div className="w-[33%]">
                         <DetailRowRight label="SUBURB" valueKey="Suburb" />
                         <DetailRowRight label="ACCOUNT NUMBER" valueKey="Account Number" />
-                        <div className="flex h-[28px]"><div className="w-1/2 font-bold border-b border-black p-1">BILL DATE</div><div className="w-1/2 border-b border-l border-black p-1">{formatDate(new Date())}</div></div>
+                        <div className="flex min-h-[28px]"><div className="w-1/2 font-bold border-b border-black p-1">BILL DATE</div><div className="w-1/2 border-b border-l border-black p-1">{formatDate(new Date())}</div></div>
                         <DetailRowRight label="PROPERTY TYPE" valueKey="Property Type" />
                         <div className="font-bold text-center p-1">AMOUNT (GH&#8373;)</div>
                     </div>
@@ -227,7 +227,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
 
                 <div className="flex">
                     <div className="w-[67%] border-r-2 border-black">
-                        <div className="flex border-b-2 border-black h-[50px]">
+                        <div className="flex border-b-2 border-black min-h-[50px]">
                             <div className="w-1/3 font-bold flex items-center justify-center p-1">BILLING DETAILS</div>
                             <div className="w-1/3 border-x border-black p-1">
                                 <div className="font-bold">RATEABLE VALUE</div>
@@ -244,36 +244,35 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                         <BillRow label="TOTAL THIS YEAR" value={formatAmount(totalThisYear)} isBold />
                         <BillRow label="PREVIOUS BALANCE" value={formatAmount(previousBalance)} />
                         <BillRow label="TOTAL PAYMENT" value={formatAmount(totalPayment)} />
-                        <div className="flex justify-between p-1 border-b border-black h-[30px] items-center font-bold bg-muted/60">
+                        <div className="flex justify-between p-1 border-b border-black min-h-[30px] items-center font-bold bg-muted/60">
                             <span>TOTAL AMOUNT DUE</span>
                             <span className="text-right text-base">{formatAmount(totalAmountDue)}</span>
                         </div>
                     </div>
                     <div className="w-[33%] text-right font-bold">
-                        <div className="border-b-2 border-black h-[50px] p-1 flex items-end justify-end">FINANCIAL DETAILS</div>
-                        <div className="p-1 border-b border-black h-[24px]">{formatAmount(amountCharged)}</div>
-                        <div className="p-1 border-b border-black h-[24px]">{formatAmount(sanitationCharged)}</div>
-                        <div className="p-1 border-b border-black h-[24px]">...</div>
-                        <div className="p-1 border-b border-black h-[24px]">{formatAmount(totalThisYear)}</div>
-                        <div className="p-1 border-b border-black h-[24px]">{formatAmount(previousBalance)}</div>
-                        <div className="p-1 border-b border-black h-[24px]">{formatAmount(totalPayment)}</div>
-                        <div className="p-1 border-b border-black h-[30px] flex items-center justify-end bg-muted/60 text-base">{formatAmount(totalAmountDue)}</div>
+                        <div className="border-b-2 border-black min-h-[50px] p-1 flex items-end justify-end">FINANCIAL DETAILS</div>
+                        <div className="p-1 border-b border-black min-h-[24px]">{formatAmount(amountCharged)}</div>
+                        <div className="p-1 border-b border-black min-h-[24px]">{formatAmount(sanitationCharged)}</div>
+                        <div className="p-1 border-b border-black min-h-[24px]">...</div>
+                        <div className="p-1 border-b border-black min-h-[24px]">{formatAmount(totalThisYear)}</div>
+                        <div className="p-1 border-b border-black min-h-[24px]">{formatAmount(previousBalance)}</div>
+                        <div className="p-1 border-b border-black min-h-[24px]">{formatAmount(totalPayment)}</div>
+                        <div className="p-1 border-b border-black min-h-[30px] flex items-center justify-end bg-muted/60 text-base">{formatAmount(totalAmountDue)}</div>
                     </div>
                 </div>
             </main>
             
-            <footer className="mt-4">
+            <footer className="mt-auto pt-4">
               <div className="flex">
                   <div className="w-1/2">
                       {/* Intentionally blank, for spacing */}
                   </div>
                   <div className="w-1/2 text-center">
-                      {settings.appearance?.signature && (
-                          <div className="w-40 h-16 mx-auto flex items-center justify-center">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={settings.appearance.signature} alt="Signature" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} data-ai-hint="signature" />
-                          </div>
-                      )}
+                      <div className="w-40 min-h-16 mx-auto flex items-center justify-center">
+                          {settings.appearance?.signature && (
+                                <img src={settings.appearance.signature} alt="Signature" style={{ maxHeight: '64px', maxWidth: '100%', objectFit: 'contain' }} data-ai-hint="signature" />
+                          )}
+                      </div>
                       <p className="border-t-2 border-black w-48 mx-auto mt-1 pt-1 font-bold">
                           CO-ORDINATING DIRECTOR
                       </p>
