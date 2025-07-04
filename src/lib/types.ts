@@ -36,7 +36,7 @@ export type RevenueData = {
 };
 
 export type PaymentStatusData = {
-  name: 'Paid' | 'Pending' | 'Overdue';
+  name: 'Paid' | 'Pending' | 'Overdue' | 'Unbilled';
   value: number;
   fill: string;
 };

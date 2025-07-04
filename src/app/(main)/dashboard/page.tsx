@@ -106,11 +106,13 @@ export default function DashboardPage() {
             setCollectionRate(0);
         }
 
-        setPaymentStatus([
+        const newPaymentStatus: PaymentStatusData[] = [
           { name: 'Paid', value: calculatedTotalRevenue, fill: 'hsl(var(--primary))' },
           { name: 'Pending', value: amountPending, fill: 'hsl(var(--accent))' },
           { name: 'Overdue', value: amountOverdue, fill: 'hsl(var(--destructive))' },
-        ].filter(d => d.value > 0.01));
+        ];
+
+        setPaymentStatus(newPaymentStatus.filter(d => d.value > 0.01));
         
         setRevenueByPropertyType([
             { name: 'Residential', revenue: revenueData.Residential },

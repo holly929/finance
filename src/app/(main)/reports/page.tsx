@@ -89,12 +89,14 @@ export default function ReportsPage() {
           }
         });
 
-        const statusChartData = ([
+        const statusChartDataArray: PaymentStatusData[] = [
           { name: 'Paid', value: statusCounts.Paid, fill: 'hsl(var(--primary))' },
           { name: 'Pending', value: statusCounts.Pending, fill: 'hsl(var(--accent))' },
           { name: 'Overdue', value: statusCounts.Overdue, fill: 'hsl(var(--destructive))' },
           { name: 'Unbilled', value: statusCounts.Unbilled, fill: 'hsl(var(--muted))' },
-        ] as PaymentStatusData[]).filter(d => d.value > 0);
+        ];
+        
+        const statusChartData = statusChartDataArray.filter(d => d.value > 0);
 
         const typeChartData = Object.entries(typeRevenue).map(([name, revenue]) => ({ name, revenue })).filter(d => d.revenue > 0);
 
