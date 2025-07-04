@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import Barcode from 'react-barcode';
+import JsBarcode from 'jsbarcode';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import type { Property } from '@/lib/types';
@@ -31,6 +31,29 @@ type AppearanceSettings = {
   fontFamily?: 'sans' | 'serif' | 'mono';
   fontSize?: number;
   accentColor?: string;
+};
+
+const BarcodeComponent = ({ value, isCompact }: { value: string; isCompact: boolean }) => {
+    const ref = useRef<SVGSVGElement | null>(null);
+
+    useEffect(() => {
+        if (ref.current) {
+            try {
+                JsBarcode(ref.current, value, {
+                    width: isCompact ? 1.2 : 1.5,
+                    height: isCompact ? 30 : 40,
+                    fontSize: isCompact ? 8 : 10,
+                    margin: 0,
+                    displayValue: false,
+                    background: 'transparent'
+                });
+            } catch (e) {
+                console.error('Barcode generation error:', e);
+            }
+        }
+    }, [value, isCompact]);
+
+    return <svg ref={ref} />;
 };
 
 const BillRow = ({ label, value, isBold = false }: { label: string; value: string | number; isBold?: boolean; }) => (
@@ -313,13 +336,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                 <div className="flex items-end justify-between">
                     <div className="w-1/2 text-left">
                         {barcodeValue && (
-                            <Barcode 
-                                value={barcodeValue} 
-                                width={isCompact ? 1.2 : 1.5}
-                                height={isCompact ? 30 : 40}
-                                fontSize={isCompact ? 8 : 10}
-                                margin={0}
-                            />
+                           <BarcodeComponent value={barcodeValue} isCompact={isCompact} />
                         )}
                     </div>
                     <div className="w-1/2 text-center">
