@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -15,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { useBillData } from '@/context/BillDataContext';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
+import { getPropertyValue } from '@/lib/property-utils';
 
 type GeneralSettings = {
   assemblyName?: string;
@@ -154,11 +156,11 @@ export default function BulkPrintPage() {
     if (renderedProperties.length === 0) return;
 
     const newBills: Omit<Bill, 'id'>[] = renderedProperties.map(p => {
-        const rateableValue = Number(p['Rateable Value']) || 0;
-        const rateImpost = Number(p['Rate Impost']) || 0;
-        const sanitationCharged = Number(p['Sanitation Charged']) || 0;
-        const previousBalance = Number(p['Previous Balance']) || 0;
-        const totalPayment = Number(p['Total Payment']) || 0;
+        const rateableValue = Number(getPropertyValue(p, 'Rateable Value')) || 0;
+        const rateImpost = Number(getPropertyValue(p, 'Rate Impost')) || 0;
+        const sanitationCharged = Number(getPropertyValue(p, 'Sanitation Charged')) || 0;
+        const previousBalance = Number(getPropertyValue(p, 'Previous Balance')) || 0;
+        const totalPayment = Number(getPropertyValue(p, 'Total Payment')) || 0;
 
         const amountCharged = rateableValue * rateImpost;
         const totalThisYear = amountCharged + sanitationCharged;

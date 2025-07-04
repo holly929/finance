@@ -24,54 +24,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { getPropertyValue } from '@/lib/property-utils';
 
 const ROWS_PER_PAGE = 15;
 
 const formatCurrency = (value: number) => `GHS ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const formatDate = (isoString: string) => new Date(isoString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-
-// A helper function to get property values using potential aliases, ensuring data displays correctly even with varied Excel headers.
-const getNormalizedValue = (property: Property | null, stdKey: string): string => {
-    if (!property) return '';
-
-    const standardToPotentialKeys: Record<string, string[]> = {
-        'Owner Name': ['Owner Name', 'Name of Owner', 'Rate Payer', 'ownername'],
-        'Property No': ['Property No', 'Property Number', 'propertyno'],
-    };
-
-    const aliases = standardToPotentialKeys[stdKey];
-    if (!aliases) {
-        const value = property[stdKey];
-        return value !== null && value !== undefined ? String(value) : '';
-    }
-
-    const propertyKeys = Object.keys(property);
-    const normalizeKey = (str: string) => (str || '').toLowerCase().replace(/[\s._-]/g, '');
-
-    // 1. Try matching aliases
-    for (const alias of aliases) {
-        const normalizedAlias = normalizeKey(alias);
-        const foundKey = propertyKeys.find(pKey => normalizeKey(pKey) === normalizedAlias);
-        if (foundKey && property[foundKey] !== undefined && property[foundKey] !== null) {
-            return String(property[foundKey]);
-        }
-    }
-
-    // 2. If no alias match, try token-based matching as a fallback
-    const stdKeyTokens = stdKey.toLowerCase().match(/\w+/g) || [];
-    if (stdKeyTokens.length > 0) {
-         const foundKey = propertyKeys.find(pKey => {
-             const pKeyLower = pKey.toLowerCase();
-             return stdKeyTokens.every(token => pKeyLower.includes(token));
-         });
-         if (foundKey && property[foundKey] !== undefined && property[foundKey] !== null) {
-             return String(property[foundKey]);
-         }
-    }
-
-    return '';
-};
-
 
 export default function BillsPage() {
   useRequirePermission();
@@ -202,8 +160,8 @@ export default function BillsPage() {
                     aria-label={`Select row ${bill.id}`}
                   />
             </TableCell>
-            <TableCell className="font-medium">{getNormalizedValue(bill.propertySnapshot, 'Property No')}</TableCell>
-            <TableCell>{getNormalizedValue(bill.propertySnapshot, 'Owner Name')}</TableCell>
+            <TableCell className="font-medium">{getPropertyValue(bill.propertySnapshot, 'Property No') || ''}</TableCell>
+            <TableCell>{getPropertyValue(bill.propertySnapshot, 'Owner Name') || ''}</TableCell>
             <TableCell>{formatDate(bill.generatedAt)}</TableCell>
             <TableCell><Badge variant="outline">{bill.year}</Badge></TableCell>
             <TableCell className="text-right font-mono">{formatCurrency(bill.totalAmountDue)}</TableCell>
@@ -238,8 +196,8 @@ export default function BillsPage() {
                     aria-label={`Select row ${bill.id}`}
                   />
                 <div>
-                  <CardTitle className="text-base font-semibold">{getNormalizedValue(bill.propertySnapshot, 'Owner Name')}</CardTitle>
-                  <CardDescription>Property No: {getNormalizedValue(bill.propertySnapshot, 'Property No')}</CardDescription>
+                  <CardTitle className="text-base font-semibold">{getPropertyValue(bill.propertySnapshot, 'Owner Name') || ''}</CardTitle>
+                  <CardDescription>Property No: {getPropertyValue(bill.propertySnapshot, 'Property No') || ''}</CardDescription>
                 </div>
               </div>
                <DropdownMenu>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect } from 'react';
@@ -25,6 +26,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getPropertyValue } from '@/lib/property-utils';
 
 interface EditPropertyDialogProps {
   property: Property | null;
@@ -48,23 +50,6 @@ const propertyFormSchema = z.object({
   'Previous Balance': z.coerce.number().min(0).default(0),
   'Total Payment': z.coerce.number().min(0).default(0),
 });
-
-const getNormalizedValue = (property: Property | null, aliases: string[]): any => {
-    if (!property) return undefined;
-
-    const propertyKeys = Object.keys(property);
-    const normalizeKey = (str: string) => (str || '').toLowerCase().replace(/[\s._-]/g, '');
-
-    for (const alias of aliases) {
-        const normalizedAlias = normalizeKey(alias);
-        const foundKey = propertyKeys.find(pKey => normalizeKey(pKey) === normalizedAlias);
-        if (foundKey && property[foundKey] !== undefined && property[foundKey] !== null) {
-            return property[foundKey];
-        }
-    }
-
-    return undefined;
-};
 
 export function EditPropertyDialog({
   property,
@@ -95,19 +80,19 @@ export function EditPropertyDialog({
   useEffect(() => {
     if (property && isOpen) {
        const normalizedData = {
-        'Owner Name': getNormalizedValue(property, ['Owner Name', 'Name of Owner', 'Rate Payer', 'ownername']),
-        'Phone Number': getNormalizedValue(property, ['Phone Number', 'Phone', 'Telephone', 'phonenumber']),
-        'Town': getNormalizedValue(property, ['Town']),
-        'Suburb': getNormalizedValue(property, ['Suburb']),
-        'Property No': getNormalizedValue(property, ['Property No', 'Property Number', 'propertyno']),
-        'Valuation List No.': getNormalizedValue(property, ['Valuation List No.', 'Valuation List Number', 'valuationlistno']),
-        'Account Number': getNormalizedValue(property, ['Account Number', 'Acct No', 'accountnumber']),
-        'Property Type': getNormalizedValue(property, ['Property Type', 'propertytype']),
-        'Rateable Value': getNormalizedValue(property, ['Rateable Value', 'rateablevalue']),
-        'Rate Impost': getNormalizedValue(property, ['Rate Impost', 'rateimpost']),
-        'Sanitation Charged': getNormalizedValue(property, ['Sanitation Charged', 'Sanitation', 'sanitationcharged']),
-        'Previous Balance': getNormalizedValue(property, ['Previous Balance', 'Prev Balance', 'Arrears', 'previousbalance', 'Arrears BF']),
-        'Total Payment': getNormalizedValue(property, ['Total Payment', 'Amount Paid', 'Payment', 'totalpayment']),
+        'Owner Name': getPropertyValue(property, 'Owner Name'),
+        'Phone Number': getPropertyValue(property, 'Phone Number'),
+        'Town': getPropertyValue(property, 'Town'),
+        'Suburb': getPropertyValue(property, 'Suburb'),
+        'Property No': getPropertyValue(property, 'Property No'),
+        'Valuation List No.': getPropertyValue(property, 'Valuation List No.'),
+        'Account Number': getPropertyValue(property, 'Account Number'),
+        'Property Type': getPropertyValue(property, 'Property Type'),
+        'Rateable Value': getPropertyValue(property, 'Rateable Value'),
+        'Rate Impost': getPropertyValue(property, 'Rate Impost'),
+        'Sanitation Charged': getPropertyValue(property, 'Sanitation Charged'),
+        'Previous Balance': getPropertyValue(property, 'Previous Balance'),
+        'Total Payment': getPropertyValue(property, 'Total Payment'),
       };
       
       const finalData: Record<string, any> = {};

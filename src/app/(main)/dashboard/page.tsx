@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ChartContainer, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
 import type { Property, PaymentStatusData, RevenueByPropertyType } from '@/lib/types';
 import { usePropertyData } from '@/context/PropertyDataContext';
+import { getPropertyValue } from '@/lib/property-utils';
 
 const formatCurrency = (value: number) => `GHS ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -65,17 +66,17 @@ export default function DashboardPage() {
         const revenueData: { [key: string]: number } = { Residential: 0, Commercial: 0, Industrial: 0, Other: 0 };
 
         properties.forEach(p => {
-            const rateableValue = Number(p['Rateable Value']) || 0;
-            const rateImpost = Number(p['Rate Impost']) || 0;
-            const sanitation = Number(p['Sanitation Charged']) || 0;
-            const previousBalance = Number(p['Previous Balance']) || 0;
-            const payment = Number(p['Total Payment']) || 0;
+            const rateableValue = Number(getPropertyValue(p, 'Rateable Value')) || 0;
+            const rateImpost = Number(getPropertyValue(p, 'Rate Impost')) || 0;
+            const sanitation = Number(getPropertyValue(p, 'Sanitation Charged')) || 0;
+            const previousBalance = Number(getPropertyValue(p, 'Previous Balance')) || 0;
+            const payment = Number(getPropertyValue(p, 'Total Payment')) || 0;
             
             const grandTotalDue = (rateableValue * rateImpost) + sanitation + previousBalance;
 
             calculatedTotalRevenue += payment;
             
-            const type = p['Property Type'];
+            const type = getPropertyValue(p, 'Property Type');
             if (type === 'Residential' || type === 'Commercial' || type === 'Industrial') {
                 revenueData[type] += payment;
             } else if (type) {

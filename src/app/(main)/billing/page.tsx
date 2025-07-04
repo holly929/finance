@@ -43,72 +43,9 @@ import { getBillStatus } from '@/lib/billing-utils';
 import { usePropertyData } from '@/context/PropertyDataContext';
 import { useAuth } from '@/context/AuthContext';
 import { EditPropertyDialog } from '@/components/edit-property-dialog';
+import { getPropertyValue } from '@/lib/property-utils';
 
 const ROWS_PER_PAGE = 15;
-
-const getPropertyValue = (property: Property, keyAliases: string[]): any => {
-    if (!property) return undefined;
-
-    const propertyKeys = Object.keys(property);
-    const normalize = (str: string) => (str || '').toLowerCase().replace(/[\s._-]/g, '');
-    const tokenize = (str: string) => (str || '').toLowerCase().match(/\w+/g) || [];
-
-    // --- Pass 1: Exact normalized match ---
-    for (const alias of keyAliases) {
-        const normalizedAlias = normalize(alias);
-        for (const pKey of propertyKeys) {
-            if (normalize(pKey) === normalizedAlias) {
-                const value = property[pKey];
-                if (value !== undefined && value !== null && String(value).trim() !== '') {
-                    return value;
-                }
-            }
-        }
-    }
-    
-    // --- Pass 2: Substring inclusion on normalized keys ---
-    for (const alias of keyAliases) {
-        const normalizedAlias = normalize(alias);
-        if (normalizedAlias.length < 3) continue;
-
-        for (const pKey of propertyKeys) {
-            const normalizedPKey = normalize(pKey);
-            if (['id', 'status'].includes(normalizedPKey)) continue;
-
-            if (normalizedPKey.includes(normalizedAlias) || normalizedAlias.includes(normalizedPKey)) {
-                const value = property[pKey];
-                if (value !== undefined && value !== null && String(value).trim() !== '') {
-                    return value;
-                }
-            }
-        }
-    }
-
-    // --- Pass 3: Token-based matching ---
-    for (const alias of keyAliases) {
-        const aliasTokens = tokenize(alias);
-        if (aliasTokens.length === 0) continue;
-
-        for (const pKey of propertyKeys) {
-            if (['id', 'status'].includes(normalize(pKey))) continue;
-            
-            const pKeyTokens = tokenize(pKey);
-            if (pKeyTokens.length === 0) continue;
-            
-            const allTokensFound = aliasTokens.every(aliasToken => pKeyTokens.includes(aliasToken));
-
-            if (allTokensFound) {
-                 const value = property[pKey];
-                if (value !== undefined && value !== null && String(value).trim() !== '') {
-                    return value;
-                }
-            }
-        }
-    }
-
-    return undefined;
-};
-
 
 export default function BillingPage() {
   const { toast } = useToast();
@@ -173,20 +110,20 @@ export default function BillingPage() {
     let missingPhoneCount = 0;
 
     selectedProperties.forEach(p => {
-        const phone = getPropertyValue(p, ['Phone Number', 'Phone', 'Telephone', 'phonenumber']);
+        const phone = getPropertyValue(p, 'Phone Number');
         if (phone) {
-            const rateableValue = Number(getPropertyValue(p, ['Rateable Value', 'rateablevalue'])) || 0;
-            const rateImpost = Number(getPropertyValue(p, ['Rate Impost', 'rateimpost'])) || 0;
-            const sanitationCharged = Number(getPropertyValue(p, ['Sanitation Charged', 'Sanitation', 'sanitationcharged'])) || 0;
-            const previousBalance = Number(getPropertyValue(p, ['Previous Balance', 'Prev Balance', 'Arrears', 'previousbalance', 'Arrears BF'])) || 0;
-            const totalPayment = Number(getPropertyValue(p, ['Total Payment', 'Amount Paid', 'Payment', 'totalpayment'])) || 0;
+            const rateableValue = Number(getPropertyValue(p, 'Rateable Value')) || 0;
+            const rateImpost = Number(getPropertyValue(p, 'Rate Impost')) || 0;
+            const sanitationCharged = Number(getPropertyValue(p, 'Sanitation Charged')) || 0;
+            const previousBalance = Number(getPropertyValue(p, 'Previous Balance')) || 0;
+            const totalPayment = Number(getPropertyValue(p, 'Total Payment')) || 0;
 
             const amountCharged = rateableValue * rateImpost;
             const totalThisYear = amountCharged + sanitationCharged;
             const totalAmountDue = totalThisYear + previousBalance - totalPayment;
 
-            const ownerName = getPropertyValue(p, ['Owner Name', 'Name of Owner', 'Rate Payer', 'ownername']) || 'Customer';
-            const propertyNo = getPropertyValue(p, ['Property No', 'Property Number', 'propertyno']) || 'N/A';
+            const ownerName = getPropertyValue(p, 'Owner Name') || 'Customer';
+            const propertyNo = getPropertyValue(p, 'Property No') || 'N/A';
 
             let message = smsSettings.smsTemplate || '';
             message = message.replace(/{{Owner Name}}/g, ownerName);
@@ -340,7 +277,7 @@ export default function BillingPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      {row['Owner Name'] && row['Rateable Value'] ? (
+                      {getPropertyValue(row, 'Owner Name') && getPropertyValue(row, 'Rateable Value') ? (
                         <DropdownMenuItem onSelect={() => handleViewBill(row)}>
                           <View className="mr-2 h-4 w-4" />
                           View Bill
@@ -397,7 +334,7 @@ export default function BillingPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                {row['Owner Name'] && row['Rateable Value'] ? (
+                {getPropertyValue(row, 'Owner Name') && getPropertyValue(row, 'Rateable Value') ? (
                   <DropdownMenuItem onSelect={() => handleViewBill(row)}>
                     <View className="mr-2 h-4 w-4" /> View Bill
                   </DropdownMenuItem>

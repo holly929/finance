@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import type { Property } from '@/lib/types';
 import { Printer } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getPropertyValue } from '@/lib/property-utils';
 
 
 interface BillDialogProps {
@@ -63,68 +64,9 @@ const BillRow = ({ label, value, isBold = false }: { label: string; value: strin
   </div>
 );
 
-// This helper hook normalizes property data to handle inconsistencies in keys from imported files.
-const useNormalizedProperty = (property: Property | null) => {
-    return useMemo(() => {
-        if (!property) return null;
-
-        const standardToPotentialKeys: Record<string, string[]> = {
-            'Owner Name': ['Owner Name', 'Name of Owner', 'Rate Payer', 'ownername'],
-            'Phone Number': ['Phone Number', 'Phone', 'Telephone', 'phonenumber'],
-            'Town': ['Town'],
-            'Property No': ['Property No', 'Property Number', 'propertyno'],
-            'Valuation List No.': ['Valuation List No.', 'Valuation List Number', 'valuationlistno'],
-            'Suburb': ['Suburb'],
-            'Account Number': ['Account Number', 'Acct No', 'accountnumber'],
-            'Property Type': ['Property Type', 'propertytype'],
-            'Rateable Value': ['Rateable Value', 'rateablevalue'],
-            'Rate Impost': ['Rate Impost', 'rateimpost'],
-            'Sanitation Charged': ['Sanitation Charged', 'Sanitation', 'sanitationcharged'],
-            'Previous Balance': ['Previous Balance', 'Prev Balance', 'Arrears', 'previousbalance', 'Arrears BF'],
-            'Total Payment': ['Total Payment', 'Amount Paid', 'Payment', 'totalpayment'],
-        };
-        
-        const normalizedProperty: Record<string, any> = {};
-        const propertyKeys = Object.keys(property);
-        const normalizeKey = (str: string) => (str || '').toLowerCase().replace(/[\s._-]/g, '');
-
-        for (const stdKey in standardToPotentialKeys) {
-            let foundValue: any = null;
-            
-            // 1. Try matching aliases
-            for (const alias of standardToPotentialKeys[stdKey]) {
-                const normalizedAlias = normalizeKey(alias);
-                const foundKey = propertyKeys.find(pKey => normalizeKey(pKey) === normalizedAlias);
-                if (foundKey) {
-                    foundValue = property[foundKey];
-                    break;
-                }
-            }
-
-            // 2. If no alias match, try token-based matching as a fallback
-            if (foundValue === null || foundValue === undefined) {
-                const stdKeyTokens = stdKey.toLowerCase().match(/\w+/g) || [];
-                if (stdKeyTokens.length > 0) {
-                     const foundKey = propertyKeys.find(pKey => {
-                         const pKeyLower = pKey.toLowerCase();
-                         return stdKeyTokens.every(token => pKeyLower.includes(token));
-                     });
-                     if (foundKey) {
-                         foundValue = property[foundKey];
-                     }
-                }
-            }
-            normalizedProperty[stdKey] = foundValue;
-        }
-        return normalizedProperty;
-    }, [property]);
-};
-
-
 export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Property, settings: any, isCompact?: boolean, displaySettings?: Record<string, boolean> }>(
   ({ property, settings, isCompact = false, displaySettings: displaySettingsProp }, ref) => {
     
-    const normalizedProperty = useNormalizedProperty(property);
     const [displaySettings, setDisplaySettings] = useState<Record<string, boolean>>({});
 
     const { 
@@ -176,8 +118,8 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     }, [property, displaySettingsProp]);
     
     const getNumber = (key: string): number | null => {
-        if (!normalizedProperty) return null;
-        const value = normalizedProperty[key];
+        if (!property) return null;
+        const value = getPropertyValue(property, key);
         if (value === null || value === undefined || String(value).trim() === '') return null;
         const cleanedValue = String(value).replace(/[^0-9.-]/g, '');
         if (cleanedValue === '') return null;
@@ -214,10 +156,10 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     const formatAmount = useCallback((amount: number | null) => (amount != null ? amount.toFixed(2) : '0.00'), []);
     
     const formatValue = useCallback((valueKey: string) => {
-        if (!normalizedProperty) return '...';
-        const val = normalizedProperty[valueKey];
+        if (!property) return '...';
+        const val = getPropertyValue(property, valueKey);
         return val != null && val !== '' ? String(val) : '...';
-    }, [normalizedProperty]);
+    }, [property]);
     
     const normalizeDisplayKey = (key: string): string => {
         return (key || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
@@ -244,13 +186,13 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     };
     
     const barcodeValue = useMemo(() => {
-        if (!normalizedProperty) return '';
+        if (!property) return '';
         const propertyNo = formatValue('Property No');
         const ownerName = (formatValue('Owner Name') || '').substring(0, 20); // Truncate name to keep barcode small
         const amount = formatAmount(totalAmountDue);
         const year = new Date().getFullYear();
         return `${propertyNo}|${ownerName}|${amount}|${year}`;
-    }, [normalizedProperty, totalAmountDue, formatValue, formatAmount]);
+    }, [property, totalAmountDue, formatValue, formatAmount]);
 
 
     return (
@@ -264,7 +206,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
           <div className="relative z-10 flex flex-col flex-grow">
             <header className="flex justify-between items-start mb-2">
                 <div className="w-1/4 flex justify-start items-center">
-                    {settings.appearance?.ghanaLogo && <img src={settings.appearance.ghanaLogo} alt="Ghana Coat of Arms" width={isCompact ? 60 : 70} height={isCompact ? 60 : 70} style={{objectFit:"contain"}} />}
+                    {settings.appearance?.ghanaLogo && <img src={settings.appearance.ghanaLogo} alt="Ghana Coat of Arms" className="object-contain" style={{ width: isCompact ? '60px': '70px', height: isCompact ? '60px': '70px' }} />}
                 </div>
                 <div className="w-1/2 text-center">
                     <h1 className="font-bold tracking-wide" style={{ fontSize: `${finalFontSize * 1.5}px` }}>{settings.general?.assemblyName?.toUpperCase() || 'DISTRICT ASSEMBLY'}</h1>
@@ -273,7 +215,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                     <p style={{ fontSize: `${finalFontSize * 0.9}px` }}>TEL: {settings.general?.contactPhone}</p>
                 </div>
                 <div className="w-1/4 flex justify-end items-center">
-                    {settings.appearance?.assemblyLogo && <img src={settings.appearance.assemblyLogo} alt="Assembly Logo" width={isCompact ? 60 : 70} height={isCompact ? 60 : 70} style={{objectFit:"contain"}} />}
+                    {settings.appearance?.assemblyLogo && <img src={settings.appearance.assemblyLogo} alt="Assembly Logo" className="object-contain" style={{ width: isCompact ? '60px': '70px', height: isCompact ? '60px': '70px' }} />}
                 </div>
             </header>
             
@@ -336,13 +278,13 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
             
             <footer className="mt-auto pt-2">
                 <div className="flex items-end justify-between gap-2">
-                    <div className="w-1/2 text-left">
+                    <div className="flex-1">
                         {barcodeValue && (
                            <BarcodeComponent value={barcodeValue} isCompact={isCompact} />
                         )}
                     </div>
-                    <div className="w-1/2 text-center">
-                        <div className="mx-auto flex items-center justify-center min-h-[40px] max-w-[10rem]">
+                    <div className="flex-1 text-center">
+                        <div className="mx-auto flex items-center justify-center" style={{ minHeight: isCompact ? '30px' : '40px' }}>
                             {settings.appearance?.signature && (
                                 <img src={settings.appearance.signature} alt="Signature" className="max-h-[64px] max-w-full object-contain" data-ai-hint="signature" />
                             )}
