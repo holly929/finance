@@ -229,7 +229,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
           </div>
           <div className="relative z-10 flex flex-col flex-grow">
             <header className="flex justify-between items-start mb-2">
-                <div className="w-1/4 flex justify-start items-center min-h-[70px]">
+                <div className="w-1/4 flex justify-start items-center">
                     {settings.appearance?.ghanaLogo && <img src={settings.appearance.ghanaLogo} alt="Ghana Coat of Arms" width={isCompact ? 60 : 70} height={isCompact ? 60 : 70} style={{objectFit:"contain"}} />}
                 </div>
                 <div className="w-1/2 text-center">
@@ -238,7 +238,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                     <p style={{ fontSize: `${finalFontSize * 0.9}px` }}>{settings.general?.postalAddress}</p>
                     <p style={{ fontSize: `${finalFontSize * 0.9}px` }}>TEL: {settings.general?.contactPhone}</p>
                 </div>
-                <div className="w-1/4 flex justify-end items-center min-h-[70px]">
+                <div className="w-1/4 flex justify-end items-center">
                     {settings.appearance?.assemblyLogo && <img src={settings.appearance.assemblyLogo} alt="Assembly Logo" width={isCompact ? 60 : 70} height={isCompact ? 60 : 70} style={{objectFit:"contain"}} />}
                 </div>
             </header>
@@ -305,7 +305,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                       {/* Intentionally blank, for spacing */}
                   </div>
                   <div className="w-1/2 text-center">
-                      <div className="w-40 mx-auto flex items-center justify-center min-h-[64px]">
+                      <div className="w-40 mx-auto flex items-center justify-center">
                           {settings.appearance?.signature && (
                                 <img src={settings.appearance.signature} alt="Signature" style={{ maxHeight: isCompact ? '40px' : '64px', maxWidth: '100%', objectFit: 'contain' }} data-ai-hint="signature" />
                           )}
