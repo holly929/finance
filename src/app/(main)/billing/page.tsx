@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -49,7 +50,10 @@ const getPropertyValue = (property: Property, keyAliases: string[]): any => {
     if (!property) return undefined;
     const propertyKeys = Object.keys(property);
     const normalizeKey = (str: string) => (str || '').toLowerCase().replace(/[\s._-]/g, '');
+    const normalizeAndTokenize = (str: string) => 
+        (str || '').toLowerCase().replace(/[\s._-]/g, ' ').match(/\w+/g) || [];
 
+    // 1. First pass: Exact normalized match
     for (const alias of keyAliases) {
         const normalizedAlias = normalizeKey(alias);
         const foundKey = propertyKeys.find(pKey => normalizeKey(pKey) === normalizedAlias);
@@ -57,6 +61,24 @@ const getPropertyValue = (property: Property, keyAliases: string[]): any => {
             return property[foundKey];
         }
     }
+
+    // 2. Second pass: Token-based matching. A property key is a match if it contains ALL tokens from ANY of the aliases.
+    for (const alias of keyAliases) {
+        const aliasTokens = normalizeAndTokenize(alias);
+        if (aliasTokens.length === 0) continue;
+
+        const foundKey = propertyKeys.find(pKey => {
+            if (['id', 'status'].includes(normalizeKey(pKey))) return false;
+            
+            const pKeyLower = pKey.toLowerCase();
+            return aliasTokens.every(token => pKeyLower.includes(token));
+        });
+
+        if (foundKey && property[foundKey] !== undefined && property[foundKey] !== null && String(property[foundKey]).trim() !== '') {
+            return property[foundKey];
+        }
+    }
+
     return undefined;
 };
 
@@ -502,3 +524,5 @@ export default function BillingPage() {
     </>
   );
 }
+
+    
