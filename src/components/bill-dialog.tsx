@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import type { Property } from '@/lib/types';
 import { Printer } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
 
 interface BillDialogProps {
   property: Property | null;
@@ -28,8 +30,8 @@ type AppearanceSettings = {
   billWarningText?: string;
 };
 
-const BillRow = ({ label, value, isBold = false }: { label: string; value: string | number; isBold?: boolean; }) => (
-  <div className={`flex justify-between p-1 border-b border-black min-h-[24px] items-center ${isBold ? 'font-bold' : ''}`}>
+const BillRow = ({ label, value, isBold = false, isCompact = false }: { label: string; value: string | number; isBold?: boolean; isCompact?: boolean }) => (
+  <div className={cn("flex justify-between p-1 border-b border-black items-center", isBold ? 'font-bold' : '', isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>
     <span>{label}</span>
     <span className="text-right">{value}</span>
   </div>
@@ -92,8 +94,8 @@ const useNormalizedProperty = (property: Property | null) => {
 };
 
 
-export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Property, settings: any }>(
-  ({ property, settings }, ref) => {
+export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Property, settings: any, isCompact?: boolean }>(
+  ({ property, settings, isCompact = false }, ref) => {
     
     const normalizedProperty = useNormalizedProperty(property);
     const [displaySettings, setDisplaySettings] = useState<Record<string, boolean>>({});
@@ -180,12 +182,12 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     };
 
     const DetailRowRight = ({ label, valueKey }: { label: string; valueKey: string; }) => {
-        if (!shouldDisplay(valueKey)) return <div className="min-h-[28px] border-b border-black"></div>;
+        if (!shouldDisplay(valueKey)) return <div className={cn("border-b border-black", isCompact ? 'min-h-[22px]' : 'min-h-[28px]')}></div>;
         return <div className="flex"><div className="w-1/2 font-bold border-b border-black p-1">{label}</div><div className="w-1/2 border-b border-l border-black p-1">{formatValue(valueKey)}</div></div>;
     };
 
     return (
-      <div ref={ref} className="font-sans text-black bg-white text-[12px] w-full h-full p-2 box-border">
+      <div ref={ref} className={cn("font-sans text-black bg-white w-full h-full box-border", isCompact ? 'text-[10px] p-1' : 'text-[12px] p-2')}>
         <div className="border-[3px] border-black p-1 relative h-full flex flex-col">
           <div className="absolute inset-0 z-0 flex items-center justify-center opacity-10 pointer-events-none">
               {settings.appearance?.ghanaLogo && (
@@ -195,21 +197,21 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
           <div className="relative z-10 flex flex-col flex-grow">
             <header className="flex justify-between items-start mb-2">
                 <div className="w-1/4 flex justify-start items-center min-h-[70px]">
-                    {settings.appearance?.ghanaLogo && <Image src={settings.appearance.ghanaLogo} alt="Ghana Coat of Arms" width={70} height={70} style={{objectFit:"contain"}} />}
+                    {settings.appearance?.ghanaLogo && <Image src={settings.appearance.ghanaLogo} alt="Ghana Coat of Arms" width={isCompact ? 60 : 70} height={isCompact ? 60 : 70} style={{objectFit:"contain"}} />}
                 </div>
                 <div className="w-1/2 text-center">
-                    <h1 className="font-bold text-lg tracking-wide">{settings.general?.assemblyName?.toUpperCase() || 'DISTRICT ASSEMBLY'}</h1>
-                    <h2 className="font-bold text-base tracking-wide">PROPERTY BILLING</h2>
-                    <p className="text-[12px]">{settings.general?.postalAddress}</p>
-                    <p className="text-[12px]">TEL: {settings.general?.contactPhone}</p>
+                    <h1 className={cn("font-bold tracking-wide", isCompact ? 'text-base' : 'text-lg')}>{settings.general?.assemblyName?.toUpperCase() || 'DISTRICT ASSEMBLY'}</h1>
+                    <h2 className={cn("font-bold tracking-wide", isCompact ? 'text-sm' : 'text-base')}>PROPERTY BILLING</h2>
+                    <p className={cn(isCompact ? 'text-[9px]' : 'text-[12px]')}>{settings.general?.postalAddress}</p>
+                    <p className={cn(isCompact ? 'text-[9px]' : 'text-[12px]')}>TEL: {settings.general?.contactPhone}</p>
                 </div>
                 <div className="w-1/4 flex justify-end items-center min-h-[70px]">
-                    {settings.appearance?.assemblyLogo && <Image src={settings.appearance.assemblyLogo} alt="Assembly Logo" width={70} height={70} style={{objectFit:"contain"}} />}
+                    {settings.appearance?.assemblyLogo && <Image src={settings.appearance.assemblyLogo} alt="Assembly Logo" width={isCompact ? 60 : 70} height={isCompact ? 60 : 70} style={{objectFit:"contain"}} />}
                 </div>
             </header>
             
             <main className="border-t-2 border-b-2 border-black flex-grow">
-                <div className="flex border-b-2 border-black">
+                <div className={cn("flex border-b-2 border-black", isCompact ? 'min-h-[90px]' : 'min-h-[112px]')}>
                     <div className="w-[67%] border-r-2 border-black">
                         <DetailRow label="OWNER NAME" valueKey="Owner Name" />
                         <DetailRow label="TOWN" valueKey="Town" />
@@ -227,7 +229,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
 
                 <div className="flex">
                     <div className="w-[67%] border-r-2 border-black">
-                        <div className="flex border-b-2 border-black min-h-[50px]">
+                        <div className={cn("flex border-b-2 border-black", isCompact ? 'min-h-[44px]' : 'min-h-[50px]')}>
                             <div className="w-1/3 font-bold flex items-center justify-center p-1">BILLING DETAILS</div>
                             <div className="w-1/3 border-x border-black p-1">
                                 <div className="font-bold">RATEABLE VALUE</div>
@@ -238,26 +240,26 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                                 <div className="flex justify-end items-end h-full"><span>{formatValue('Rate Impost')}</span></div>
                             </div>
                         </div>
-                        <BillRow label="AMOUNT CHARGED (Rateable Value * Rate Impost)" value={formatAmount(amountCharged)} />
-                        <BillRow label="SANITATION CHARGED" value={formatAmount(sanitationCharged)} />
-                        <BillRow label="UNASSESSED RATE" value="..." />
-                        <BillRow label="TOTAL THIS YEAR" value={formatAmount(totalThisYear)} isBold />
-                        <BillRow label="PREVIOUS BALANCE" value={formatAmount(previousBalance)} />
-                        <BillRow label="TOTAL PAYMENT" value={formatAmount(totalPayment)} />
-                        <div className="flex justify-between p-1 border-b border-black min-h-[30px] items-center font-bold bg-muted/60">
+                        <BillRow label="AMOUNT CHARGED (Rateable Value * Rate Impost)" value={formatAmount(amountCharged)} isCompact={isCompact} />
+                        <BillRow label="SANITATION CHARGED" value={formatAmount(sanitationCharged)} isCompact={isCompact} />
+                        <BillRow label="UNASSESSED RATE" value="..." isCompact={isCompact} />
+                        <BillRow label="TOTAL THIS YEAR" value={formatAmount(totalThisYear)} isBold isCompact={isCompact} />
+                        <BillRow label="PREVIOUS BALANCE" value={formatAmount(previousBalance)} isCompact={isCompact} />
+                        <BillRow label="TOTAL PAYMENT" value={formatAmount(totalPayment)} isCompact={isCompact} />
+                        <div className={cn("flex justify-between p-1 border-b border-black items-center font-bold bg-muted/60", isCompact ? 'min-h-[24px]' : 'min-h-[30px]')}>
                             <span>TOTAL AMOUNT DUE</span>
-                            <span className="text-right text-base">{formatAmount(totalAmountDue)}</span>
+                            <span className={cn("text-right", isCompact ? 'text-sm' : 'text-base')}>{formatAmount(totalAmountDue)}</span>
                         </div>
                     </div>
                     <div className="w-[33%] text-right font-bold">
-                        <div className="border-b-2 border-black min-h-[50px] p-1 flex items-end justify-end">FINANCIAL DETAILS</div>
-                        <div className="p-1 border-b border-black min-h-[24px]">{formatAmount(amountCharged)}</div>
-                        <div className="p-1 border-b border-black min-h-[24px]">{formatAmount(sanitationCharged)}</div>
-                        <div className="p-1 border-b border-black min-h-[24px]">...</div>
-                        <div className="p-1 border-b border-black min-h-[24px]">{formatAmount(totalThisYear)}</div>
-                        <div className="p-1 border-b border-black min-h-[24px]">{formatAmount(previousBalance)}</div>
-                        <div className="p-1 border-b border-black min-h-[24px]">{formatAmount(totalPayment)}</div>
-                        <div className="p-1 border-b border-black min-h-[30px] flex items-center justify-end bg-muted/60 text-base">{formatAmount(totalAmountDue)}</div>
+                        <div className={cn("border-b-2 border-black p-1 flex items-end justify-end", isCompact ? 'min-h-[44px]' : 'min-h-[50px]')}>FINANCIAL DETAILS</div>
+                        <div className={cn("p-1 border-b border-black", isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>{formatAmount(amountCharged)}</div>
+                        <div className={cn("p-1 border-b border-black", isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>{formatAmount(sanitationCharged)}</div>
+                        <div className={cn("p-1 border-b border-black", isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>...</div>
+                        <div className={cn("p-1 border-b border-black", isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>{formatAmount(totalThisYear)}</div>
+                        <div className={cn("p-1 border-b border-black", isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>{formatAmount(previousBalance)}</div>
+                        <div className={cn("p-1 border-b border-black", isCompact ? 'min-h-[20px]' : 'min-h-[24px]')}>{formatAmount(totalPayment)}</div>
+                        <div className={cn("p-1 border-b border-black flex items-center justify-end bg-muted/60", isCompact ? 'min-h-[24px] text-sm' : 'min-h-[30px] text-base')}>{formatAmount(totalAmountDue)}</div>
                     </div>
                 </div>
             </main>
@@ -268,13 +270,13 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                       {/* Intentionally blank, for spacing */}
                   </div>
                   <div className="w-1/2 text-center">
-                      <div className="w-40 min-h-16 mx-auto flex items-center justify-center">
+                      <div className={cn("w-40 mx-auto flex items-center justify-center", isCompact ? 'min-h-12' : 'min-h-16')}>
                           {settings.appearance?.signature && (
-                                <img src={settings.appearance.signature} alt="Signature" style={{ maxHeight: '64px', maxWidth: '100%', objectFit: 'contain' }} data-ai-hint="signature" />
+                                <img src={settings.appearance.signature} alt="Signature" style={{ maxHeight: isCompact ? '40px' : '64px', maxWidth: '100%', objectFit: 'contain' }} data-ai-hint="signature" />
                           )}
                       </div>
                       <p className="border-t-2 border-black w-48 mx-auto mt-1 pt-1 font-bold">
-                          CO-ORDINATING DIRECTOR
+                          COORDINATING DIRECTOR
                       </p>
                   </div>
               </div>

@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { useBillData } from '@/context/BillDataContext';
 import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type GeneralSettings = {
   assemblyName?: string;
@@ -28,7 +29,33 @@ type AppearanceSettings = {
   billWarningText?: string;
 };
 
-const BillSheet = React.forwardRef<HTMLDivElement, { properties: Property[], settings: any, billsPerPage: number }>(({ properties, settings, billsPerPage }, ref) => {
+const BillSheet = React.forwardRef<HTMLDivElement, { properties: Property[], settings: any, billsPerPage: number, isCompact: boolean }>(({ properties, settings, billsPerPage, isCompact }, ref) => {
+    
+    // Logic for 4 bills per page
+    if (billsPerPage === 4) {
+        const propertyChunks: Property[][] = [];
+        for (let i = 0; i < properties.length; i += 4) {
+            propertyChunks.push(properties.slice(i, i + 4));
+        }
+
+        return (
+            <div ref={ref}>
+                {propertyChunks.map((chunk, index) => (
+                    <div key={index} className="print-page-break w-[210mm] h-[297mm] mx-auto bg-white grid grid-cols-2 grid-rows-2 box-border">
+                        {chunk.map((property) => (
+                            <div key={property.id} className="w-full h-full box-border overflow-hidden flex items-center justify-center border-dashed border-gray-400 [&:nth-child(1)]:border-r [&:nth-child(1)]:border-b [&:nth-child(2)]:border-b [&:nth-child(3)]:border-r">
+                               <div className="w-full h-full scale-[0.95] flex items-center justify-center">
+                                    <PrintableContent property={property} settings={settings} isCompact={true} />
+                               </div>
+                            </div>
+                        ))}
+                         {/* Fill empty grid cells if the last page is not full */}
+                        {Array.from({ length: 4 - chunk.length }).map((_, i) => <div key={`empty-${i}`}></div>)}
+                    </div>
+                ))}
+            </div>
+        );
+    }
     
     // Logic for 2 bills per page
     if (billsPerPage === 2) {
@@ -45,7 +72,7 @@ const BillSheet = React.forwardRef<HTMLDivElement, { properties: Property[], set
                             <React.Fragment key={property.id}>
                                <div className="h-[148.5mm] w-full box-border overflow-hidden flex items-center justify-center">
                                    <div className="w-full h-full scale-[0.95] flex items-center justify-center">
-                                        <PrintableContent property={property} settings={settings} />
+                                        <PrintableContent property={property} settings={settings} isCompact={isCompact} />
                                    </div>
                                </div>
                                {chunk.length === 2 && chunkIndex === 0 && (
@@ -68,7 +95,7 @@ const BillSheet = React.forwardRef<HTMLDivElement, { properties: Property[], set
                     properties.map((property) => (
                         <div key={property.id} className="print-page-break w-[210mm] h-[297mm] mx-auto bg-white flex items-center justify-center">
                             <div className="w-full h-full scale-[0.95] flex items-center justify-center">
-                                <PrintableContent property={property} settings={settings} />
+                                <PrintableContent property={property} settings={settings} isCompact={isCompact}/>
                             </div>
                         </div>
                     ))
@@ -101,6 +128,8 @@ export default function BulkPrintPage() {
   const [isPreparing, setIsPreparing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [billsPerPage, setBillsPerPage] = useState(2);
+  const [isCompact, setIsCompact] = useState(false);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -249,7 +278,11 @@ export default function BulkPrintPage() {
                 Print Preview ({allProperties.length} {allProperties.length === 1 ? 'Bill' : 'Bills'})
             </h1>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            <div className="flex items-center space-x-2">
+                <Checkbox id="compact-mode" checked={isCompact || billsPerPage === 4} onCheckedChange={(checked) => setIsCompact(Boolean(checked))} disabled={billsPerPage === 4} />
+                <Label htmlFor="compact-mode" className="whitespace-nowrap">Compact Mode</Label>
+            </div>
             <div className="flex items-center space-x-2 w-full sm:w-auto">
                 <Label htmlFor="bills-per-page" className="whitespace-nowrap">Bills per Page</Label>
                 <Select value={String(billsPerPage)} onValueChange={(v) => setBillsPerPage(Number(v))}>
@@ -259,6 +292,7 @@ export default function BulkPrintPage() {
                     <SelectContent>
                         <SelectItem value="1">1</SelectItem>
                         <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="4">4</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -280,7 +314,7 @@ export default function BulkPrintPage() {
       </main>
       
       <div className="invisible h-0 overflow-hidden print:visible print:h-auto print:overflow-visible">
-        <BillSheet ref={componentRef} properties={renderedProperties} settings={settings} billsPerPage={billsPerPage} />
+        <BillSheet ref={componentRef} properties={renderedProperties} settings={settings} billsPerPage={billsPerPage} isCompact={isCompact || billsPerPage === 4} />
       </div>
     </div>
   );
