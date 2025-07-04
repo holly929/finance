@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -90,7 +89,8 @@ export default function LoginPage() {
           <CardHeader className="text-center p-6">
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary overflow-hidden">
                {assemblyLogo ? (
-                <Image src={assemblyLogo} alt="Assembly Logo" width={64} height={64} className="object-contain" />
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={assemblyLogo} alt="Assembly Logo" style={{height: '100%', width: '100%', objectFit: 'contain'}} />
               ) : (
                 <Landmark className="h-10 w-10" />
               )}

@@ -15,6 +15,12 @@ export type Property = {
   [key: string]: any;
 };
 
+export type BillStatus = 'Paid' | 'Pending' | 'Overdue' | string;
+
+export type PropertyWithStatus = Property & {
+  status: BillStatus;
+};
+
 export type Bill = {
   id: string;
   propertyId: string;

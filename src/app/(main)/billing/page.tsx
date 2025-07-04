@@ -34,12 +34,13 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Property } from '@/lib/types';
-import { EditPropertyDialog } from '@/components/edit-property-dialog';
+import type { PropertyWithStatus, BillStatus } from '@/lib/types'; // Import PropertyWithStatus and BillStatus
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getBillStatus } from '@/lib/billing-utils';
 import { usePropertyData } from '@/context/PropertyDataContext';
 import { useAuth } from '@/context/AuthContext';
+import { EditPropertyDialog } from '@/components/edit-property-dialog';
 
 const ROWS_PER_PAGE = 15;
 
@@ -95,9 +96,9 @@ export default function BillingPage() {
     toast({ title: 'Property Updated', description: 'The property has been successfully updated.' });
   };
 
-  const propertiesWithStatus = React.useMemo(() => {
+  const propertiesWithStatus = React.useMemo<PropertyWithStatus[]>(() => {
     return properties.map(p => ({ ...p, status: getBillStatus(p) }));
-  }, [properties]);
+  }, [properties]); // Explicitly type the result
 
   const filteredData = React.useMemo(() => {
     let intermediateData = propertiesWithStatus;
@@ -150,7 +151,7 @@ export default function BillingPage() {
     return properties.filter(row => selectedRows.includes(row.id));
   }, [properties, selectedRows]);
   
-  const statusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+  const statusVariant = (status: BillStatus): 'default' | 'secondary' | 'destructive' | 'outline' => {
       switch(String(status).toLowerCase()) {
           case 'paid': return 'default';
           case 'pending': return 'secondary';
@@ -197,7 +198,7 @@ export default function BillingPage() {
                 </TableCell>
                 {headers.map((header, cellIndex) => (
                   <TableCell key={cellIndex} className={cellIndex === 0 ? 'font-medium' : ''}>
-                    {row[header]}
+                    {(row as PropertyWithStatus)[header]}
                   </TableCell>
                 ))}
                 <TableCell>
@@ -292,11 +293,11 @@ export default function BillingPage() {
                 <Badge variant={statusVariant(row.status)} className="text-xs">{row.status}</Badge>
             </div>
             {headers.slice(1).map(header => {
-              if (header.toLowerCase() === 'id' || !row[header]) return null;
+              if (header.toLowerCase() === 'id' || !(row as PropertyWithStatus)[header]) return null;
               return (
                 <div key={header} className="flex justify-between items-center text-xs">
                   <span className="font-semibold text-muted-foreground">{header}</span>
-                  <span className="text-right">{String(row[header])}</span>
+                  <span className="text-right">{String((row as PropertyWithStatus)[header])}</span>
                 </div>
               );
             })}
@@ -327,7 +328,7 @@ export default function BillingPage() {
               Please go to the <Button variant="link" onClick={() => router.push('/properties')} className="p-0 h-auto">Properties</Button> page to import your data first.
             </p>
         </div>
-    )
+    );
   }
 
   return (
@@ -406,7 +407,7 @@ export default function BillingPage() {
             </Card>
         </TabsContent>
       </Tabs>
-      <EditPropertyDialog 
+      <EditPropertyDialog
         property={editingProperty}
         isOpen={!!editingProperty}
         onOpenChange={(isOpen) => !isOpen && setEditingProperty(null)}
