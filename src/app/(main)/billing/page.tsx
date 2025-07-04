@@ -45,6 +45,22 @@ import { EditPropertyDialog } from '@/components/edit-property-dialog';
 
 const ROWS_PER_PAGE = 15;
 
+const getPropertyValue = (property: Property, keyAliases: string[]): any => {
+    if (!property) return undefined;
+    const propertyKeys = Object.keys(property);
+    const normalizeKey = (str: string) => (str || '').toLowerCase().replace(/[\s._-]/g, '');
+
+    for (const alias of keyAliases) {
+        const normalizedAlias = normalizeKey(alias);
+        const foundKey = propertyKeys.find(pKey => normalizeKey(pKey) === normalizedAlias);
+        if (foundKey && property[foundKey] !== undefined && property[foundKey] !== null && String(property[foundKey]).trim() !== '') {
+            return property[foundKey];
+        }
+    }
+    return undefined;
+};
+
+
 export default function BillingPage() {
   const { toast } = useToast();
   const router = useRouter();
@@ -108,20 +124,24 @@ export default function BillingPage() {
     let missingPhoneCount = 0;
 
     selectedProperties.forEach(p => {
-        const phone = p['Phone Number'];
+        const phone = getPropertyValue(p, ['Phone Number', 'Phone', 'Telephone', 'phonenumber']);
         if (phone) {
-            const rateableValue = Number(p['Rateable Value']) || 0;
-            const rateImpost = Number(p['Rate Impost']) || 0;
-            const sanitationCharged = Number(p['Sanitation Charged']) || 0;
-            const previousBalance = Number(p['Previous Balance']) || 0;
-            const totalPayment = Number(p['Total Payment']) || 0;
+            const rateableValue = Number(getPropertyValue(p, ['Rateable Value', 'rateablevalue'])) || 0;
+            const rateImpost = Number(getPropertyValue(p, ['Rate Impost', 'rateimpost'])) || 0;
+            const sanitationCharged = Number(getPropertyValue(p, ['Sanitation Charged', 'Sanitation', 'sanitationcharged'])) || 0;
+            const previousBalance = Number(getPropertyValue(p, ['Previous Balance', 'Prev Balance', 'Arrears', 'previousbalance', 'Arrears BF'])) || 0;
+            const totalPayment = Number(getPropertyValue(p, ['Total Payment', 'Amount Paid', 'Payment', 'totalpayment'])) || 0;
+
             const amountCharged = rateableValue * rateImpost;
             const totalThisYear = amountCharged + sanitationCharged;
             const totalAmountDue = totalThisYear + previousBalance - totalPayment;
 
+            const ownerName = getPropertyValue(p, ['Owner Name', 'Name of Owner', 'Rate Payer', 'ownername']) || 'Customer';
+            const propertyNo = getPropertyValue(p, ['Property No', 'Property Number', 'propertyno']) || 'N/A';
+
             let message = smsSettings.smsTemplate || '';
-            message = message.replace(/{{Owner Name}}/g, p['Owner Name'] || 'Customer');
-            message = message.replace(/{{Property No}}/g, p['Property No'] || 'N/A');
+            message = message.replace(/{{Owner Name}}/g, ownerName);
+            message = message.replace(/{{Property No}}/g, propertyNo);
             message = message.replace(/{{Amount Due}}/g, totalAmountDue.toFixed(2));
             message = message.replace(/{{AssemblyName}}/g, generalSettings.assemblyName || '');
             
