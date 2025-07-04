@@ -48,34 +48,61 @@ const ROWS_PER_PAGE = 15;
 
 const getPropertyValue = (property: Property, keyAliases: string[]): any => {
     if (!property) return undefined;
-    const propertyKeys = Object.keys(property);
-    const normalizeKey = (str: string) => (str || '').toLowerCase().replace(/[\s._-]/g, '');
-    const normalizeAndTokenize = (str: string) => 
-        (str || '').toLowerCase().replace(/[\s._-]/g, ' ').match(/\w+/g) || [];
 
-    // 1. First pass: Exact normalized match
+    const propertyKeys = Object.keys(property);
+    const normalize = (str: string) => (str || '').toLowerCase().replace(/[\s._-]/g, '');
+    const tokenize = (str: string) => (str || '').toLowerCase().match(/\w+/g) || [];
+
+    // --- Pass 1: Exact normalized match ---
     for (const alias of keyAliases) {
-        const normalizedAlias = normalizeKey(alias);
-        const foundKey = propertyKeys.find(pKey => normalizeKey(pKey) === normalizedAlias);
-        if (foundKey && property[foundKey] !== undefined && property[foundKey] !== null && String(property[foundKey]).trim() !== '') {
-            return property[foundKey];
+        const normalizedAlias = normalize(alias);
+        for (const pKey of propertyKeys) {
+            if (normalize(pKey) === normalizedAlias) {
+                const value = property[pKey];
+                if (value !== undefined && value !== null && String(value).trim() !== '') {
+                    return value;
+                }
+            }
+        }
+    }
+    
+    // --- Pass 2: Substring inclusion on normalized keys ---
+    for (const alias of keyAliases) {
+        const normalizedAlias = normalize(alias);
+        if (normalizedAlias.length < 3) continue;
+
+        for (const pKey of propertyKeys) {
+            const normalizedPKey = normalize(pKey);
+            if (['id', 'status'].includes(normalizedPKey)) continue;
+
+            if (normalizedPKey.includes(normalizedAlias) || normalizedAlias.includes(normalizedPKey)) {
+                const value = property[pKey];
+                if (value !== undefined && value !== null && String(value).trim() !== '') {
+                    return value;
+                }
+            }
         }
     }
 
-    // 2. Second pass: Token-based matching. A property key is a match if it contains ALL tokens from ANY of the aliases.
+    // --- Pass 3: Token-based matching ---
     for (const alias of keyAliases) {
-        const aliasTokens = normalizeAndTokenize(alias);
+        const aliasTokens = tokenize(alias);
         if (aliasTokens.length === 0) continue;
 
-        const foundKey = propertyKeys.find(pKey => {
-            if (['id', 'status'].includes(normalizeKey(pKey))) return false;
+        for (const pKey of propertyKeys) {
+            if (['id', 'status'].includes(normalize(pKey))) continue;
             
-            const pKeyLower = pKey.toLowerCase();
-            return aliasTokens.every(token => pKeyLower.includes(token));
-        });
+            const pKeyTokens = tokenize(pKey);
+            if (pKeyTokens.length === 0) continue;
+            
+            const allTokensFound = aliasTokens.every(aliasToken => pKeyTokens.includes(aliasToken));
 
-        if (foundKey && property[foundKey] !== undefined && property[foundKey] !== null && String(property[foundKey]).trim() !== '') {
-            return property[foundKey];
+            if (allTokensFound) {
+                 const value = property[pKey];
+                if (value !== undefined && value !== null && String(value).trim() !== '') {
+                    return value;
+                }
+            }
         }
     }
 
@@ -524,5 +551,3 @@ export default function BillingPage() {
     </>
   );
 }
-
-    
