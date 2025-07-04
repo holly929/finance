@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -338,7 +339,7 @@ export default function PropertiesPage() {
             <CardHeader>
             <CardTitle className="font-headline">Manage Properties</CardTitle>
             <CardDescription>
-                View, edit, or delete your imported property data.
+                View, edit, or delete your {properties.length} imported properties.
             </CardDescription>
             <div className="flex flex-col sm:flex-row items-center gap-2 pt-4">
                 <Input

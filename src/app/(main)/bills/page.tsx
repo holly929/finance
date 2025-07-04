@@ -1,13 +1,15 @@
+
 'use client';
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, Loader2, Calendar, Filter, BookCopy, MoreHorizontal } from 'lucide-react';
+import { Eye, Loader2, Calendar, Filter, BookCopy, MoreHorizontal, Printer } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useBillData } from '@/context/BillDataContext';
 import { useRequirePermission } from '@/hooks/useRequirePermission';
 import type { Bill, Property } from '@/lib/types';
@@ -21,6 +23,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 
 const ROWS_PER_PAGE = 15;
 
@@ -75,10 +78,12 @@ export default function BillsPage() {
   const router = useRouter();
   const { bills, loading } = useBillData();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   const [filterYear, setFilterYear] = React.useState('all');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [viewingBill, setViewingBill] = React.useState<Bill | null>(null);
+  const [selectedRows, setSelectedRows] = React.useState<string[]>([]);
 
   const availableYears = React.useMemo(() => {
     if (!bills) return [];
@@ -107,12 +112,44 @@ export default function BillsPage() {
 
   React.useEffect(() => {
     setCurrentPage(1);
+    setSelectedRows([]);
   }, [filterYear]);
   
   const handleViewBill = (bill: Bill) => {
     setViewingBill(bill);
   };
   
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(filteredData.map(row => row.id));
+    } else {
+      setSelectedRows([]);
+    }
+  };
+  
+  const handleSelectRow = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedRows(prev => [...prev, id]);
+    } else {
+      setSelectedRows(prev => prev.filter(rowId => rowId !== id));
+    }
+  };
+
+  const handlePrintSelected = () => {
+    if (selectedRows.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'No Bills Selected',
+        description: 'Please select at least one bill to print.',
+      });
+      return;
+    }
+    const selectedBills = bills.filter(bill => selectedRows.includes(bill.id));
+    const propertiesToPrint = selectedBills.map(bill => bill.propertySnapshot);
+    localStorage.setItem('selectedPropertiesForPrinting', JSON.stringify(propertiesToPrint));
+    router.push('/properties/print-preview');
+  };
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -132,11 +169,21 @@ export default function BillsPage() {
       </div>
     );
   }
+  
+  const isAllFilteredSelected = filteredData.length > 0 && selectedRows.length === filteredData.length;
+  const isSomeRowsSelected = selectedRows.length > 0 && selectedRows.length < filteredData.length;
 
   const renderDesktopView = () => (
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead className="w-[50px]">
+              <Checkbox
+                checked={isAllFilteredSelected ? true : isSomeRowsSelected ? 'indeterminate' : false}
+                onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                aria-label="Select all rows"
+              />
+          </TableHead>
           <TableHead>Property No.</TableHead>
           <TableHead>Owner Name</TableHead>
           <TableHead>Date Generated</TableHead>
@@ -147,7 +194,14 @@ export default function BillsPage() {
       </TableHeader>
       <TableBody>
         {paginatedData.length > 0 ? paginatedData.map(bill => (
-          <TableRow key={bill.id}>
+          <TableRow key={bill.id} data-state={selectedRows.includes(bill.id) ? "selected" : undefined}>
+            <TableCell>
+                  <Checkbox
+                    checked={selectedRows.includes(bill.id)}
+                    onCheckedChange={(checked) => handleSelectRow(bill.id, !!checked)}
+                    aria-label={`Select row ${bill.id}`}
+                  />
+            </TableCell>
             <TableCell className="font-medium">{getNormalizedValue(bill.propertySnapshot, 'Property No')}</TableCell>
             <TableCell>{getNormalizedValue(bill.propertySnapshot, 'Owner Name')}</TableCell>
             <TableCell>{formatDate(bill.generatedAt)}</TableCell>
@@ -162,7 +216,7 @@ export default function BillsPage() {
           </TableRow>
         )) : (
           <TableRow>
-            <TableCell colSpan={6} className="h-24 text-center">
+            <TableCell colSpan={7} className="h-24 text-center">
               No results found for the selected year.
             </TableCell>
           </TableRow>
@@ -174,12 +228,19 @@ export default function BillsPage() {
   const renderMobileView = () => (
     <div className="space-y-4">
       {paginatedData.length > 0 ? paginatedData.map(bill => (
-        <Card key={bill.id}>
+        <Card key={bill.id} data-state={selectedRows.includes(bill.id) ? "selected" : undefined} className="data-[state=selected]:bg-muted/50">
           <CardHeader>
             <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-base font-semibold">{getNormalizedValue(bill.propertySnapshot, 'Owner Name')}</CardTitle>
-                <CardDescription>Property No: {getNormalizedValue(bill.propertySnapshot, 'Property No')}</CardDescription>
+              <div className="flex items-center gap-4">
+                <Checkbox
+                    checked={selectedRows.includes(bill.id)}
+                    onCheckedChange={(checked) => handleSelectRow(bill.id, !!checked)}
+                    aria-label={`Select row ${bill.id}`}
+                  />
+                <div>
+                  <CardTitle className="text-base font-semibold">{getNormalizedValue(bill.propertySnapshot, 'Owner Name')}</CardTitle>
+                  <CardDescription>Property No: {getNormalizedValue(bill.propertySnapshot, 'Property No')}</CardDescription>
+                </div>
               </div>
                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -196,7 +257,7 @@ export default function BillsPage() {
                 </DropdownMenu>
             </div>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+          <CardContent className="space-y-2 text-sm pl-16">
              <div className="flex justify-between items-center text-xs text-muted-foreground">
                 <span className="font-semibold">Date Generated</span>
                 <span>{formatDate(bill.generatedAt)}</span>
@@ -223,26 +284,34 @@ export default function BillsPage() {
     <>
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight font-headline">Generated Bills</h1>
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={filterYear} onValueChange={setFilterYear}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filter by year..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Years</SelectItem>
-              {availableYears.map(year => (
-                <SelectItem key={year} value={String(year)}>{year}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {selectedRows.length > 0 && (
+            <Button onClick={handlePrintSelected} variant="outline" size="sm">
+              <Printer className="mr-2 h-4 w-4" />
+              Print Selected ({selectedRows.length})
+            </Button>
+          )}
+          <div className="flex items-center gap-2 flex-grow sm:flex-grow-0">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={filterYear} onValueChange={setFilterYear}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by year..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Years</SelectItem>
+                {availableYears.map(year => (
+                  <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
       <Card>
         <CardHeader>
           <CardTitle>Bill History</CardTitle>
           <CardDescription>
-            A log of all bills that have been printed from the system.
+            A log of all bills that have been printed from the system. {selectedRows.length > 0 && `(${selectedRows.length} selected)`}
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -1,10 +1,11 @@
+
 'use client';
 
 import * as React from 'react';
 import { DollarSign, Home, TrendingUp, AlertCircle, Loader2, BarChart2 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Pie, PieChart, Cell } from 'recharts';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
 import type { Property, PaymentStatusData, RevenueByPropertyType } from '@/lib/types';
 import { usePropertyData } from '@/context/PropertyDataContext';
@@ -139,6 +140,17 @@ export default function DashboardPage() {
   }
 
   const hasData = properties.length > 0;
+  
+  const totalRevenueByType = React.useMemo(() => {
+    if (!revenueByPropertyType) return 0;
+    return revenueByPropertyType.reduce((acc, curr) => acc + curr.revenue, 0);
+  }, [revenueByPropertyType]);
+
+  const totalFinancialStatus = React.useMemo(() => {
+    if (!paymentStatus) return 0;
+    return paymentStatus.reduce((acc, curr) => acc + curr.value, 0);
+  }, [paymentStatus]);
+
 
   return (
     <>
@@ -212,6 +224,17 @@ export default function DashboardPage() {
                 <EmptyState message="Import property data to see revenue breakdown." />
             )}
           </CardContent>
+          {hasData && revenueByPropertyType.length > 0 && (
+            <CardFooter className="border-t pt-4">
+                <div className="flex w-full items-start gap-2 text-sm">
+                    <div className="grid gap-2">
+                        <div className="flex items-center gap-2 font-medium leading-none">
+                            Total revenue shown in chart: {formatCurrency(totalRevenueByType)}
+                        </div>
+                    </div>
+                </div>
+            </CardFooter>
+          )}
         </Card>
         <Card className="col-span-4 lg:col-span-3">
           <CardHeader>
@@ -244,6 +267,17 @@ export default function DashboardPage() {
                 <EmptyState message="Import property data to see financial status." />
             )}
           </CardContent>
+           {hasData && paymentStatus.length > 0 && (
+            <CardFooter className="border-t pt-4">
+                 <div className="flex w-full items-start gap-2 text-sm">
+                    <div className="grid gap-2">
+                        <div className="flex items-center gap-2 font-medium leading-none">
+                        Total amount represented: {formatCurrency(totalFinancialStatus)}
+                        </div>
+                    </div>
+                </div>
+            </CardFooter>
+          )}
         </Card>
       </div>
     </>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -279,7 +280,7 @@ export default function ReportsPage() {
                     {totalPages > 1 && (
                       <CardFooter className="flex justify-between items-center border-t pt-4">
                         <span className="text-sm text-muted-foreground">
-                          Page {currentPage} of {totalPages}
+                          Page {currentPage} of {totalPages} ({reportData.length} total records)
                         </span>
                         <div className="flex items-center gap-2">
                           <Button
