@@ -343,5 +343,3 @@ export function BillDialog({ property, isOpen, onOpenChange }: BillDialogProps) 
     </Dialog>
   );
 }
-
-    
