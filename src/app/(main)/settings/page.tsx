@@ -74,7 +74,6 @@ const permissionPageLabels: Record<PermissionPage, string> = {
   'reports': 'Reports',
   'users': 'User Management',
   'settings': 'Settings',
-  'ai-suggester': 'AI Suggester',
   'integrations': 'Integrations'
 };
 
