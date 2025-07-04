@@ -94,28 +94,32 @@ const useNormalizedProperty = (property: Property | null) => {
 };
 
 
-export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Property, settings: any, isCompact?: boolean }>(
-  ({ property, settings, isCompact = false }, ref) => {
+export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Property, settings: any, isCompact?: boolean, displaySettings?: Record<string, boolean> }>(
+  ({ property, settings, isCompact = false, displaySettings: displaySettingsProp }, ref) => {
     
     const normalizedProperty = useNormalizedProperty(property);
     const [displaySettings, setDisplaySettings] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
-        try {
-            const savedFields = localStorage.getItem('billDisplaySettings');
-            if (savedFields) {
-                setDisplaySettings(JSON.parse(savedFields));
-            } else if (property) {
-                const allFields = Object.keys(property).reduce((acc, key) => {
-                    acc[key] = true;
-                    return acc;
-                }, {} as Record<string, boolean>);
-                setDisplaySettings(allFields);
+        if (displaySettingsProp) {
+            setDisplaySettings(displaySettingsProp);
+        } else {
+            try {
+                const savedFields = localStorage.getItem('billDisplaySettings');
+                if (savedFields) {
+                    setDisplaySettings(JSON.parse(savedFields));
+                } else if (property) {
+                    const allFields = Object.keys(property).reduce((acc, key) => {
+                        acc[key] = true;
+                        return acc;
+                    }, {} as Record<string, boolean>);
+                    setDisplaySettings(allFields);
+                }
+            } catch (error) {
+                console.error("Could not load bill display settings", error);
             }
-        } catch (error) {
-            console.error("Could not load bill display settings", error);
         }
-    }, [property]);
+    }, [property, displaySettingsProp]);
     
     const getNumber = (key: string): number | null => {
         if (!normalizedProperty) return null;
@@ -191,13 +195,13 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
         <div className="border-[3px] border-black p-1 relative h-full flex flex-col">
           <div className="absolute inset-0 z-0 flex items-center justify-center opacity-10 pointer-events-none">
               {settings.appearance?.ghanaLogo && (
-                  <Image src={settings.appearance.ghanaLogo} alt="Watermark" width={300} height={300} style={{objectFit: 'contain'}} />
+                  <img src={settings.appearance.ghanaLogo} alt="Watermark" width={300} height={300} style={{objectFit: 'contain'}} />
               )}
           </div>
           <div className="relative z-10 flex flex-col flex-grow">
             <header className="flex justify-between items-start mb-2">
                 <div className="w-1/4 flex justify-start items-center min-h-[70px]">
-                    {settings.appearance?.ghanaLogo && <Image src={settings.appearance.ghanaLogo} alt="Ghana Coat of Arms" width={isCompact ? 60 : 70} height={isCompact ? 60 : 70} style={{objectFit:"contain"}} />}
+                    {settings.appearance?.ghanaLogo && <img src={settings.appearance.ghanaLogo} alt="Ghana Coat of Arms" width={isCompact ? 60 : 70} height={isCompact ? 60 : 70} style={{objectFit:"contain"}} />}
                 </div>
                 <div className="w-1/2 text-center">
                     <h1 className={cn("font-bold tracking-wide", isCompact ? 'text-base' : 'text-lg')}>{settings.general?.assemblyName?.toUpperCase() || 'DISTRICT ASSEMBLY'}</h1>
@@ -206,7 +210,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                     <p className={cn(isCompact ? 'text-[9px]' : 'text-[12px]')}>TEL: {settings.general?.contactPhone}</p>
                 </div>
                 <div className="w-1/4 flex justify-end items-center min-h-[70px]">
-                    {settings.appearance?.assemblyLogo && <Image src={settings.appearance.assemblyLogo} alt="Assembly Logo" width={isCompact ? 60 : 70} height={isCompact ? 60 : 70} style={{objectFit:"contain"}} />}
+                    {settings.appearance?.assemblyLogo && <img src={settings.appearance.assemblyLogo} alt="Assembly Logo" width={isCompact ? 60 : 70} height={isCompact ? 60 : 70} style={{objectFit:"contain"}} />}
                 </div>
             </header>
             
@@ -270,7 +274,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                       {/* Intentionally blank, for spacing */}
                   </div>
                   <div className="w-1/2 text-center">
-                      <div className={cn("w-40 mx-auto flex items-center justify-center", isCompact ? 'min-h-12' : 'min-h-16')}>
+                      <div className={cn("w-40 mx-auto flex items-center justify-center", isCompact ? 'min-h-[48px]' : 'min-h-[64px]')}>
                           {settings.appearance?.signature && (
                                 <img src={settings.appearance.signature} alt="Signature" style={{ maxHeight: isCompact ? '40px' : '64px', maxWidth: '100%', objectFit: 'contain' }} data-ai-hint="signature" />
                           )}
@@ -339,3 +343,5 @@ export function BillDialog({ property, isOpen, onOpenChange }: BillDialogProps) 
     </Dialog>
   );
 }
+
+    

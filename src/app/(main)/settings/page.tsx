@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -18,6 +19,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useRequirePermission } from '@/hooks/useRequirePermission';
 import { PERMISSION_PAGES, usePermissions, UserRole, PermissionPage } from '@/context/PermissionsContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import type { Property } from '@/lib/types';
+import { PrintableContent } from '@/components/bill-dialog';
 
 const generalFormSchema = z.object({
   systemName: z.string().min(3, 'System name must be at least 3 characters.'),
@@ -66,7 +69,26 @@ const permissionPageLabels: Record<PermissionPage, string> = {
   'reports': 'Reports',
   'users': 'User Management',
   'settings': 'Settings',
+  'ai-suggester': 'AI Suggester',
+  'integrations': 'Integrations'
 };
+
+const mockPropertyForPreview: Property = {
+  id: 'preview-123',
+  'Owner Name': 'John Preview Doe',
+  'Town': 'Settingsville',
+  'Suburb': 'Preview Estates',
+  'Property No': 'PV-001',
+  'Valuation List No.': 'VLN-999',
+  'Account Number': '1234567890',
+  'Property Type': 'Residential',
+  'Rateable Value': 5000,
+  'Rate Impost': 0.05,
+  'Sanitation Charged': 50,
+  'Previous Balance': 200,
+  'Total Payment': 100,
+};
+
 
 export default function SettingsPage() {
   useRequirePermission();
@@ -134,6 +156,16 @@ export default function SettingsPage() {
       billWarningText: 'PAY AT ONCE OR FACE LEGAL ACTION',
     },
   });
+
+  const watchedAppearanceForm = appearanceForm.watch();
+  
+  const settingsForPreview = {
+    general: generalSettings,
+    appearance: {
+      ...appearanceSettings,
+      billWarningText: watchedAppearanceForm.billWarningText,
+    },
+  };
   
   useEffect(() => {
     if (generalSettings) generalForm.reset(generalSettings);
@@ -350,64 +382,81 @@ export default function SettingsPage() {
                   <CardTitle>Appearance & Branding</CardTitle>
                   <CardDescription>Customize the look and feel of printed bills and the login screen.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                     <FormField control={appearanceForm.control} name="assemblyLogo" render={({ field }) => (
+                <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                  <div className="space-y-8">
+                    <div className="space-y-8">
+                      <FormField control={appearanceForm.control} name="assemblyLogo" render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Assembly Logo</FormLabel>
+                              <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'assemblyLogo')} /></FormControl>
+                              <FormDescription>Used on login screen and bills.</FormDescription>
+                              <ImageUploadPreview src={appearanceSettings?.assemblyLogo || 'https://placehold.co/192x96.png'} alt="Assembly Logo Preview" dataAiHint="government logo" />
+                          </FormItem>
+                          )}
+                      />
+                      <FormField control={appearanceForm.control} name="ghanaLogo" render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Ghana Coat of Arms</FormLabel>
+                              <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'ghanaLogo')} /></FormControl>
+                              <FormDescription>Used on printed bills.</FormDescription>
+                              <ImageUploadPreview src={appearanceSettings?.ghanaLogo || 'https://placehold.co/96x96.png'} alt="Ghana Logo Preview" dataAiHint="ghana coat arms" />
+                          </FormItem>
+                          )}
+                      />
+                      <FormField control={appearanceForm.control} name="signature" render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Coordinating Director's Signature</FormLabel>
+                              <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'signature')} /></FormControl>
+                              <FormDescription>Used on printed bills.</FormDescription>
+                              <ImageUploadPreview src={appearanceSettings?.signature || 'https://placehold.co/192x96.png'} alt="Signature Preview" dataAiHint="signature" />
+                          </FormItem>
+                          )}
+                      />
+                    </div>
+                    <FormField control={appearanceForm.control} name="billWarningText" render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Assembly Logo</FormLabel>
-                            <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'assemblyLogo')} /></FormControl>
-                            <FormDescription>Used on login screen and bills.</FormDescription>
-                            <ImageUploadPreview src={appearanceSettings?.assemblyLogo || 'https://placehold.co/192x96.png'} alt="Assembly Logo Preview" dataAiHint="government logo" />
+                          <FormLabel>Bill Warning Text</FormLabel>
+                          <FormControl><Textarea {...field} /></FormControl>
+                          <FormDescription>This text will appear at the bottom of every bill.</FormDescription>
+                          <FormMessage />
                         </FormItem>
-                        )}
+                      )}
                     />
-                     <FormField control={appearanceForm.control} name="ghanaLogo" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Ghana Coat of Arms</FormLabel>
-                            <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'ghanaLogo')} /></FormControl>
-                            <FormDescription>Used on printed bills.</FormDescription>
-                            <ImageUploadPreview src={appearanceSettings?.ghanaLogo || 'https://placehold.co/96x96.png'} alt="Ghana Logo Preview" dataAiHint="ghana coat arms" />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField control={appearanceForm.control} name="signature" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Coordinating Director's Signature</FormLabel>
-                            <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'signature')} /></FormControl>
-                            <FormDescription>Used on printed bills.</FormDescription>
-                            <ImageUploadPreview src={appearanceSettings?.signature || 'https://placehold.co/192x96.png'} alt="Signature Preview" dataAiHint="signature" />
-                        </FormItem>
-                        )}
-                    />
-                  </div>
-                   <FormField control={appearanceForm.control} name="billWarningText" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bill Warning Text</FormLabel>
-                        <FormControl><Textarea {...field} /></FormControl>
-                         <FormDescription>This text will appear at the bottom of every bill.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
-                  <div className="border-t pt-6">
-                    <h3 className="text-lg font-medium">Bill Display Fields</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Select which fields to show on the printed bill.</p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                      {Object.keys(billFields).map((field) => (
-                        <FormItem key={field} className="flex flex-row items-start space-x-3 space-y-0">
-                           <FormControl>
-                            <Checkbox
-                              checked={billFields[field]}
-                              onCheckedChange={() => handleFieldToggle(field)}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">{field}</FormLabel>
-                        </FormItem>
-                      ))}
+                    <div className="border-t pt-6">
+                      <h3 className="text-lg font-medium">Bill Display Fields</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Select which fields to show on the printed bill.</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                        {Object.keys(billFields).map((field) => (
+                          <FormItem key={field} className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={billFields[field]}
+                                onCheckedChange={() => handleFieldToggle(field)}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">{field}</FormLabel>
+                          </FormItem>
+                        ))}
+                      </div>
                     </div>
                   </div>
-
+                  <div className="hidden lg:block">
+                    <FormLabel>Live Preview</FormLabel>
+                    <div className="mt-2 w-full aspect-[210/297] bg-white shadow-lg rounded-lg border p-2 overflow-hidden sticky top-24">
+                       <div className="scale-[0.55] origin-top-left -translate-x-4 -translate-y-4" style={{ width: '181%', height: '181%' }}>
+                          <PrintableContent
+                            property={mockPropertyForPreview}
+                            settings={settingsForPreview}
+                            displaySettings={billFields}
+                            isCompact={false}
+                          />
+                       </div>
+                    </div>
+                    <FormDescription className="mt-2">
+                        This is a live preview of how your printed bills will appear.
+                    </FormDescription>
+                  </div>
                 </CardContent>
                 <CardFooter className="border-t px-6 py-4">
                   <Button type="submit">Save Appearance</Button>
@@ -467,3 +516,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    
