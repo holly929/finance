@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -75,10 +76,17 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
             ...property,
         };
         const updatedProperties = [...properties, newProperty];
-        let updatedHeaders = headers;
+        let updatedHeaders = [...headers];
 
         if (properties.length === 0) {
             updatedHeaders = Object.keys(property);
+        } else {
+            // Add new keys to headers if they don't exist
+            Object.keys(property).forEach(key => {
+                if (!updatedHeaders.includes(key)) {
+                    updatedHeaders.push(key);
+                }
+            });
         }
 
         setPropertiesState(updatedProperties);

@@ -70,6 +70,7 @@ const useNormalizedProperty = (property: Property | null) => {
 
         const standardToPotentialKeys: Record<string, string[]> = {
             'Owner Name': ['Owner Name', 'Name of Owner', 'Rate Payer', 'ownername'],
+            'Phone Number': ['Phone Number', 'Phone', 'Telephone', 'phonenumber'],
             'Town': ['Town'],
             'Property No': ['Property No', 'Property Number', 'propertyno'],
             'Valuation List No.': ['Valuation List No.', 'Valuation List Number', 'valuationlistno'],
@@ -246,8 +247,8 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
         if (!normalizedProperty) return '';
         const propertyNo = formatValue('Property No');
         const ownerName = (formatValue('Owner Name') || '').substring(0, 20); // Truncate name to keep barcode small
-        const year = new Date().getFullYear();
         const amount = formatAmount(totalAmountDue);
+        const year = new Date().getFullYear();
         return `${propertyNo}|${ownerName}|${amount}|${year}`;
     }, [normalizedProperty, totalAmountDue, formatValue, formatAmount]);
 
@@ -280,6 +281,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                 <div className="flex border-b-2 border-black">
                     <div className="w-[67%] border-r-2 border-black">
                         <DetailRow label="OWNER NAME" valueKey="Owner Name" />
+                        <DetailRow label="PHONE NUMBER" valueKey="Phone Number" />
                         <DetailRow label="TOWN" valueKey="Town" />
                         <DetailRow label="PROPERTY NO:" valueKey="Property No" />
                         <DetailRow label="VALUATION LIST NO.:" valueKey="Valuation List No." />
