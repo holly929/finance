@@ -9,6 +9,7 @@ import {
   View,
   Loader2,
   FilePenLine,
+  MessageSquare,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -34,7 +35,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Property } from '@/lib/types';
-import type { PropertyWithStatus, BillStatus } from '@/lib/types'; // Import PropertyWithStatus and BillStatus
+import type { PropertyWithStatus, BillStatus } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getBillStatus } from '@/lib/billing-utils';
@@ -76,6 +77,65 @@ export default function BillingPage() {
         description: 'Please select at least one property to print.',
       });
     }
+  };
+  
+  const handleSendSms = () => {
+    const smsSettingsStr = localStorage.getItem('smsSettings');
+    const generalSettingsStr = localStorage.getItem('generalSettings');
+
+    if (!smsSettingsStr) {
+      toast({
+        variant: 'destructive',
+        title: 'SMS Not Configured',
+        description: 'Please configure your SMS settings on the Integrations page first.',
+      });
+      return;
+    }
+
+    const smsSettings = JSON.parse(smsSettingsStr);
+    const generalSettings = generalSettingsStr ? JSON.parse(generalSettingsStr) : {};
+
+    if (!smsSettings.accountSid || !smsSettings.authToken || !smsSettings.fromNumber) {
+        toast({
+            variant: 'destructive',
+            title: 'Incomplete SMS Configuration',
+            description: 'Your SMS settings are incomplete. Please check the Integrations page.',
+        });
+        return;
+    }
+
+    let sentCount = 0;
+    let missingPhoneCount = 0;
+
+    selectedProperties.forEach(p => {
+        const phone = p['Phone Number'];
+        if (phone) {
+            const rateableValue = Number(p['Rateable Value']) || 0;
+            const rateImpost = Number(p['Rate Impost']) || 0;
+            const sanitationCharged = Number(p['Sanitation Charged']) || 0;
+            const previousBalance = Number(p['Previous Balance']) || 0;
+            const totalPayment = Number(p['Total Payment']) || 0;
+            const amountCharged = rateableValue * rateImpost;
+            const totalThisYear = amountCharged + sanitationCharged;
+            const totalAmountDue = totalThisYear + previousBalance - totalPayment;
+
+            let message = smsSettings.smsTemplate || '';
+            message = message.replace(/{{Owner Name}}/g, p['Owner Name'] || 'Customer');
+            message = message.replace(/{{Property No}}/g, p['Property No'] || 'N/A');
+            message = message.replace(/{{Amount Due}}/g, totalAmountDue.toFixed(2));
+            message = message.replace(/{{AssemblyName}}/g, generalSettings.assemblyName || '');
+            
+            console.log(`Simulating SMS to ${phone}: "${message}"`);
+            sentCount++;
+        } else {
+            missingPhoneCount++;
+        }
+    });
+
+    toast({
+        title: 'SMS Notifications Sent (Simulation)',
+        description: `${sentCount} messages sent. ${missingPhoneCount > 0 ? `${missingPhoneCount} properties were skipped due to missing phone numbers.` : ''}`,
+    });
   };
 
   const handleDeleteRow = (id: string) => {
@@ -352,7 +412,13 @@ export default function BillingPage() {
                   className="w-full sm:max-w-xs"
                 />
                 {selectedRows.length > 0 && (
-                    <>
+                    <div className="flex items-center gap-2">
+                        {!isViewer && (
+                            <Button variant="secondary" size="sm" onClick={handleSendSms}>
+                                <MessageSquare className="h-4 w-4 mr-2"/>
+                                Send SMS ({selectedRows.length})
+                            </Button>
+                        )}
                         <Button variant="outline" size="sm" onClick={handlePrintSelected}>
                             <Printer className="h-4 w-4 mr-2"/>
                             Print ({selectedRows.length})
@@ -363,7 +429,7 @@ export default function BillingPage() {
                               Delete ({selectedRows.length})
                           </Button>
                         }
-                    </>
+                    </div>
                 )}
             </div>
         </div>

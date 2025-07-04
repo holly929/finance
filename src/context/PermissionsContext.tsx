@@ -6,7 +6,7 @@ import type { User } from '@/lib/types';
 
 // Define the pages/features that can have permissions set
 export const PERMISSION_PAGES = [
-  'dashboard', 'properties', 'billing', 'bills', 'reports', 'users', 'settings'
+  'dashboard', 'properties', 'billing', 'bills', 'reports', 'users', 'settings', 'ai-suggester', 'integrations'
 ] as const;
 
 export type PermissionPage = typeof PERMISSION_PAGES[number];
@@ -23,6 +23,8 @@ const defaultPermissions: RolePermissions = {
     reports: true,
     users: true,
     settings: true,
+    'ai-suggester': true,
+    'integrations': true,
   },
   'Data Entry': {
     dashboard: true,
@@ -32,6 +34,8 @@ const defaultPermissions: RolePermissions = {
     reports: true,
     users: false,
     settings: false,
+    'ai-suggester': true,
+    'integrations': true,
   },
   Viewer: {
     dashboard: true,
@@ -41,6 +45,8 @@ const defaultPermissions: RolePermissions = {
     reports: false,
     users: false,
     settings: false,
+    'ai-suggester': false,
+    'integrations': false,
   },
 };
 

@@ -16,6 +16,8 @@ import {
   LineChart,
   Loader2,
   BookCopy,
+  Plug,
+  Wand,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -45,6 +47,8 @@ const navItems = [
   { href: '/billing', icon: ReceiptText, label: 'Billing' },
   { href: '/bills', icon: BookCopy, label: 'Bills' },
   { href: '/reports', icon: LineChart, label: 'Reports' },
+  { href: '/ai-suggester', icon: Wand, label: 'AI Suggester' },
+  { href: '/integrations', icon: Plug, label: 'Integrations' },
   { href: '/users', icon: Users, label: 'User Management' },
   { href: '/settings', icon: Settings, label: 'Settings' },
 ];

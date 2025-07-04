@@ -2,6 +2,7 @@ export type Property = {
   id: string;
   'Property No'?: string;
   'Owner Name'?: string;
+  'Phone Number'?: string;
   'Town'?: string;
   'Suburb'?: string;
   'Valuation List No.'?: string;

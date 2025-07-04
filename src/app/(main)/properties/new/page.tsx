@@ -16,6 +16,7 @@ import { useRequirePermission } from '@/hooks/useRequirePermission';
 
 const propertyFormSchema = z.object({
   'Owner Name': z.string().min(3, 'Owner name must be at least 3 characters.'),
+  'Phone Number': z.string().optional(),
   'Town': z.string().min(2, 'Town name is required.'),
   'Suburb': z.string().optional(),
   'Property No': z.string().min(1, 'Property No. is required.'),
@@ -39,6 +40,7 @@ export default function NewPropertyPage() {
         resolver: zodResolver(propertyFormSchema),
         defaultValues: {
             'Owner Name': '',
+            'Phone Number': '',
             'Town': '',
             'Suburb': '',
             'Property No': '',
@@ -90,11 +92,19 @@ export default function NewPropertyPage() {
                   <CardDescription>Fill in the form to register a new property consistent with billing requirements.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField control={form.control} name="Owner Name" render={({ field }) => (
                         <FormItem>
                           <FormLabel>Owner's Full Name</FormLabel>
                           <FormControl><Input placeholder="e.g. Ama Serwaa" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField control={form.control} name="Phone Number" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl><Input placeholder="e.g. 0244123456" {...field} /></FormControl>
                           <FormMessage />
                         </FormItem>
                       )}

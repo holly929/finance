@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -82,6 +81,7 @@ const permissionPageLabels: Record<PermissionPage, string> = {
 const mockPropertyForPreview: Property = {
   id: 'preview-123',
   'Owner Name': 'John Preview Doe',
+  'Phone Number': '024 123 4567',
   'Town': 'Settingsville',
   'Suburb': 'Preview Estates',
   'Property No': 'PV-001',
@@ -548,7 +548,7 @@ export default function SettingsPage() {
                                 <TableBody>
                                     {PERMISSION_PAGES.map(page => (
                                         <TableRow key={page}>
-                                            <TableCell className="font-medium">{permissionPageLabels[page]}</TableCell>
+                                            <TableCell className="font-medium">{permissionPageLabels[page as PermissionPage]}</TableCell>
                                             {Object.keys(localPermissions).map(role => (
                                                 <TableCell key={`${role}-${page}`} className="text-center">
                                                     <Checkbox
