@@ -25,7 +25,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
 
 interface EditPropertyDialogProps {
   property: Property | null;
@@ -50,23 +49,78 @@ const propertyFormSchema = z.object({
   'Total Payment': z.coerce.number().min(0).default(0),
 });
 
+const getNormalizedValue = (property: Property | null, aliases: string[]): any => {
+    if (!property) return undefined;
+
+    const propertyKeys = Object.keys(property);
+    const normalizeKey = (str: string) => (str || '').toLowerCase().replace(/[\s._-]/g, '');
+
+    for (const alias of aliases) {
+        const normalizedAlias = normalizeKey(alias);
+        const foundKey = propertyKeys.find(pKey => normalizeKey(pKey) === normalizedAlias);
+        if (foundKey && property[foundKey] !== undefined && property[foundKey] !== null) {
+            return property[foundKey];
+        }
+    }
+
+    return undefined;
+};
+
 export function EditPropertyDialog({
   property,
   isOpen,
   onOpenChange,
   onPropertyUpdate,
 }: EditPropertyDialogProps) {
-  const { toast } = useToast();
   
   const form = useForm<z.infer<typeof propertyFormSchema>>({
     resolver: zodResolver(propertyFormSchema),
+    defaultValues: {
+        'Owner Name': '',
+        'Phone Number': '',
+        'Town': '',
+        'Suburb': '',
+        'Property No': '',
+        'Valuation List No.': '',
+        'Account Number': '',
+        'Property Type': 'Residential',
+        'Rateable Value': 0,
+        'Rate Impost': 0,
+        'Sanitation Charged': 0,
+        'Previous Balance': 0,
+        'Total Payment': 0,
+    }
   });
 
   useEffect(() => {
-    if (property) {
-      form.reset(property);
+    if (property && isOpen) {
+       const normalizedData = {
+        'Owner Name': getNormalizedValue(property, ['Owner Name', 'Name of Owner', 'Rate Payer', 'ownername']),
+        'Phone Number': getNormalizedValue(property, ['Phone Number', 'Phone', 'Telephone', 'phonenumber']),
+        'Town': getNormalizedValue(property, ['Town']),
+        'Suburb': getNormalizedValue(property, ['Suburb']),
+        'Property No': getNormalizedValue(property, ['Property No', 'Property Number', 'propertyno']),
+        'Valuation List No.': getNormalizedValue(property, ['Valuation List No.', 'Valuation List Number', 'valuationlistno']),
+        'Account Number': getNormalizedValue(property, ['Account Number', 'Acct No', 'accountnumber']),
+        'Property Type': getNormalizedValue(property, ['Property Type', 'propertytype']),
+        'Rateable Value': getNormalizedValue(property, ['Rateable Value', 'rateablevalue']),
+        'Rate Impost': getNormalizedValue(property, ['Rate Impost', 'rateimpost']),
+        'Sanitation Charged': getNormalizedValue(property, ['Sanitation Charged', 'Sanitation', 'sanitationcharged']),
+        'Previous Balance': getNormalizedValue(property, ['Previous Balance', 'Prev Balance', 'Arrears', 'previousbalance', 'Arrears BF']),
+        'Total Payment': getNormalizedValue(property, ['Total Payment', 'Amount Paid', 'Payment', 'totalpayment']),
+      };
+      
+      const finalData: Record<string, any> = {};
+      for (const key in normalizedData) {
+        const value = (normalizedData as any)[key];
+        if (value !== undefined) {
+            finalData[key] = value;
+        }
+      }
+
+      form.reset(finalData);
     }
-  }, [property, form]);
+  }, [property, isOpen, form]);
 
   function onSubmit(data: z.infer<typeof propertyFormSchema>) {
     if (property) {
@@ -91,7 +145,7 @@ export function EditPropertyDialog({
                     <FormField control={form.control} name="Owner Name" render={({ field }) => (
                         <FormItem>
                           <FormLabel>Owner's Full Name</FormLabel>
-                          <FormControl><Input placeholder="e.g. Ama Serwaa" {...field} /></FormControl>
+                          <FormControl><Input placeholder="e.g. Ama Serwaa" {...field} value={field.value ?? ''} /></FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -99,7 +153,7 @@ export function EditPropertyDialog({
                     <FormField control={form.control} name="Phone Number" render={({ field }) => (
                         <FormItem>
                           <FormLabel>Phone Number</FormLabel>
-                          <FormControl><Input placeholder="e.g. 0244123456" {...field} /></FormControl>
+                          <FormControl><Input placeholder="e.g. 0244123456" {...field} value={field.value ?? ''}/></FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -107,7 +161,7 @@ export function EditPropertyDialog({
                     <FormField control={form.control} name="Property No" render={({ field }) => (
                         <FormItem>
                           <FormLabel>Property Number</FormLabel>
-                          <FormControl><Input placeholder="e.g. AB604" {...field} /></FormControl>
+                          <FormControl><Input placeholder="e.g. AB604" {...field} value={field.value ?? ''}/></FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -118,7 +172,7 @@ export function EditPropertyDialog({
                     <FormField control={form.control} name="Town" render={({ field }) => (
                         <FormItem>
                           <FormLabel>Town</FormLabel>
-                          <FormControl><Input placeholder="e.g. Abetifi" {...field} /></FormControl>
+                          <FormControl><Input placeholder="e.g. Abetifi" {...field} value={field.value ?? ''}/></FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -126,7 +180,7 @@ export function EditPropertyDialog({
                      <FormField control={form.control} name="Suburb" render={({ field }) => (
                         <FormItem>
                           <FormLabel>Suburb</FormLabel>
-                          <FormControl><Input placeholder="e.g. Christian Qtrs" {...field} /></FormControl>
+                          <FormControl><Input placeholder="e.g. Christian Qtrs" {...field} value={field.value ?? ''}/></FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -134,7 +188,7 @@ export function EditPropertyDialog({
                      <FormField control={form.control} name="Property Type" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Property Type</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                 <SelectValue placeholder="Select property type" />
@@ -156,7 +210,7 @@ export function EditPropertyDialog({
                     <FormField control={form.control} name="Valuation List No." render={({ field }) => (
                           <FormItem>
                             <FormLabel>Valuation List No.</FormLabel>
-                            <FormControl><Input placeholder="e.g. 604" {...field} /></FormControl>
+                            <FormControl><Input placeholder="e.g. 604" {...field} value={field.value ?? ''}/></FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -164,7 +218,7 @@ export function EditPropertyDialog({
                       <FormField control={form.control} name="Account Number" render={({ field }) => (
                           <FormItem>
                             <FormLabel>Account Number</FormLabel>
-                            <FormControl><Input placeholder="e.g. 123456789" {...field} /></FormControl>
+                            <FormControl><Input placeholder="e.g. 123456789" {...field} value={field.value ?? ''}/></FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -177,35 +231,35 @@ export function EditPropertyDialog({
                         <FormField control={form.control} name="Rateable Value" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Rateable Value (GHS)</FormLabel>
-                                <FormControl><Input type="number" step="10" {...field} /></FormControl>
+                                <FormControl><Input type="number" step="10" {...field} value={field.value ?? ''}/></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
                         <FormField control={form.control} name="Rate Impost" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Rate Impost</FormLabel>
-                                <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                                <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''}/></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
                          <FormField control={form.control} name="Sanitation Charged" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Sanitation Charged (GHS)</FormLabel>
-                                <FormControl><Input type="number" step="1" {...field} /></FormControl>
+                                <FormControl><Input type="number" step="1" {...field} value={field.value ?? ''}/></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
                          <FormField control={form.control} name="Previous Balance" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Previous Balance (GHS)</FormLabel>
-                                <FormControl><Input type="number" step="1" {...field} /></FormControl>
+                                <FormControl><Input type="number" step="1" {...field} value={field.value ?? ''}/></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
                         <FormField control={form.control} name="Total Payment" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Total Payment (GHS)</FormLabel>
-                                <FormControl><Input type="number" step="1" {...field} /></FormControl>
+                                <FormControl><Input type="number" step="1" {...field} value={field.value ?? ''}/></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
