@@ -198,9 +198,9 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     return (
       <div ref={ref} className={cn("text-black bg-white w-full h-full box-border", fontClass, isCompact ? 'p-1' : 'p-2')} style={baseStyle}>
         <div className="border-[3px] border-black p-1 relative h-full flex flex-col">
-          <div className="absolute inset-0 z-0 flex items-center justify-center opacity-10 pointer-events-none">
+          <div className="absolute inset-0 z-0 flex items-center justify-center opacity-20 pointer-events-none">
               {settings.appearance?.ghanaLogo && (
-                  <img src={settings.appearance.ghanaLogo} alt="Watermark" width={300} height={300} style={{objectFit: 'contain'}} />
+                  <img src={settings.appearance.ghanaLogo} alt="Watermark" width={400} height={400} style={{objectFit: 'contain'}} />
               )}
           </div>
           <div className="relative z-10 flex flex-col flex-grow">
