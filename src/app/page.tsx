@@ -130,7 +130,7 @@ export default function LoginPage() {
           </form>
         </Card>
         <p className="mt-4 text-center text-sm text-muted-foreground">
-          Built for efficiency and transparency.
+          BUILT AND DEVELOPED BY ANEH TECH CONSORTIUM.
         </p>
       </div>
     </main>
