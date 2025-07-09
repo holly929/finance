@@ -29,9 +29,12 @@ type AppearanceSettings = {
   ghanaLogo?: string;
   signature?: string;
   billWarningText?: string;
+  fontFamily?: 'sans' | 'serif' | 'mono';
+  fontSize?: number;
+  accentColor?: string;
 };
 
-const BillSheet = React.forwardRef<HTMLDivElement, { properties: Property[], settings: any, billsPerPage: number, isCompact: boolean }>(({ properties, settings, billsPerPage, isCompact }, ref) => {
+const BillSheet = React.forwardRef<HTMLDivElement, { properties: Property[], settings: { general: GeneralSettings, appearance: AppearanceSettings }, billsPerPage: number, isCompact: boolean }>(({ properties, settings, billsPerPage, isCompact }, ref) => {
     
     // Logic for 4 bills per page
     if (billsPerPage === 4) {

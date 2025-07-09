@@ -64,7 +64,7 @@ const BillRow = ({ label, value, isBold = false }: { label: string; value: strin
   </div>
 );
 
-export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Property, settings: any, isCompact?: boolean, displaySettings?: Record<string, boolean> }>(
+export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Property, settings: { general?: GeneralSettings, appearance?: AppearanceSettings }, isCompact?: boolean, displaySettings?: Record<string, boolean> }>(
   ({ property, settings, isCompact = false, displaySettings: displaySettingsProp }, ref) => {
     
     const [displaySettings, setDisplaySettings] = useState<Record<string, boolean>>({});
