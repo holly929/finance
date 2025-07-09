@@ -16,6 +16,9 @@ import { getBillStatus, BillStatus } from '@/lib/billing-utils';
 import type { Property, PaymentStatusData, RevenueByPropertyType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Badge } from '@/components/ui/badge';
+import { getPropertyValue } from '@/lib/property-utils';
 
 const formatCurrency = (value: number) => `GHS ${value.toLocaleString()}`;
 
@@ -34,8 +37,9 @@ export default function ReportsPage() {
   const { toast } = useToast();
   const { user: authUser } = useAuth();
   const isViewer = authUser?.role === 'Viewer';
+  const isMobile = useIsMobile();
   
-  const [reportData, setReportData] = React.useState<Property[]>([]);
+  const [reportData, setReportData] = React.useState<any[]>([]);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [chartData, setChartData] = React.useState<{ status: PaymentStatusData[], byType: RevenueByPropertyType[] } | null>(null);
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -69,7 +73,7 @@ export default function ReportsPage() {
         filteredProperties = filteredProperties.filter(p => p.status.toLowerCase() === filters.status);
       }
       if (filters.propertyType !== 'all') {
-        filteredProperties = filteredProperties.filter(p => p['Property Type'] === filters.propertyType);
+        filteredProperties = filteredProperties.filter(p => getPropertyValue(p, 'Property Type') === filters.propertyType);
       }
       
       setReportData(filteredProperties);
@@ -82,8 +86,8 @@ export default function ReportsPage() {
 
         filteredProperties.forEach(p => {
           statusCounts[p.status as BillStatus]++;
-          const payment = Number(p['Total Payment']) || 0;
-          const type = p['Property Type'];
+          const payment = Number(getPropertyValue(p, 'Total Payment')) || 0;
+          const type = getPropertyValue(p, 'Property Type');
           if (type) {
               if (!typeRevenue[type]) typeRevenue[type] = 0;
               typeRevenue[type] += payment;
@@ -138,7 +142,7 @@ export default function ReportsPage() {
   };
 
   const propertyTypes = React.useMemo(() => {
-    const types = new Set(properties.map(p => p['Property Type']).filter(Boolean));
+    const types = new Set(properties.map(p => getPropertyValue(p, 'Property Type')).filter(Boolean));
     return Array.from(types) as string[];
   }, [properties]);
   
@@ -149,6 +153,136 @@ export default function ReportsPage() {
         </div>
     );
   }
+
+  const statusVariant = (status: BillStatus): 'default' | 'secondary' | 'destructive' | 'outline' => {
+    switch(String(status).toLowerCase()) {
+        case 'paid': return 'default';
+        case 'pending': return 'secondary';
+        case 'overdue': return 'destructive';
+        default: return 'outline';
+    }
+  }
+
+  const renderDesktopView = () => (
+    <Card>
+      <CardContent className="p-0">
+          <div className="w-full overflow-x-auto rounded-md border max-h-[500px]">
+              <Table>
+                  <TableHeader>
+                  <TableRow>
+                      {headers.map((header) => (
+                      <TableHead key={header}>{header}</TableHead>
+                      ))}
+                  </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                  {paginatedReportData.map((row) => (
+                      <TableRow key={row.id}>
+                      {headers.map((header) => (
+                          <TableCell key={header}>
+                          {String(getPropertyValue(row, header) ?? '')}
+                          </TableCell>
+                      ))}
+                      </TableRow>
+                  ))}
+                  </TableBody>
+              </Table>
+          </div>
+      </CardContent>
+      {totalPages > 1 && (
+        <CardFooter className="flex justify-between items-center border-t pt-4">
+          <span className="text-sm text-muted-foreground">
+            Page {currentPage} of {totalPages} ({reportData.length} total records)
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </CardFooter>
+      )}
+    </Card>
+  )
+
+  const renderMobileView = () => (
+    <div className="space-y-4">
+      {paginatedReportData.length > 0 ? (
+        <>
+        {paginatedReportData.map(row => (
+          <Card key={row.id} className="transition-shadow hover:shadow-lg">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-semibold">{getPropertyValue(row, headers[0]) || 'N/A'}</CardTitle>
+              <CardDescription>Property No: {getPropertyValue(row, 'Property No') || 'N/A'}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+               <div className="flex justify-between items-center text-xs">
+                  <span className="font-semibold text-muted-foreground">Status</span>
+                  <Badge variant={statusVariant(row.status as BillStatus)} className="text-xs">{row.status}</Badge>
+              </div>
+              {[
+                { label: 'Property Type', key: 'Property Type' },
+                { label: 'Rateable Value', key: 'Rateable Value' },
+                { label: 'Town', key: 'Town' },
+              ].map(({label, key}) => {
+                  const value = getPropertyValue(row, key);
+                  if (!value) return null;
+                  return (
+                    <div key={key} className="flex justify-between items-center text-xs">
+                        <span className="font-semibold text-muted-foreground">{label}</span>
+                        <span className="text-right">{String(value)}</span>
+                    </div>
+                  )
+              })}
+            </CardContent>
+          </Card>
+        ))}
+        {totalPages > 1 && (
+            <div className="flex justify-between items-center pt-4">
+                <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                </span>
+                <div className="flex items-center gap-2">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                >
+                    Previous
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                >
+                    Next
+                </Button>
+                </div>
+            </div>
+        )}
+        </>
+      ) : (
+        <div className="text-center text-muted-foreground py-12">
+          <p>No results found.</p>
+        </div>
+      )}
+    </div>
+  );
+
 
   return (
     <>
@@ -252,57 +386,7 @@ export default function ReportsPage() {
           <div className="border-t pt-4">
              <h3 className="text-lg font-medium mb-2">Report Preview ({reportData.length} records)</h3>
              {reportData.length > 0 ? (
-                <Card>
-                    <CardContent className="p-0">
-                        <div className="w-full overflow-x-auto rounded-md border max-h-[500px]">
-                            <Table>
-                                <TableHeader>
-                                <TableRow>
-                                    {headers.map((header) => (
-                                    <TableHead key={header}>{header}</TableHead>
-                                    ))}
-                                </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                {paginatedReportData.map((row) => (
-                                    <TableRow key={row.id}>
-                                    {headers.map((header) => (
-                                        <TableCell key={header}>
-                                        {String(row[header] ?? '')}
-                                        </TableCell>
-                                    ))}
-                                    </TableRow>
-                                ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                    {totalPages > 1 && (
-                      <CardFooter className="flex justify-between items-center border-t pt-4">
-                        <span className="text-sm text-muted-foreground">
-                          Page {currentPage} of {totalPages} ({reportData.length} total records)
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
-                          >
-                            Previous
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            disabled={currentPage === totalPages}
-                          >
-                            Next
-                          </Button>
-                        </div>
-                      </CardFooter>
-                    )}
-                </Card>
+                isMobile ? renderMobileView() : renderDesktopView()
              ) : (
                 <div className="text-center text-muted-foreground py-12">
                     <p>No report generated. Use the filters above and click "Generate Report".</p>

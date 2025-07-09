@@ -264,7 +264,7 @@ export default function BillingPage() {
                 </TableCell>
                 {headers.map((header, cellIndex) => (
                   <TableCell key={cellIndex} className={cellIndex === 0 ? 'font-medium' : ''}>
-                    {(row as PropertyWithStatus)[header]}
+                    {getPropertyValue(row, header)}
                   </TableCell>
                 ))}
                 <TableCell>
@@ -316,7 +316,7 @@ export default function BillingPage() {
   const renderMobileView = () => (
     <div className="space-y-4">
       {paginatedData.length > 0 ? paginatedData.map(row => (
-        <Card key={row.id} data-state={selectedRows.includes(row.id) ? "selected" : undefined} className="data-[state=selected]:bg-muted/50">
+        <Card key={row.id} data-state={selectedRows.includes(row.id) ? "selected" : undefined} className="data-[state=selected]:bg-muted/50 transition-shadow hover:shadow-lg">
           <CardHeader className="flex flex-row items-start justify-between pb-2">
             <div className="flex items-center space-x-4">
               <Checkbox
@@ -324,7 +324,7 @@ export default function BillingPage() {
                 onCheckedChange={(checked) => handleSelectRow(row.id, !!checked)}
                 aria-label={`Select row ${row.id}`}
               />
-              <CardTitle className="text-base font-semibold">{row[headers[0]] || 'N/A'}</CardTitle>
+              <CardTitle className="text-base font-semibold">{getPropertyValue(row, headers[0]) || 'N/A'}</CardTitle>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -359,11 +359,12 @@ export default function BillingPage() {
                 <Badge variant={statusVariant(row.status)} className="text-xs">{row.status}</Badge>
             </div>
             {headers.slice(1).map(header => {
-              if (header.toLowerCase() === 'id' || !(row as PropertyWithStatus)[header]) return null;
+              const value = getPropertyValue(row, header);
+              if (header.toLowerCase() === 'id' || !value) return null;
               return (
                 <div key={header} className="flex justify-between items-center text-xs">
                   <span className="font-semibold text-muted-foreground">{header}</span>
-                  <span className="text-right">{String((row as PropertyWithStatus)[header])}</span>
+                  <span className="text-right">{String(value)}</span>
                 </div>
               );
             })}
@@ -410,15 +411,15 @@ export default function BillingPage() {
             <TabsTrigger value="pending">Pending</TabsTrigger>
             <TabsTrigger value="overdue">Overdue</TabsTrigger>
           </TabsList>
-           <div className="flex items-center gap-2 w-full sm:w-auto">
+           <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full">
                 <Input
                   placeholder="Filter data..."
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
-                  className="w-full sm:max-w-xs"
+                  className="w-full md:max-w-xs"
                 />
                 {selectedRows.length > 0 && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                         {!isViewer && (
                             <Button variant="secondary" size="sm" onClick={handleSendSms}>
                                 <MessageSquare className="h-4 w-4 mr-2"/>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -173,7 +174,7 @@ export default function UserManagementPage() {
   const renderMobileView = () => (
     <div className="space-y-4">
       {paginatedUsers.length > 0 ? paginatedUsers.map(user => (
-        <Card key={user.id}>
+        <Card key={user.id} className="transition-shadow hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between pb-4">
              <div className="flex items-center gap-4">
                 <Avatar>
@@ -239,9 +240,9 @@ export default function UserManagementPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline">User Management</h1>
-        <Button onClick={() => handleOpenDialog()}>
+        <Button onClick={() => handleOpenDialog()} className="self-end sm:self-auto">
           <PlusCircle className="h-4 w-4 mr-2" />
           Add User
         </Button>

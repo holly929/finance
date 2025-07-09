@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -50,6 +51,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePropertyData } from '@/context/PropertyDataContext';
 import { useAuth } from '@/context/AuthContext';
+import { getPropertyValue } from '@/lib/property-utils';
 
 const ROWS_PER_PAGE = 15;
 
@@ -230,7 +232,7 @@ export default function PropertiesPage() {
               <TableRow key={row.id}>
                 {headers.map((header, cellIndex) => (
                   <TableCell key={cellIndex} className={cellIndex === 0 ? 'font-medium' : ''}>
-                    {row[header]}
+                    {getPropertyValue(row, header)}
                   </TableCell>
                 ))}
                 {!isViewer && 
@@ -244,7 +246,7 @@ export default function PropertiesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        {row['Owner Name'] && row['Rateable Value'] ? (
+                        {getPropertyValue(row, 'Owner Name') && getPropertyValue(row, 'Rateable Value') ? (
                           <DropdownMenuItem onSelect={() => handleViewBill(row)}>
                             <View className="mr-2 h-4 w-4" />
                             View Bill
@@ -280,9 +282,9 @@ export default function PropertiesPage() {
   const renderMobileView = () => (
     <div className="space-y-4">
       {paginatedData.length > 0 ? paginatedData.map(row => (
-        <Card key={row.id}>
+        <Card key={row.id} className="transition-shadow hover:shadow-lg">
           <CardHeader className="flex flex-row items-start justify-between pb-2">
-            <CardTitle className="text-base font-semibold">{row[headers[0]] || 'N/A'}</CardTitle>
+            <CardTitle className="text-base font-semibold">{getPropertyValue(row, headers[0]) || 'N/A'}</CardTitle>
             {!isViewer && 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -292,7 +294,7 @@ export default function PropertiesPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  {row['Owner Name'] && row['Rateable Value'] ? (
+                  {getPropertyValue(row, 'Owner Name') && getPropertyValue(row, 'Rateable Value') ? (
                     <DropdownMenuItem onSelect={() => handleViewBill(row)}>
                       <View className="mr-2 h-4 w-4" /> View Bill
                     </DropdownMenuItem>
@@ -310,11 +312,12 @@ export default function PropertiesPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm pl-6 pr-6 pb-4">
             {headers.slice(1).map(header => {
-              if (header.toLowerCase() === 'id' || !row[header]) return null;
+              const value = getPropertyValue(row, header);
+              if (header.toLowerCase() === 'id' || !value) return null;
               return (
                 <div key={header} className="flex justify-between items-center text-xs">
                   <span className="font-semibold text-muted-foreground">{header}</span>
-                  <span className="text-right">{String(row[header])}</span>
+                  <span className="text-right">{String(value)}</span>
                 </div>
               );
             })}
@@ -447,10 +450,10 @@ export default function PropertiesPage() {
         accept=".xlsx, .xls"
         disabled={isImporting}
       />
-      <div className="flex items-center">
+      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline">Properties</h1>
         {!isViewer && 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end">
               {properties.length > 0 && (
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
