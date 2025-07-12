@@ -52,8 +52,10 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { usePropertyData } from '@/context/PropertyDataContext';
 import { useAuth } from '@/context/AuthContext';
 import { getPropertyValue } from '@/lib/property-utils';
+import { Progress } from '@/components/ui/progress';
 
 const ROWS_PER_PAGE = 15;
+const IMPORT_CHUNK_SIZE = 200;
 
 export default function PropertiesPage() {
   const { toast } = useToast();
@@ -69,7 +71,12 @@ export default function PropertiesPage() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const isMobile = useIsMobile();
 
-  const [isImporting, setIsImporting] = React.useState(false);
+  const [importStatus, setImportStatus] = React.useState<{
+    inProgress: boolean;
+    total: number;
+    processed: number;
+  }>({ inProgress: false, total: 0, processed: 0 });
+
   const [isDragging, setIsDragging] = React.useState(false);
 
   const filteredData = React.useMemo(() => {
@@ -101,7 +108,7 @@ export default function PropertiesPage() {
   };
 
   const handleFile = (file: File | undefined) => {
-    if (isImporting) return;
+    if (importStatus.inProgress) return;
     if (!file) {
       toast({ variant: 'destructive', title: 'File Error', description: 'No file selected.' });
       return;
@@ -110,8 +117,9 @@ export default function PropertiesPage() {
         toast({ variant: 'destructive', title: 'Invalid File Type', description: 'Please upload an Excel file (.xlsx, .xls).' });
         return;
     }
+    
+    setImportStatus({ inProgress: true, total: 0, processed: 0 });
 
-    setIsImporting(true);
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -133,28 +141,51 @@ export default function PropertiesPage() {
         if (dataRows.length === 0) {
             throw new Error("No data rows found in the spreadsheet.");
         }
+        
+        setImportStatus(prev => ({ ...prev, total: dataRows.length }));
+        
+        let allNewData: Property[] = [];
+        let currentIndex = 0;
+        
+        // This function processes the data in chunks, preventing the browser from freezing
+        const processChunk = () => {
+          if (currentIndex >= dataRows.length) {
+              setProperties(allNewData, newHeaders);
+              setCurrentPage(1);
+              toast({ title: 'Import Successful', description: `${allNewData.length} records have been loaded.` });
+              setImportStatus({ inProgress: false, total: 0, processed: 0 });
+              return;
+          }
 
-        const newData: Property[] = dataRows.map((row, rowIndex) => {
-            const rowData: Property = { id: `imported-${Date.now()}-${rowIndex}` };
-            newHeaders.forEach((header, index) => {
-                rowData[header] = row[index];
-            });
-            return rowData;
-        });
-
-        setProperties(newData, newHeaders);
-        setCurrentPage(1);
-        toast({ title: 'Import Successful', description: `${newData.length} records have been loaded.` });
+          const nextIndex = Math.min(currentIndex + IMPORT_CHUNK_SIZE, dataRows.length);
+          const chunk = dataRows.slice(currentIndex, nextIndex);
+          
+          const chunkData: Property[] = chunk.map((row, chunkIndex) => {
+              const rowIndex = currentIndex + chunkIndex;
+              const rowData: Property = { id: `imported-${Date.now()}-${rowIndex}` };
+              newHeaders.forEach((header, index) => {
+                  rowData[header] = row[index];
+              });
+              return rowData;
+          });
+          
+          allNewData.push(...chunkData);
+          setImportStatus(prev => ({ ...prev, processed: nextIndex }));
+          currentIndex = nextIndex;
+          
+          setTimeout(processChunk, 0); // Yield to the main thread
+        }
+        
+        processChunk();
 
       } catch (error: any) {
         toast({ variant: 'destructive', title: 'Import Error', description: error.message || 'Failed to parse the Excel file.' });
-      } finally {
-        setIsImporting(false);
+        setImportStatus({ inProgress: false, total: 0, processed: 0 });
       }
     };
     reader.onerror = () => {
         toast({ variant: 'destructive', title: 'File Read Error', description: 'Could not read the selected file.' });
-        setIsImporting(false);
+        setImportStatus({ inProgress: false, total: 0, processed: 0 });
     }
     reader.readAsBinaryString(file);
   };
@@ -339,14 +370,20 @@ export default function PropertiesPage() {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {(isDragging || isImporting) && (
+        {(isDragging || importStatus.inProgress) && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg border-2 border-dashed border-primary">
-            {isImporting ? (
-              <>
+            {importStatus.inProgress ? (
+              <div className="flex flex-col items-center text-center p-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4"/>
                 <p className="text-lg font-medium text-foreground">Importing data...</p>
                 <p className="text-sm text-muted-foreground">Please wait while we process your file.</p>
-              </>
+                <div className="w-full max-w-sm mt-4">
+                  <Progress value={importStatus.total > 0 ? (importStatus.processed / importStatus.total) * 100 : 0} />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {importStatus.processed} / {importStatus.total} records
+                  </p>
+                </div>
+              </div>
             ) : (
               <>
                 <UploadCloud className="h-12 w-12 text-primary mb-4"/>
@@ -414,14 +451,20 @@ export default function PropertiesPage() {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {(isDragging || isImporting) && (
+        {(isDragging || importStatus.inProgress) && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg border-2 border-dashed border-primary">
-            {isImporting ? (
-                <>
-                <Loader2 className="h-12 w-12 animate-spin text-primary mb-4"/>
-                <p className="text-lg font-medium text-foreground">Importing data...</p>
-                <p className="text-sm text-muted-foreground">Please wait while we process your file.</p>
-                </>
+            {importStatus.inProgress ? (
+                 <div className="flex flex-col items-center text-center p-4">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-4"/>
+                    <p className="text-lg font-medium text-foreground">Importing data...</p>
+                    <p className="text-sm text-muted-foreground">Please wait while we process your file.</p>
+                     <div className="w-full max-w-sm mt-4">
+                        <Progress value={importStatus.total > 0 ? (importStatus.processed / importStatus.total) * 100 : 0} />
+                        <p className="text-xs text-muted-foreground mt-1">
+                            {importStatus.processed} / {importStatus.total} records
+                        </p>
+                    </div>
+                </div>
             ) : (
                 <>
                 <UploadCloud className="h-12 w-12 text-primary mb-4"/>
@@ -448,7 +491,7 @@ export default function PropertiesPage() {
         onChange={handleFileSelect}
         style={{ display: 'none' }}
         accept=".xlsx, .xls"
-        disabled={isImporting}
+        disabled={importStatus.inProgress}
       />
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline">Properties</h1>
@@ -478,8 +521,8 @@ export default function PropertiesPage() {
                     </AlertDialogContent>
                 </AlertDialog>
               )}
-              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
-                {isImporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin"/> : <FileUp className="h-4 w-4 mr-2" />}
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importStatus.inProgress}>
+                {importStatus.inProgress ? <Loader2 className="h-4 w-4 mr-2 animate-spin"/> : <FileUp className="h-4 w-4 mr-2" />}
                 Import
               </Button>
               <Button size="sm" onClick={handleAddProperty}>
