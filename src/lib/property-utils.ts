@@ -31,7 +31,7 @@ export const getPropertyValue = (property: Property | null, standardKey: string)
     const propertyKeys = Object.keys(property);
 
     const normalize = (str: string) => (str || '').toLowerCase().replace(/[\s._-]/g, '');
-    const tokenize = (str: string) => (str || '').toLowerCase().match(/\w+/g) || [];
+    const tokenize = (str: string): string[] => (str || '').toLowerCase().match(/\w+/g) || [];
 
     // --- Pass 1: Exact normalized match ---
     for (const alias of keyAliases) {
@@ -75,7 +75,7 @@ export const getPropertyValue = (property: Property | null, standardKey: string)
             const pKeyTokens = tokenize(pKey);
             if (pKeyTokens.length === 0) continue;
             
-            const allTokensFound = aliasTokens.every(aliasToken => pKeyTokens.includes(aliasToken));
+            const allTokensFound = aliasTokens.every(aliasToken => (pKeyTokens as string[]).includes(aliasToken));
 
             if (allTokensFound) {
                  const value = property[pKey];

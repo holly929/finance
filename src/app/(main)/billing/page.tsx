@@ -8,9 +8,7 @@ import {
   Printer,
   Trash2,
   View,
-  Loader2,
   FilePenLine,
-  MessageSquare,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -81,69 +79,6 @@ export default function BillingPage() {
     }
   };
   
-  const handleSendSms = () => {
-    const smsSettingsStr = localStorage.getItem('smsSettings');
-    const generalSettingsStr = localStorage.getItem('generalSettings');
-
-    if (!smsSettingsStr) {
-      toast({
-        variant: 'destructive',
-        title: 'SMS Not Configured',
-        description: 'Please configure your SMS settings on the Integrations page first.',
-      });
-      return;
-    }
-
-    const smsSettings = JSON.parse(smsSettingsStr);
-    const generalSettings = generalSettingsStr ? JSON.parse(generalSettingsStr) : {};
-
-    if (!smsSettings.accountSid || !smsSettings.authToken || !smsSettings.fromNumber) {
-        toast({
-            variant: 'destructive',
-            title: 'Incomplete SMS Configuration',
-            description: 'Your SMS settings are incomplete. Please check the Integrations page.',
-        });
-        return;
-    }
-
-    let sentCount = 0;
-    let missingPhoneCount = 0;
-
-    selectedProperties.forEach(p => {
-        const phone = getPropertyValue(p, 'Phone Number');
-        if (phone) {
-            const rateableValue = Number(getPropertyValue(p, 'Rateable Value')) || 0;
-            const rateImpost = Number(getPropertyValue(p, 'Rate Impost')) || 0;
-            const sanitationCharged = Number(getPropertyValue(p, 'Sanitation Charged')) || 0;
-            const previousBalance = Number(getPropertyValue(p, 'Previous Balance')) || 0;
-            const totalPayment = Number(getPropertyValue(p, 'Total Payment')) || 0;
-
-            const amountCharged = rateableValue * rateImpost;
-            const totalThisYear = amountCharged + sanitationCharged;
-            const totalAmountDue = totalThisYear + previousBalance - totalPayment;
-
-            const ownerName = getPropertyValue(p, 'Owner Name') || 'Customer';
-            const propertyNo = getPropertyValue(p, 'Property No') || 'N/A';
-
-            let message = smsSettings.smsTemplate || '';
-            message = message.replace(/{{Owner Name}}/g, ownerName);
-            message = message.replace(/{{Property No}}/g, propertyNo);
-            message = message.replace(/{{Amount Due}}/g, totalAmountDue.toFixed(2));
-            message = message.replace(/{{AssemblyName}}/g, generalSettings.assemblyName || '');
-            
-            console.log(`Simulating SMS to ${phone}: "${message}"`);
-            sentCount++;
-        } else {
-            missingPhoneCount++;
-        }
-    });
-
-    toast({
-        title: 'SMS Notifications Sent (Simulation)',
-        description: `${sentCount} messages sent. ${missingPhoneCount > 0 ? `${missingPhoneCount} properties were skipped due to missing phone numbers.` : ''}`,
-    });
-  };
-
   const handleDeleteRow = (id: string) => {
     deleteProperty(id);
     setSelectedRows(prev => prev.filter(rowId => rowId !== id));
@@ -420,12 +355,6 @@ export default function BillingPage() {
                 />
                 {selectedRows.length > 0 && (
                     <div className="flex items-center gap-2 flex-wrap">
-                        {!isViewer && (
-                            <Button variant="secondary" size="sm" onClick={handleSendSms}>
-                                <MessageSquare className="h-4 w-4 mr-2"/>
-                                Send SMS ({selectedRows.length})
-                            </Button>
-                        )}
                         <Button variant="outline" size="sm" onClick={handlePrintSelected}>
                             <Printer className="h-4 w-4 mr-2"/>
                             Print ({selectedRows.length})

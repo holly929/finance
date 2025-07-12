@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { useRequirePermission } from '@/hooks/useRequirePermission';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { BookCopy, AlertCircle, MessageSquare } from 'lucide-react';
+import { BookCopy, AlertCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -27,13 +27,6 @@ const getEditableSheetUrl = (originalUrl: string): string => {
   }
   return '';
 };
-
-const smsFormSchema = z.object({
-  accountSid: z.string().min(1, 'Account SID is required.'),
-  authToken: z.string().min(1, 'Auth Token is required.'),
-  fromNumber: z.string().min(1, '"From" number is required.'),
-  smsTemplate: z.string().min(10, 'SMS template must be at least 10 characters.'),
-});
 
 function GoogleSheetIntegration() {
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
@@ -102,112 +95,6 @@ function GoogleSheetIntegration() {
   );
 }
 
-function SmsIntegration() {
-  const [generalSettings, setGeneralSettings] = useState<{ assemblyName?: string }>({});
-
-  const form = useForm<z.infer<typeof smsFormSchema>>({
-    resolver: zodResolver(smsFormSchema),
-    defaultValues: {
-      accountSid: '',
-      authToken: '',
-      fromNumber: '',
-      smsTemplate: '',
-    },
-  });
-
-  useEffect(() => {
-    try {
-      const savedSms = localStorage.getItem('smsSettings');
-      if (savedSms) form.reset(JSON.parse(savedSms));
-      
-      const savedGeneral = localStorage.getItem('generalSettings');
-      if (savedGeneral) setGeneralSettings(JSON.parse(savedGeneral));
-    } catch (error) {
-      console.error("Could not load SMS settings", error);
-    }
-  }, [form]);
-  
-  const defaultTemplate = `Hello {{Owner Name}}, your property bill of GHS {{Amount Due}} for {{Property No}} is ready. Please pay promptly. - ${generalSettings.assemblyName || 'Your Assembly'}`;
-  
-  useEffect(() => {
-    if(!form.getValues('smsTemplate')) {
-      form.setValue('smsTemplate', defaultTemplate);
-    }
-  },[form, defaultTemplate])
-
-
-  function onSmsSave(data: z.infer<typeof smsFormSchema>) {
-    localStorage.setItem('smsSettings', JSON.stringify(data));
-    toast({
-      title: 'Settings Saved',
-      description: `Your SMS settings have been updated successfully.`,
-    });
-  }
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSmsSave)}>
-        <Card>
-          <CardHeader>
-            <CardTitle>SMS Notification Settings</CardTitle>
-            <CardDescription>Configure your SMS provider to send bill notifications to customers.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <Alert variant="destructive">
-                <MessageSquare className="h-4 w-4" />
-                <AlertTitle>Disclaimer</AlertTitle>
-                <AlertDescription>
-                    This is a demo integration. No actual SMS messages will be sent. Standard messaging rates would apply in a real-world scenario.
-                </AlertDescription>
-            </Alert>
-            <FormField control={form.control} name="accountSid" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account SID</FormLabel>
-                  <FormControl><Input placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxx" {...field} /></FormControl>
-                  <FormDescription>Your Account SID from your SMS provider (e.g., Twilio).</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField control={form.control} name="authToken" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Auth Token</FormLabel>
-                  <FormControl><Input type="password" placeholder="••••••••••••••••••••" {...field} /></FormControl>
-                  <FormDescription>Your Auth Token from your SMS provider.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField control={form.control} name="fromNumber" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>From Number</FormLabel>
-                  <FormControl><Input placeholder="+15017122661" {...field} /></FormControl>
-                  <FormDescription>A valid phone number from your provider.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField control={form.control} name="smsTemplate" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>SMS Message Template</FormLabel>
-                  <FormControl><Textarea className="min-h-[100px]" {...field} /></FormControl>
-                   <FormDescription>
-                    Customize the message sent to customers. Use placeholders like {"{{Owner Name}}"}, {"{{Property No}}"}, {"{{Amount Due}}"}, and {"{{AssemblyName}}"} to insert dynamic data.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-          <CardFooter className="border-t px-6 py-4">
-            <Button type="submit">Save SMS Settings</Button>
-          </CardFooter>
-        </Card>
-      </form>
-    </Form>
-  )
-}
-
 export default function IntegrationsPage() {
   useRequirePermission();
 
@@ -217,14 +104,10 @@ export default function IntegrationsPage() {
         <h1 className="text-3xl font-bold tracking-tight font-headline">Integrations</h1>
       </div>
       
-      <Tabs defaultValue="sms" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="sms">SMS Notifications</TabsTrigger>
+      <Tabs defaultValue="sheets" className="w-full">
+        <TabsList className="grid w-full grid-cols-1">
           <TabsTrigger value="sheets">Google Sheets</TabsTrigger>
         </TabsList>
-        <TabsContent value="sms">
-          <SmsIntegration />
-        </TabsContent>
         <TabsContent value="sheets">
           <GoogleSheetIntegration />
         </TabsContent>
