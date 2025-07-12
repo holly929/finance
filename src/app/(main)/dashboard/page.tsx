@@ -126,11 +126,13 @@ export default function DashboardPage() {
         
         setCollectionRate(calculatedTotalBilled > 0 ? (calculatedTotalRevenue / calculatedTotalBilled) * 100 : 0);
 
-        setPaymentStatus([
+        const paymentStatusData: PaymentStatusData[] = [
           { name: 'Paid', value: amountPaid, fill: 'hsl(var(--primary))' },
           { name: 'Pending', value: amountPending, fill: 'hsl(var(--accent))' },
           { name: 'Overdue', value: amountOverdue, fill: 'hsl(var(--destructive))' },
-        ].filter(d => d.value > 0.01));
+        ];
+        
+        setPaymentStatus(paymentStatusData.filter(d => d.value > 0.01));
         
         const revenueByTypeData = Object.entries(revenueData).map(([name, revenue]) => ({ name, revenue })).filter(d => d.revenue > 0);
         setRevenueByPropertyType(revenueByTypeData);
