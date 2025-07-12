@@ -10,6 +10,7 @@ import { ChartContainer, ChartTooltipContent, ChartConfig, ChartLegend, ChartLeg
 import type { Property, PaymentStatusData, RevenueByPropertyType } from '@/lib/types';
 import { usePropertyData } from '@/context/PropertyDataContext';
 import { getPropertyValue } from '@/lib/property-utils';
+import { getBillStatus } from '@/lib/billing-utils';
 
 const formatCurrency = (value: number) => `GHS ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -54,6 +55,7 @@ export default function DashboardPage() {
         let calculatedTotalBilled = 0;
         let calculatedTotalOutstanding = 0;
         
+        let amountPaid = 0;
         let amountPending = 0;
         let amountOverdue = 0;
 
@@ -77,14 +79,26 @@ export default function DashboardPage() {
             if(!propertyCounts[type]) propertyCounts[type] = 0;
             propertyCounts[type]++;
 
+            const billStatus = getBillStatus(p);
+            const outstanding = grandTotalDue > payment ? grandTotalDue - payment : 0;
+            
             if (grandTotalDue > 0) {
               calculatedTotalBilled += grandTotalDue;
-              const outstanding = grandTotalDue - payment;
+              calculatedTotalOutstanding += outstanding;
               
-              if (outstanding > 0) {
-                  calculatedTotalOutstanding += outstanding;
-                  if (payment > 0) amountPending += outstanding;
-                  else amountOverdue += outstanding;
+              switch(billStatus) {
+                case 'Paid':
+                  amountPaid += grandTotalDue;
+                  break;
+                case 'Pending':
+                  amountPending += outstanding;
+                  amountPaid += payment;
+                  break;
+                case 'Overdue':
+                  amountOverdue += outstanding;
+                  break;
+                default:
+                  break;
               }
             }
         });
@@ -100,7 +114,7 @@ export default function DashboardPage() {
         setCollectionRate(calculatedTotalBilled > 0 ? (calculatedTotalRevenue / calculatedTotalBilled) * 100 : 0);
 
         setPaymentStatus([
-          { name: 'Paid', value: calculatedTotalRevenue, fill: 'hsl(var(--primary))' },
+          { name: 'Paid', value: amountPaid, fill: 'hsl(var(--primary))' },
           { name: 'Pending', value: amountPending, fill: 'hsl(var(--accent))' },
           { name: 'Overdue', value: amountOverdue, fill: 'hsl(var(--destructive))' },
         ].filter(d => d.value > 0.01));
@@ -110,7 +124,7 @@ export default function DashboardPage() {
         setPropertyTypeCounts(Object.entries(propertyCounts).map(([name, count]) => ({
             name,
             value: count,
-            fill: `var(--color-${name.toLowerCase()})`,
+            fill: `var(--color-${(name || 'other').toLowerCase()})`,
         })).filter(d => d.value > 0));
 
     } else {
@@ -340,3 +354,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
