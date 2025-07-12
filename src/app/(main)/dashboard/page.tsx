@@ -155,11 +155,11 @@ export default function DashboardPage() {
   }, [properties]);
 
   const sortedBills = React.useMemo(() => {
+    if (!bills) return [];
     return [...bills].sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
   }, [bills]);
   
   const totalFinancialStatus = React.useMemo(() => paymentStatus.reduce((acc, curr) => acc + curr.value, 0), [paymentStatus]);
-  const totalPropertiesByType = React.useMemo(() => propertyTypeCounts.reduce((acc, curr) => acc + curr.value, 0), [propertyTypeCounts]);
   const hasData = properties.length > 0;
 
   const handleExport = (data: any[], fileName: string) => {
@@ -277,7 +277,7 @@ export default function DashboardPage() {
                     <EmptyState message="Import data to see a billed vs. collected comparison."/>
                   )}
                 </CardContent>
-                {hasData && collectionRate !== null && (
+                {hasData && collectionRate > 0 && (
                   <CardFooter className="border-t p-4">
                     <div className="flex w-full items-center gap-2 text-sm">
                         <div className="flex items-center gap-2 font-medium leading-none">
@@ -380,7 +380,7 @@ export default function DashboardPage() {
                   <CardTitle>Property Type Distribution</CardTitle>
                   <CardDescription>Breakdown of properties by designated type.</CardDescription>
                 </div>
-                 <Button variant="outline" size="sm" onClick={() => handleExport(propertyTypeCounts, 'property_type_distribution')}>
+                 <Button variant="outline" size="sm" onClick={() => handleExport(propertyTypeCounts.map(({fill, ...rest}) => rest), 'property_type_distribution')}>
                     <Download className="h-4 w-4 mr-2" />
                     Export
                 </Button>
@@ -458,5 +458,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
