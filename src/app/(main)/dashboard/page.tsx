@@ -124,7 +124,7 @@ export default function DashboardPage() {
         setPropertyTypeCounts(Object.entries(propertyCounts).map(([name, count]) => ({
             name,
             value: count,
-            fill: `var(--color-${(name || 'other').toLowerCase()})`,
+            fill: `var(--color-${(name || 'other').toLowerCase().split(' ').join('')})`,
         })).filter(d => d.value > 0));
 
     } else {
