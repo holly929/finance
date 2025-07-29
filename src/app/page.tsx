@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -83,16 +84,17 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
-      <div className="w-full max-w-md">
-        <Card className="shadow-2xl">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4 relative overflow-hidden">
+       <div className="absolute inset-0 z-0 bg-gradient-to-br from-primary/20 via-background to-background animate-gradient-xy"></div>
+       <div className="relative z-10 w-full max-w-md">
+        <Card className="shadow-2xl animate-fade-in-up">
           <CardHeader className="text-center p-6">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary overflow-hidden">
+            <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center text-primary overflow-hidden">
                {assemblyLogo ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={assemblyLogo} alt="Assembly Logo" style={{height: '100%', width: '100%', objectFit: 'contain'}} />
               ) : (
-                <Landmark className="h-10 w-10" />
+                <Landmark className="h-12 w-12" />
               )}
             </div>
             <CardTitle className="font-headline text-3xl">{systemName}</CardTitle>
@@ -129,7 +131,7 @@ export default function LoginPage() {
             </CardFooter>
           </form>
         </Card>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
+        <p className="mt-4 text-center text-sm text-muted-foreground animate-fade-in-up animation-delay-300">
           BUILT AND DEVELOPED BY ANEH TECH CONSORTIUM.
         </p>
       </div>
