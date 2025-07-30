@@ -1,22 +1,22 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase-client';
 
 interface UserContextType {
     users: User[];
-    addUser: (user: Omit<User, 'id'>) => Promise<void>;
-    updateUser: (updatedUser: User) => Promise<void>;
-    deleteUser: (id: string) => Promise<void>;
+    addUser: (user: Omit<User, 'id'>) => void;
+    updateUser: (updatedUser: User) => void;
+    deleteUser: (id: string) => void;
     loading: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-const defaultAdminUser: Omit<User, 'id'> = {
+const defaultAdminUser: User = {
+    id: 'user-0',
     name: 'Admin',
     email: 'admin@rateease.gov',
     role: 'Admin',
@@ -29,60 +29,61 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const [users, setUsersState] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchUsers = useCallback(async () => {
+    const setUsers = (newUsers: User[]) => {
+        setUsersState(newUsers);
+        localStorage.setItem('users', JSON.stringify(newUsers));
+    };
+
+    useEffect(() => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.from('users').select('*');
-            if (error) throw error;
-            if (data) setUsersState(data);
-        } catch (error: any) {
+            const savedUsers = localStorage.getItem('users');
+            if (savedUsers) {
+                const parsedUsers = JSON.parse(savedUsers);
+                // Ensure default admin always exists
+                const adminExists = parsedUsers.some((u: User) => u.email === defaultAdminUser.email);
+                if (!adminExists) {
+                    setUsers([defaultAdminUser, ...parsedUsers]);
+                } else {
+                    setUsersState(parsedUsers);
+                }
+            } else {
+                setUsers([defaultAdminUser]);
+            }
+        } catch (error) {
              toast({
                 variant: 'destructive',
                 title: 'Load Error',
-                description: `Could not load user data: ${error.message}`,
+                description: 'Could not load user data from local storage.',
             });
+            setUsers([defaultAdminUser]);
         } finally {
             setLoading(false);
         }
     }, [toast]);
 
-
-    useEffect(() => {
-        fetchUsers();
-    }, [fetchUsers]);
-
-    const addUser = async (user: Omit<User, 'id'>) => {
-        const { error } = await supabase.from('users').insert(user);
-        if (error) {
-            toast({ variant: 'destructive', title: 'Save Error', description: error.message });
-        } else {
-            await fetchUsers();
-        }
+    const addUser = (user: Omit<User, 'id'>) => {
+        const newUser: User = {
+            id: `user-${Date.now()}`,
+            ...user
+        };
+        const updatedUsers = [...users, newUser];
+        setUsers(updatedUsers);
     };
 
-    const updateUser = async (updatedUser: User) => {
-        const { id, ...dataToUpdate } = updatedUser;
-        const { error } = await supabase.from('users').update(dataToUpdate).eq('id', id);
-        if (error) {
-            toast({ variant: 'destructive', title: 'Update Error', description: error.message });
-        } else {
-            await fetchUsers();
-        }
+    const updateUser = (updatedUser: User) => {
+        const updatedUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u);
+        setUsers(updatedUsers);
     };
 
-    const deleteUser = async (id: string) => {
-        // Prevent deleting the default admin user by email check, in case ID changes.
+    const deleteUser = (id: string) => {
         const userToDelete = users.find(u => u.id === id);
         if (userToDelete?.email === defaultAdminUser.email) {
             toast({ variant: 'destructive', title: 'Delete Error', description: 'The default admin user cannot be deleted.' });
             return;
         }
-        const { error } = await supabase.from('users').delete().eq('id', id);
-        if (error) {
-            toast({ variant: 'destructive', title: 'Delete Error', description: error.message });
-        } else {
-            await fetchUsers();
-        }
+        const updatedUsers = users.filter(u => u.id !== id);
+        setUsers(updatedUsers);
     };
 
     return (

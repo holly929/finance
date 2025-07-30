@@ -40,7 +40,6 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PermissionsProvider, usePermissions } from '@/context/PermissionsContext';
 import { ProfileDialog } from '@/components/profile-dialog';
 import { BillProvider } from '@/context/BillDataContext';
-import { supabase } from '@/lib/supabase-client';
 
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard' },
@@ -53,24 +52,7 @@ const navItems = [
   { href: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-function LayoutWithProviders({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthProvider>
-      <PermissionsProvider>
-        <UserProvider>
-          <PropertyProvider>
-            <BillProvider>
-              <MainLayoutContent>{children}</MainLayoutContent>
-            </BillProvider>
-          </PropertyProvider>
-        </UserProvider>
-      </PermissionsProvider>
-    </AuthProvider>
-  );
-}
-
-
-function MainLayoutContent({ children }: { children: React.ReactNode }) {
+function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user: authUser, logout } = useAuth();
   const { hasPermission } = usePermissions();
@@ -84,24 +66,16 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   }, [authUser, hasPermission]);
 
   React.useEffect(() => {
-    const fetchSettings = async () => {
-        try {
-            const { data, error } = await supabase.from('settings').select('key, value').eq('key', 'generalSettings');
-             if (error) throw error;
-            if (data && data[0] && data[0].value) {
-                const settings = data[0].value;
-                if (settings.systemName) {
-                    setSystemName(settings.systemName);
-                }
-                if (settings.contactEmail) {
-                    setSupportEmail(settings.contactEmail);
-                }
-            }
-        } catch (error) {
-            console.error("Could not load settings from Supabase", error);
+    const savedSettings = localStorage.getItem('generalSettings');
+    if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        if (settings.systemName) {
+            setSystemName(settings.systemName);
         }
-    };
-    fetchSettings();
+        if (settings.contactEmail) {
+            setSupportEmail(settings.contactEmail);
+        }
+    }
   }, []);
 
   const NavLink = ({ href, icon: Icon, label }: typeof navItems[0]) => (
@@ -251,4 +225,19 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default LayoutWithProviders;
+
+export default function LayoutWithProviders({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <UserProvider>
+        <PermissionsProvider>
+          <PropertyProvider>
+            <BillProvider>
+                <MainLayout>{children}</MainLayout>
+            </BillProvider>
+          </PropertyProvider>
+        </PermissionsProvider>
+      </UserProvider>
+    </AuthProvider>
+  );
+}

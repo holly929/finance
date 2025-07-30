@@ -9,7 +9,6 @@ import { useRequirePermission } from '@/hooks/useRequirePermission';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { BookCopy, AlertCircle, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/lib/supabase-client';
 
 const getEditableSheetUrl = (originalUrl: string): string => {
   if (!originalUrl) return '';
@@ -27,22 +26,20 @@ function GoogleSheetIntegration() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSettings = async () => {
-        try {
-            const { data, error } = await supabase.from('settings').select('value').eq('key', 'integrationsSettings').single();
-            if (error) throw error;
-
-            if (data?.value?.googleSheetUrl) {
-                const editableUrl = getEditableSheetUrl(data.value.googleSheetUrl);
-                setSheetUrl(editableUrl);
-            }
-        } catch (error) {
-            console.error("Could not load integration settings from Supabase", error);
-        } finally {
-            setIsLoading(false);
+    try {
+      const savedSettings = localStorage.getItem('integrationsSettings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        if (settings.googleSheetUrl) {
+          const editableUrl = getEditableSheetUrl(settings.googleSheetUrl);
+          setSheetUrl(editableUrl);
         }
-    };
-    fetchSettings();
+      }
+    } catch (error) {
+        console.error("Could not load integration settings from localStorage", error);
+    } finally {
+        setIsLoading(false);
+    }
   }, []);
 
   return (

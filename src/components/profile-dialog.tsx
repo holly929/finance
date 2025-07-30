@@ -76,22 +76,19 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
   };
 
 
-  async function onSubmit(data: z.infer<typeof profileFormSchema>) {
+  function onSubmit(data: z.infer<typeof profileFormSchema>) {
     if (!user) return;
     setIsSaving(true);
     
     const { confirmPassword, ...userData } = data;
-    const updatedUserData: User = { ...user };
+    const updatedUserData: User = { ...user, name: userData.name };
 
-    updatedUserData.name = userData.name;
     if (userData.password) {
         updatedUserData.password = userData.password;
-    } else {
-        delete updatedUserData.password; // Don't send empty password to Supabase
     }
     updatedUserData.photoURL = userData.photoURL;
 
-    await updateUser(updatedUserData);
+    updateUser(updatedUserData);
     updateAuthUser(updatedUserData);
 
     toast({

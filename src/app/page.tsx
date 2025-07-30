@@ -9,11 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Landmark, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase-client';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { login } = useAuth();
   
   const [systemName, setSystemName] = React.useState('RateEase');
   const [assemblyLogo, setAssemblyLogo] = React.useState<string | null>(null);
@@ -25,63 +26,27 @@ export default function LoginPage() {
 
   React.useEffect(() => {
     setIsMounted(true);
-    const fetchSettings = async () => {
-        try {
-            const { data, error } = await supabase.from('settings').select('key, value');
-            if (error) throw error;
-            
-            const settingsMap = data.reduce((acc, setting) => {
-                acc[setting.key] = setting.value;
-                return acc;
-            }, {} as Record<string, any>);
-
-            if (settingsMap.generalSettings?.systemName) {
-                setSystemName(settingsMap.generalSettings.systemName);
-            }
-            if (settingsMap.appearanceSettings?.assemblyLogo) {
-                setAssemblyLogo(settingsMap.appearanceSettings.assemblyLogo);
-            }
-        } catch (error) {
-            console.error("Could not load settings from Supabase", error);
+    const savedSettings = localStorage.getItem('generalSettings');
+    const savedAppearance = localStorage.getItem('appearanceSettings');
+    if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        if (settings.systemName) {
+            setSystemName(settings.systemName);
         }
-    };
-    fetchSettings();
-  }, []);
-
-  const login = async (emailToLogin: string, passwordToLogin: string) => {
-    setIsLoading(true);
-    try {
-        const { data, error } = await supabase
-            .from('users')
-            .select()
-            .eq('email', emailToLogin)
-            .single();
-
-        if (error || !data) {
-             console.error("Login error or user not found:", error?.message);
-             return null;
-        }
-
-        if (data.password === passwordToLogin) {
-            localStorage.setItem('loggedInUser', JSON.stringify(data));
-            return data;
-        }
-
-        return null;
-
-    } catch (error: any) {
-        console.error("Login error:", error.message);
-        return null;
-    } finally {
-        setIsLoading(false);
     }
-  };
+    if (savedAppearance) {
+        const appearance = JSON.parse(savedAppearance);
+        if (appearance.assemblyLogo) {
+            setAssemblyLogo(appearance.assemblyLogo);
+        }
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    const loggedInUser = await login(email, password);
+    const loggedInUser = login(email, password);
 
     if (loggedInUser) {
       toast({

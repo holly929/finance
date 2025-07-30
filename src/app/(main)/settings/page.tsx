@@ -21,7 +21,6 @@ import { PERMISSION_PAGES, usePermissions, UserRole, PermissionPage } from '@/co
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Property } from '@/lib/types';
 import { PrintableContent } from '@/components/bill-dialog';
-import { supabase } from '@/lib/supabase-client';
 import { Loader2 } from 'lucide-react';
 
 const generalFormSchema = z.object({
@@ -106,45 +105,43 @@ export default function SettingsPage() {
   });
   
   useEffect(() => {
-    const fetchSettings = async () => {
-        setSettingsLoading(true);
-        try {
-            const { data, error } = await supabase.from('settings').select('key, value');
-            if (error) throw error;
-            
-            const settingsMap = data.reduce((acc, setting) => {
-                acc[setting.key] = setting.value;
-                return acc;
-            }, {} as Record<string, any>);
-            
-            if (settingsMap.generalSettings) {
-              setGeneralSettings(settingsMap.generalSettings);
-              generalForm.reset(settingsMap.generalSettings);
-            }
-             if (settingsMap.appearanceSettings) {
-              setAppearanceSettings(settingsMap.appearanceSettings);
-              appearanceForm.reset(settingsMap.appearanceSettings);
-            }
-             if (settingsMap.billDisplaySettings) {
-              setBillFields(settingsMap.billDisplaySettings);
-            } else if (headers.length > 0) {
-                 const initialFields = headers.reduce((acc, header) => {
-                    if (header.toLowerCase() !== 'id') acc[header] = true;
-                    return acc;
-                }, {} as Record<string, boolean>);
-                setBillFields(initialFields);
-            }
-             if (settingsMap.integrationsSettings) {
-                integrationsForm.reset(settingsMap.integrationsSettings);
-            }
-
-        } catch (error) {
-            console.error("Could not load settings from Supabase", error)
-        } finally {
-            setSettingsLoading(false);
+    setSettingsLoading(true);
+    try {
+        const savedGeneral = localStorage.getItem('generalSettings');
+        if (savedGeneral) {
+          const parsed = JSON.parse(savedGeneral);
+          setGeneralSettings(parsed);
+          generalForm.reset(parsed);
         }
-    };
-    fetchSettings();
+
+        const savedAppearance = localStorage.getItem('appearanceSettings');
+        if (savedAppearance) {
+            const parsed = JSON.parse(savedAppearance);
+            setAppearanceSettings(parsed);
+            appearanceForm.reset(parsed);
+        }
+
+        const savedBillFields = localStorage.getItem('billDisplaySettings');
+        if (savedBillFields) {
+            setBillFields(JSON.parse(savedBillFields));
+        } else if (headers.length > 0) {
+            const initialFields = headers.reduce((acc, header) => {
+                if (header.toLowerCase() !== 'id') acc[header] = true;
+                return acc;
+            }, {} as Record<string, boolean>);
+            setBillFields(initialFields);
+        }
+
+        const savedIntegrations = localStorage.getItem('integrationsSettings');
+        if (savedIntegrations) {
+            integrationsForm.reset(JSON.parse(savedIntegrations));
+        }
+
+    } catch (error) {
+        console.error("Could not load settings from localStorage", error)
+    } finally {
+        setSettingsLoading(false);
+    }
   }, [headers, generalForm, appearanceForm, integrationsForm]);
   
   useEffect(() => {
@@ -164,21 +161,21 @@ export default function SettingsPage() {
     },
   };
 
-  const saveSettings = async (key: string, value: any) => {
-    const { error } = await supabase.from('settings').upsert({ key, value }, { onConflict: 'key' });
-    if (error) {
-        toast({ variant: 'destructive', title: 'Save Error', description: error.message });
-        return false;
+  const saveSettings = (key: string, data: any) => {
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+        toast({ title: 'Settings Saved', description: `${key.replace('Settings', ' settings')} have been updated.`});
+        if (key === 'generalSettings') {
+            window.location.reload();
+        }
+    } catch (e) {
+        toast({ variant: 'destructive', title: 'Save Error', description: 'Could not save settings to local storage.'})
     }
-    return true;
-  };
+  }
 
-  async function onGeneralSave(data: z.infer<typeof generalFormSchema>) {
-    if (await saveSettings('generalSettings', data)) {
-      setGeneralSettings(data);
-      toast({ title: 'Settings Saved', description: `General settings have been updated.` });
-      window.location.reload();
-    }
+  function onGeneralSave(data: z.infer<typeof generalFormSchema>) {
+    setGeneralSettings(data);
+    saveSettings('generalSettings', data);
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof AppearanceSettings) => {
@@ -196,24 +193,25 @@ export default function SettingsPage() {
     setBillFields(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
-  const onAppearanceSave = async (data: z.infer<typeof appearanceFormSchema>) => {
+  const onAppearanceSave = (data: z.infer<typeof appearanceFormSchema>) => {
     const settingsToSave = { ...appearanceSettings, ...data };
-    const savedAppearance = await saveSettings('appearanceSettings', settingsToSave);
-    const savedBillFields = await saveSettings('billDisplaySettings', billFields);
-    
-    if (savedAppearance && savedBillFields) {
-      toast({ title: 'Settings Saved', description: `Appearance settings have been updated.`});
-    }
+    saveSettings('appearanceSettings', settingsToSave);
+    saveSettings('billDisplaySettings', billFields);
   };
 
-  async function onIntegrationsSave(data: z.infer<typeof integrationsFormSchema>) {
-    if (await saveSettings('integrationsSettings', data)) {
-      toast({ title: 'Settings Saved', description: 'Integration settings have been updated.' });
-    }
+  function onIntegrationsSave(data: z.infer<typeof integrationsFormSchema>) {
+    saveSettings('integrationsSettings', data);
   }
 
   const onPermissionsSave = () => {
     updatePermissions(localPermissions);
+  };
+
+  const handlePermissionChange = (role: UserRole, page: string, checked: boolean) => {
+    setLocalPermissions(prev => ({
+        ...prev,
+        [role]: { ...prev[role], [page]: checked }
+    }))
   };
 
   const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());

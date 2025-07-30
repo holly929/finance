@@ -4,7 +4,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { Bill } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase-client';
 
 interface BillContextType {
     bills: Bill[];
@@ -19,49 +18,43 @@ export function BillProvider({ children }: { children: React.ReactNode }) {
     const [bills, setBillsState] = useState<Bill[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchBills = useCallback(async () => {
+    const setBills = (newBills: Bill[]) => {
+        setBillsState(newBills);
+        localStorage.setItem('bills', JSON.stringify(newBills));
+    };
+
+    useEffect(() => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.from('bills').select();
-            if (error) throw error;
-            if (data) {
-                setBillsState(data);
+            const savedBills = localStorage.getItem('bills');
+            if (savedBills) {
+                setBillsState(JSON.parse(savedBills));
             }
-        } catch (error: any) {
+        } catch (error) {
              toast({
                 variant: 'destructive',
                 title: 'Load Error',
-                description: `Could not load bill data: ${error.message}`,
+                description: 'Could not load bill data from local storage.',
             });
         } finally {
             setLoading(false);
         }
     }, [toast]);
 
-    useEffect(() => {
-        fetchBills();
-    }, [fetchBills]);
-
     const addBills = async (newBillsData: Omit<Bill, 'id'>[]): Promise<boolean> => {
         try {
-            const { error } = await supabase.from('bills').insert(newBillsData);
-
-            if (error) {
-                 toast({
-                    variant: 'destructive',
-                    title: 'Save Error',
-                    description: `Could not save bill data: ${error.message}`,
-                });
-                return false;
-            }
-
-            await fetchBills();
+            const billsWithIds: Bill[] = newBillsData.map(b => ({
+                ...b,
+                id: `bill-${Date.now()}-${Math.random()}`,
+            }));
+            const updatedBills = [...bills, ...billsWithIds];
+            setBills(updatedBills);
             return true;
-        } catch (error: any) {
+        } catch (error) {
              toast({
                 variant: 'destructive',
                 title: 'Bill Creation Error',
-                description: `An unexpected error occurred: ${error.message}`,
+                description: 'An unexpected error occurred while creating bills.',
             });
             return false;
         }

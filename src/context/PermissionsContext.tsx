@@ -1,10 +1,9 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from '@/lib/types';
-import { supabase } from '@/lib/supabase-client';
 
 export const PERMISSION_PAGES = [
   'dashboard', 'properties', 'billing', 'bills', 'reports', 'users', 'settings', 'integrations'
@@ -32,7 +31,7 @@ const defaultPermissions: RolePermissions = {
 interface PermissionsContextType {
   permissions: RolePermissions;
   loading: boolean;
-  updatePermissions: (newPermissions: RolePermissions) => Promise<void>;
+  updatePermissions: (newPermissions: RolePermissions) => void;
   hasPermission: (role: UserRole, page: string) => boolean;
 }
 
@@ -43,70 +42,49 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
   const [permissions, setPermissions] = useState<RolePermissions>(defaultPermissions);
   const [loading, setLoading] = useState(true);
 
-  const fetchPermissions = useCallback(async () => {
+  useEffect(() => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('permissions').select('role, permissions');
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        const fetchedPermissions = data.reduce((acc, { role, permissions }) => {
-          if (role) acc[role as UserRole] = permissions;
-          return acc;
-        }, {} as Partial<RolePermissions>);
-
+      const savedPermissions = localStorage.getItem('permissions');
+      if (savedPermissions) {
+        const parsed = JSON.parse(savedPermissions);
+        // Deep merge to ensure all roles and pages have defaults
         const mergedPermissions = JSON.parse(JSON.stringify(defaultPermissions));
          for (const role in mergedPermissions) {
-          if (fetchedPermissions[role as UserRole]) {
-            Object.assign(mergedPermissions[role as UserRole], fetchedPermissions[role as UserRole]);
+          if (parsed[role]) {
+            Object.assign(mergedPermissions[role], parsed[role]);
           }
         }
         setPermissions(mergedPermissions);
       } else {
         setPermissions(defaultPermissions);
       }
-    } catch (error: any) {
-      console.error('Failed to load permissions from Supabase', error);
+    } catch (error) {
+      console.error('Failed to load permissions from localStorage', error);
       setPermissions(defaultPermissions);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchPermissions();
-  }, [fetchPermissions]);
-
-  const updatePermissions = async (newPermissions: RolePermissions) => {
-    setLoading(true);
+  const updatePermissions = (newPermissions: RolePermissions) => {
     try {
-       for (const role in newPermissions) {
-            const { data, error } = await supabase
-                .from('permissions')
-                .upsert(
-                    { role: role, permissions: newPermissions[role as UserRole] },
-                    { onConflict: 'role' }
-                );
-            if (error) throw error;
-        }
+        localStorage.setItem('permissions', JSON.stringify(newPermissions));
         setPermissions(newPermissions);
         toast({ title: 'Permissions Saved', description: 'User role permissions have been updated.' });
-    } catch(error: any) {
-        toast({ variant: 'destructive', title: 'Save Error', description: `Could not save permissions: ${error.message}` });
-    } finally {
-        setLoading(false);
+    } catch(error) {
+        toast({ variant: 'destructive', title: 'Save Error', description: 'Could not save permissions to local storage.'});
     }
   };
 
   const hasPermission = (role: UserRole, pagePath: string): boolean => {
-    if (loading) return false;
     if (role === 'Admin') return true;
 
     const page = pagePath.split('/')[1] as PermissionPage;
     if (!PERMISSION_PAGES.includes(page)) {
-        return true; 
+        return true; // Allow access to non-protected routes like / or sub-pages of properties
     }
-
+    
     return permissions[role]?.[page] ?? false;
   };
 
