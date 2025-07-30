@@ -16,6 +16,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const defaultAdminUser: Omit<User, 'id'> = {
+    name: 'Admin',
+    email: 'admin@rateease.gov',
+    role: 'Admin',
+    password: 'password',
+    photoURL: '',
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,20 +31,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    const checkUser = async () => {
+    const initializeAuth = async () => {
       try {
+        // First, check for an existing user in localStorage
         const storedUser = localStorage.getItem('loggedInUser');
         if (storedUser) {
             setUser(JSON.parse(storedUser));
         } else {
-            // No local user, check supabase session (if you implement it)
-            // For now, if no user in localStorage, they need to log in.
+            // If no user in localStorage, it might be the first ever run.
+            // Let's ensure a default admin exists in the database.
+            const { count, error: countError } = await supabase.from('users').select('*', { count: 'exact', head: true });
+
+            if (countError) {
+              // Can't connect to DB, proceed with no user
+              console.error("Database connection error on initial check:", countError);
+            } else if (count === 0) {
+              // If no users exist in the database, create the default admin.
+              const { error: insertError } = await supabase.from('users').insert(defaultAdminUser);
+              if (insertError) {
+                console.error("Failed to create default admin user:", insertError);
+              }
+            }
+            
+            // If we are not on the login page, redirect there.
             if (pathname !== '/') {
                router.push('/');
             }
         }
       } catch (error) {
-        console.error('Failed to load user', error);
+        console.error('Failed to initialize auth state', error);
         setUser(null);
         if (pathname !== '/') {
           router.push('/');
@@ -45,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     };
-    checkUser();
+    initializeAuth();
   }, [router, pathname]);
 
   const logout = async () => {
