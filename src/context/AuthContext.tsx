@@ -33,27 +33,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // First, check for an existing user in localStorage
         const storedUser = localStorage.getItem('loggedInUser');
         if (storedUser) {
             setUser(JSON.parse(storedUser));
         } else {
-            // If no user in localStorage, it might be the first ever run.
-            // Let's ensure a default admin exists in the database.
+            // This is the critical check. Does the user table exist but is empty?
             const { count, error: countError } = await supabase.from('users').select('*', { count: 'exact', head: true });
 
             if (countError) {
-              // Can't connect to DB, proceed with no user
-              console.error("Database connection error on initial check:", countError);
+              console.error("Database connection error, proceeding without default user check:", countError);
             } else if (count === 0) {
               // If no users exist in the database, create the default admin.
+              console.log("No users found in DB, creating default admin.");
               const { error: insertError } = await supabase.from('users').insert(defaultAdminUser);
               if (insertError) {
                 console.error("Failed to create default admin user:", insertError);
               }
             }
             
-            // If we are not on the login page, redirect there.
             if (pathname !== '/') {
                router.push('/');
             }
