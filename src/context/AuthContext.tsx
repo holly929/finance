@@ -23,11 +23,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    setLoading(true);
     try {
       const storedUser = localStorage.getItem('loggedInUser');
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       } else {
+        // If no user is in local storage and we are in a protected route, redirect.
         if (pathname !== '/') {
           router.push('/');
         }
@@ -77,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   }
   
+  // If we're not on the login page and there's no user, show a loader while redirecting
   if (!user && pathname !== '/') {
      return (
         <div className="flex h-screen w-full items-center justify-center">

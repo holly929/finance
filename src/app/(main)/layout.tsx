@@ -32,7 +32,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PropertyProvider } from '@/context/PropertyDataContext';
 import { UserProvider } from '@/context/UserDataContext';
@@ -59,7 +58,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   const [systemName, setSystemName] = React.useState('RateEase');
   const [supportEmail, setSupportEmail] = React.useState('');
   const [isProfileDialogOpen, setIsProfileDialogOpen] = React.useState(false);
-  
+
   const filteredNavItems = React.useMemo(() => {
     if (!authUser) return [];
     return navItems.filter(item => hasPermission(authUser.role, item.href));
@@ -77,39 +76,6 @@ function MainLayout({ children }: { children: React.ReactNode }) {
         }
     }
   }, []);
-
-  const NavLink = ({ href, icon: Icon, label }: typeof navItems[0]) => (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link
-            href={href}
-            className={cn(
-              'flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8',
-              pathname.startsWith(href) && 'bg-accent text-accent-foreground'
-            )}
-          >
-            <Icon className="h-5 w-5" />
-            <span className="sr-only">{label}</span>
-          </Link>
-        </TooltipTrigger>
-        <TooltipContent side="right">{label}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-
-  const MobileNavLink = ({ href, icon: Icon, label }: typeof navItems[0]) => (
-     <Link
-        href={href}
-        className={cn(
-          "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
-          pathname.startsWith(href) && "bg-accent text-accent-foreground"
-        )}
-      >
-        <Icon className="h-5 w-5" />
-        {label}
-      </Link>
-  )
 
   if (!authUser) {
     return (
@@ -177,7 +143,17 @@ function MainLayout({ children }: { children: React.ReactNode }) {
                       <span className="font-headline">{systemName}</span>
                     </Link>
                     {filteredNavItems.map((item) => (
-                      <MobileNavLink key={item.label} {...item} />
+                     <Link
+                        key={item.label}
+                        href={item.href}
+                        className={cn(
+                          "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
+                          pathname.startsWith(item.href) && "bg-accent text-accent-foreground"
+                        )}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        {item.label}
+                      </Link>
                     ))}
                   </nav>
                 </SheetContent>
