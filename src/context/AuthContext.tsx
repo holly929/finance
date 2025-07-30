@@ -3,14 +3,13 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '@/lib/types';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase-client';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password?: string) => Promise<User | null>;
   logout: () => void;
   updateAuthUser: (user: User) => void;
 }
@@ -21,6 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const checkUser = async () => {
@@ -29,64 +29,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (storedUser) {
             setUser(JSON.parse(storedUser));
         } else {
-            // No local user, check supabase session
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                const { data: userData, error } = await supabase.from('users').select().eq('id', session.user.id).single();
-                if (error) throw error;
-                setUser(userData);
-                localStorage.setItem('loggedInUser', JSON.stringify(userData));
-            } else {
+            // No local user, check supabase session (if you implement it)
+            // For now, if no user in localStorage, they need to log in.
+            if (pathname !== '/') {
                router.push('/');
             }
         }
       } catch (error) {
         console.error('Failed to load user', error);
         setUser(null);
-        router.push('/');
+        if (pathname !== '/') {
+          router.push('/');
+        }
       } finally {
         setLoading(false);
       }
     };
     checkUser();
-  }, [router]);
-
-  const login = async (email: string, password?: string): Promise<User | null> => {
-    // In a real app, you'd use Supabase Auth. For now, we query the users table.
-    setLoading(true);
-    try {
-        const { data, error } = await supabase
-            .from('users')
-            .select()
-            .eq('email', email)
-            .single();
-
-        if (error || !data) {
-             console.error("Login error:", error?.message);
-             return null;
-        }
-
-        // WARNING: This is NOT secure password validation.
-        // It's a placeholder for the demo to work without full Supabase auth setup.
-        if (data.password === password) {
-            setUser(data);
-            localStorage.setItem('loggedInUser', JSON.stringify(data));
-            return data;
-        }
-        return null;
-
-    } catch (error: any) {
-        console.error("Login error:", error.message);
-        return null;
-    } finally {
-        setLoading(false);
-    }
-  };
+  }, [router, pathname]);
 
   const logout = async () => {
     localStorage.removeItem('loggedInUser');
     setUser(null);
-    // await supabase.auth.signOut(); // Would use this in a real Supabase Auth setup
     router.push('/');
   };
 
@@ -104,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, updateAuthUser }}>
+    <AuthContext.Provider value={{ user, loading, logout, updateAuthUser }}>
       {children}
     </AuthContext.Provider>
   );

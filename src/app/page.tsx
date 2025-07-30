@@ -9,21 +9,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Landmark, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase-client';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { login } = useAuth();
   
   const [systemName, setSystemName] = React.useState('RateEase');
   const [assemblyLogo, setAssemblyLogo] = React.useState<string | null>(null);
   const [email, setEmail] = React.useState('admin@rateease.gov');
   const [password, setPassword] = React.useState('password');
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isMounted, setIsMounted] = React.useState(false);
+
 
   React.useEffect(() => {
+    setIsMounted(true);
     const fetchSettings = async () => {
         try {
             const { data, error } = await supabase.from('settings').select('key, value');
@@ -47,6 +48,34 @@ export default function LoginPage() {
     fetchSettings();
   }, []);
 
+  const login = async (email: string, password?: string) => {
+    setIsLoading(true);
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select()
+            .eq('email', email)
+            .single();
+
+        if (error || !data) {
+             console.error("Login error:", error?.message);
+             return null;
+        }
+
+        if (data.password === password) {
+            localStorage.setItem('loggedInUser', JSON.stringify(data));
+            return data;
+        }
+        return null;
+
+    } catch (error: any) {
+        console.error("Login error:", error.message);
+        return null;
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -65,9 +94,13 @@ export default function LoginPage() {
         title: 'Login Failed',
         description: 'Invalid email or password. Please try again.',
       });
+       setIsLoading(false);
     }
-    setIsLoading(false);
   };
+
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4 relative overflow-hidden">

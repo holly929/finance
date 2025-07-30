@@ -53,7 +53,24 @@ const navItems = [
   { href: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-function LayoutContent({ children }: { children: React.ReactNode }) {
+function LayoutWithProviders({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <PermissionsProvider>
+        <UserProvider>
+          <PropertyProvider>
+            <BillProvider>
+              <MainLayoutContent>{children}</MainLayoutContent>
+            </BillProvider>
+          </PropertyProvider>
+        </UserProvider>
+      </PermissionsProvider>
+    </AuthProvider>
+  );
+}
+
+
+function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user: authUser, logout } = useAuth();
   const { hasPermission } = usePermissions();
@@ -234,18 +251,4 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthProvider>
-      <UserProvider>
-        <PropertyProvider>
-          <BillProvider>
-            <PermissionsProvider>
-              <LayoutContent>{children}</LayoutContent>
-            </PermissionsProvider>
-          </BillProvider>
-        </PropertyProvider>
-      </UserProvider>
-    </AuthProvider>
-  );
-}
+export default LayoutWithProviders;
