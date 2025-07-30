@@ -77,6 +77,8 @@ const mockPropertyForPreview: Property = {
   'Previous Balance': 200, 'Total Payment': 100,
 };
 
+// In-memory store for settings
+let inMemorySettings: { [key: string]: any } = {};
 
 export default function SettingsPage() {
   useRequirePermission();
@@ -91,7 +93,7 @@ export default function SettingsPage() {
 
   const generalForm = useForm<z.infer<typeof generalFormSchema>>({
     resolver: zodResolver(generalFormSchema),
-    defaultValues: { systemName: '', assemblyName: '', postalAddress: '', contactPhone: '', contactEmail: '' },
+    defaultValues: { systemName: 'RateEase', assemblyName: 'District Assembly', postalAddress: 'P.O. Box 1', contactPhone: '0123456789', contactEmail: 'contact@assembly.gov' },
   });
 
   const appearanceForm = useForm<z.infer<typeof appearanceFormSchema>>({
@@ -106,42 +108,27 @@ export default function SettingsPage() {
   
   useEffect(() => {
     setSettingsLoading(true);
-    try {
-        const savedGeneral = localStorage.getItem('generalSettings');
-        if (savedGeneral) {
-          const parsed = JSON.parse(savedGeneral);
-          setGeneralSettings(parsed);
-          generalForm.reset(parsed);
-        }
-
-        const savedAppearance = localStorage.getItem('appearanceSettings');
-        if (savedAppearance) {
-            const parsed = JSON.parse(savedAppearance);
-            setAppearanceSettings(parsed);
-            appearanceForm.reset(parsed);
-        }
-
-        const savedBillFields = localStorage.getItem('billDisplaySettings');
-        if (savedBillFields) {
-            setBillFields(JSON.parse(savedBillFields));
-        } else if (headers.length > 0) {
-            const initialFields = headers.reduce((acc, header) => {
-                if (header.toLowerCase() !== 'id') acc[header] = true;
-                return acc;
-            }, {} as Record<string, boolean>);
-            setBillFields(initialFields);
-        }
-
-        const savedIntegrations = localStorage.getItem('integrationsSettings');
-        if (savedIntegrations) {
-            integrationsForm.reset(JSON.parse(savedIntegrations));
-        }
-
-    } catch (error) {
-        console.error("Could not load settings from localStorage", error)
-    } finally {
-        setSettingsLoading(false);
+    if (inMemorySettings.generalSettings) {
+        setGeneralSettings(inMemorySettings.generalSettings);
+        generalForm.reset(inMemorySettings.generalSettings);
     }
+    if (inMemorySettings.appearanceSettings) {
+        setAppearanceSettings(inMemorySettings.appearanceSettings);
+        appearanceForm.reset(inMemorySettings.appearanceSettings);
+    }
+    if (inMemorySettings.billDisplaySettings) {
+        setBillFields(inMemorySettings.billDisplaySettings);
+    } else if (headers.length > 0) {
+        const initialFields = headers.reduce((acc, header) => {
+            if (header.toLowerCase() !== 'id') acc[header] = true;
+            return acc;
+        }, {} as Record<string, boolean>);
+        setBillFields(initialFields);
+    }
+    if (inMemorySettings.integrationsSettings) {
+        integrationsForm.reset(inMemorySettings.integrationsSettings);
+    }
+    setSettingsLoading(false);
   }, [headers, generalForm, appearanceForm, integrationsForm]);
   
   useEffect(() => {
@@ -162,14 +149,10 @@ export default function SettingsPage() {
   };
 
   const saveSettings = (key: string, data: any) => {
-    try {
-        localStorage.setItem(key, JSON.stringify(data));
-        toast({ title: 'Settings Saved', description: `${key.replace('Settings', ' settings')} have been updated.`});
-        if (key === 'generalSettings') {
-            window.location.reload();
-        }
-    } catch (e) {
-        toast({ variant: 'destructive', title: 'Save Error', description: 'Could not save settings to local storage.'})
+    inMemorySettings[key] = data;
+    toast({ title: 'Settings Saved', description: `${key.replace('Settings', ' settings')} have been updated for this session.`});
+    if (key === 'generalSettings') {
+        window.location.reload();
     }
   }
 

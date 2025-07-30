@@ -60,16 +60,8 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   const [isProfileDialogOpen, setIsProfileDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
-    const savedSettings = localStorage.getItem('generalSettings');
-    if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        if (settings.systemName) {
-            setSystemName(settings.systemName);
-        }
-        if (settings.contactEmail) {
-            setSupportEmail(settings.contactEmail);
-        }
-    }
+    // Settings are not persisted in a centralized way anymore.
+    // This could be updated to fetch from a config file or service.
   }, []);
   
   const filteredNavItems = React.useMemo(() => {
@@ -79,7 +71,6 @@ function MainLayout({ children }: { children: React.ReactNode }) {
 
 
   if (!authUser) {
-    // AuthProvider will handle the redirect, this just prevents flicker.
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

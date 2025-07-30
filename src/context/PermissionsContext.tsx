@@ -37,44 +37,18 @@ interface PermissionsContextType {
 
 const PermissionsContext = createContext<PermissionsContextType | undefined>(undefined);
 
+// In-memory store
+let inMemoryPermissions: RolePermissions = defaultPermissions;
+
 export function PermissionsProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
-  const [permissions, setPermissions] = useState<RolePermissions>(defaultPermissions);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    try {
-      const savedPermissions = localStorage.getItem('permissions');
-      if (savedPermissions) {
-        const parsed = JSON.parse(savedPermissions);
-        // Deep merge to ensure all roles and pages have defaults
-        const mergedPermissions = JSON.parse(JSON.stringify(defaultPermissions));
-         for (const role in mergedPermissions) {
-          if (parsed[role]) {
-            Object.assign(mergedPermissions[role], parsed[role]);
-          }
-        }
-        setPermissions(mergedPermissions);
-      } else {
-        setPermissions(defaultPermissions);
-      }
-    } catch (error) {
-      console.error('Failed to load permissions from localStorage', error);
-      setPermissions(defaultPermissions);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [permissions, setPermissions] = useState<RolePermissions>(inMemoryPermissions);
+  const [loading, setLoading] = useState(false);
 
   const updatePermissions = (newPermissions: RolePermissions) => {
-    try {
-        localStorage.setItem('permissions', JSON.stringify(newPermissions));
-        setPermissions(newPermissions);
-        toast({ title: 'Permissions Saved', description: 'User role permissions have been updated.' });
-    } catch(error) {
-        toast({ variant: 'destructive', title: 'Save Error', description: 'Could not save permissions to local storage.'});
-    }
+    inMemoryPermissions = newPermissions;
+    setPermissions(newPermissions);
+    toast({ title: 'Permissions Updated', description: 'User role permissions have been updated for this session.' });
   };
 
   const hasPermission = (role: UserRole, pagePath: string): boolean => {
@@ -82,7 +56,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
 
     const page = pagePath.split('/')[1] as PermissionPage;
     if (!PERMISSION_PAGES.includes(page)) {
-        return true; // Allow access to non-protected routes like / or sub-pages of properties
+        return true;
     }
     
     return permissions[role]?.[page] ?? false;

@@ -21,26 +21,11 @@ const getEditableSheetUrl = (originalUrl: string): string => {
   return '';
 };
 
+// This component will not function as expected without a proper way to persist settings centrally.
+// For now, it will appear empty as the in-memory settings are not shared from the settings page.
 function GoogleSheetIntegration() {
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem('integrationsSettings');
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        if (settings.googleSheetUrl) {
-          const editableUrl = getEditableSheetUrl(settings.googleSheetUrl);
-          setSheetUrl(editableUrl);
-        }
-      }
-    } catch (error) {
-        console.error("Could not load integration settings from localStorage", error);
-    } finally {
-        setIsLoading(false);
-    }
-  }, []);
+  const [isLoading, setIsLoading] = useState(false);
 
   return (
     <Card>

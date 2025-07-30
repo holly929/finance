@@ -13,33 +13,18 @@ interface BillContextType {
 
 const BillContext = createContext<BillContextType | undefined>(undefined);
 
+// In-memory store
+let inMemoryBills: Bill[] = [];
+
 export function BillProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [bills, setBillsState] = useState<Bill[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [bills, setBillsState] = useState<Bill[]>(inMemoryBills);
+    const [loading, setLoading] = useState(false);
 
     const setBills = (newBills: Bill[]) => {
+        inMemoryBills = newBills;
         setBillsState(newBills);
-        localStorage.setItem('bills', JSON.stringify(newBills));
     };
-
-    useEffect(() => {
-        setLoading(true);
-        try {
-            const savedBills = localStorage.getItem('bills');
-            if (savedBills) {
-                setBillsState(JSON.parse(savedBills));
-            }
-        } catch (error) {
-             toast({
-                variant: 'destructive',
-                title: 'Load Error',
-                description: 'Could not load bill data from local storage.',
-            });
-        } finally {
-            setLoading(false);
-        }
-    }, [toast]);
 
     const addBills = async (newBillsData: Omit<Bill, 'id'>[]): Promise<boolean> => {
         try {

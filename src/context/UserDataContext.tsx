@@ -24,43 +24,19 @@ const defaultAdminUser: User = {
     photoURL: '',
 };
 
+// In-memory store
+let inMemoryUsers: User[] = [defaultAdminUser];
+
+
 export function UserProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [users, setUsersState] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [users, setUsersState] = useState<User[]>(inMemoryUsers);
+    const [loading, setLoading] = useState(false);
 
     const setUsers = (newUsers: User[]) => {
+        inMemoryUsers = newUsers;
         setUsersState(newUsers);
-        localStorage.setItem('users', JSON.stringify(newUsers));
     };
-
-    useEffect(() => {
-        setLoading(true);
-        try {
-            const savedUsers = localStorage.getItem('users');
-            if (savedUsers) {
-                const parsedUsers = JSON.parse(savedUsers);
-                // Ensure default admin always exists
-                const adminExists = parsedUsers.some((u: User) => u.email === defaultAdminUser.email);
-                if (!adminExists) {
-                    setUsers([defaultAdminUser, ...parsedUsers]);
-                } else {
-                    setUsersState(parsedUsers);
-                }
-            } else {
-                setUsers([defaultAdminUser]);
-            }
-        } catch (error) {
-             toast({
-                variant: 'destructive',
-                title: 'Load Error',
-                description: 'Could not load user data from local storage.',
-            });
-            setUsers([defaultAdminUser]);
-        } finally {
-            setLoading(false);
-        }
-    }, [toast]);
 
     const addUser = (user: Omit<User, 'id'>) => {
         const newUser: User = {

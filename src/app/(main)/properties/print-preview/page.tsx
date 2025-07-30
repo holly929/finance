@@ -17,7 +17,6 @@ import { useBillData } from '@/context/BillDataContext';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getPropertyValue } from '@/lib/property-utils';
-import { supabase } from '@/lib/supabase-client';
 
 type GeneralSettings = {
   assemblyName?: string;
@@ -135,26 +134,14 @@ export default function BulkPrintPage() {
 
   useEffect(() => {
     setIsClient(true);
+    // Settings are now in-memory and not persisted, so they will be default.
+    // A centralized settings service would be needed to fetch them here.
     const loadData = async () => {
         try {
             const storedProperties = localStorage.getItem('selectedPropertiesForPrinting');
             if (storedProperties) {
                 setAllProperties(JSON.parse(storedProperties));
             }
-            
-            const { data, error } = await supabase.from('settings').select('key, value');
-            if (error) throw error;
-            
-            const settingsMap = data.reduce((acc, setting) => {
-                acc[setting.key] = setting.value;
-                return acc;
-            }, {} as Record<string, any>);
-
-            setSettings({
-                general: settingsMap.generalSettings || {},
-                appearance: settingsMap.appearanceSettings || {}
-            });
-
         } catch (error) {
             console.error("Could not load data", error);
         }

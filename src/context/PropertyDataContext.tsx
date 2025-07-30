@@ -20,65 +20,35 @@ interface PropertyContextType {
 
 const PropertyContext = createContext<PropertyContextType | undefined>(undefined);
 
+// In-memory store
+let inMemoryProperties: Property[] = mockProperties;
+let inMemoryHeaders: string[] = mockProperties.length > 0 ? Object.keys(mockProperties[0]).filter(key => key !== 'id') : ['Owner Name', 'Property No', 'Town', 'Rateable Value', 'Total Payment'];
+
 export function PropertyProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [properties, setPropertiesState] = useState<Property[]>([]);
-    const [headers, setHeadersState] = useState<string[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [properties, setPropertiesState] = useState<Property[]>(inMemoryProperties);
+    const [headers, setHeadersState] = useState<string[]>(inMemoryHeaders);
+    const [loading, setLoading] = useState(false);
 
     const setProperties = (newProperties: Property[], newHeaders: string[]) => {
+        inMemoryProperties = newProperties;
+        inMemoryHeaders = newHeaders;
         setPropertiesState(newProperties);
         setHeadersState(newHeaders);
-        localStorage.setItem('properties', JSON.stringify(newProperties));
-        localStorage.setItem('propertyHeaders', JSON.stringify(newHeaders));
     };
-
-    useEffect(() => {
-        setLoading(true);
-        try {
-            const savedProperties = localStorage.getItem('properties');
-            const savedHeaders = localStorage.getItem('propertyHeaders');
-            
-            if (savedProperties) {
-                setPropertiesState(JSON.parse(savedProperties));
-            } else {
-                setPropertiesState(mockProperties);
-            }
-
-            if (savedHeaders) {
-                setHeadersState(JSON.parse(savedHeaders));
-            } else if (mockProperties.length > 0) {
-                 const firstItemKeys = Object.keys(mockProperties[0]);
-                 const filteredKeys = firstItemKeys.filter(key => key !== 'id');
-                 setHeadersState(filteredKeys);
-            } else {
-                setHeadersState(['Owner Name', 'Property No', 'Town', 'Rateable Value', 'Total Payment']);
-            }
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Load Error',
-                description: 'Could not load property data from local storage.',
-            });
-            // Fallback to mock data if local storage fails
-            setPropertiesState(mockProperties);
-        } finally {
-            setLoading(false);
-        }
-    }, [toast]);
-
+    
     const addProperty = (property: Omit<Property, 'id'>) => {
         const newProperty: Property = {
             id: `prop-${Date.now()}`,
             ...property
         };
         const updatedProperties = [...properties, newProperty];
-        setProperties(updatedProperties, headers); // Assume headers don't change on add
+        setProperties(updatedProperties, headers);
     };
 
     const updateProperty = (updatedProperty: Property) => {
         const updatedProperties = properties.map(p => p.id === updatedProperty.id ? updatedProperty : p);
-        setProperties(updatedProperties, headers); // Assume headers don't change on update
+        setProperties(updatedProperties, headers);
     };
 
     const deleteProperty = (id: string) => {

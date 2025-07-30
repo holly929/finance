@@ -9,90 +9,66 @@ import { Loader2 } from 'lucide-react';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, pass: string) => User | null;
+  login: (email: string, pass: string, users: User[]) => User | null;
   logout: () => void;
   updateAuthUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// In-memory store for the logged-in user
+let inMemoryUser: User | null = null;
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(inMemoryUser);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    setLoading(true);
-    try {
-      const storedUser = localStorage.getItem('loggedInUser');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-    } catch (error) {
-      console.error('Failed to initialize auth state from localStorage', error);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+    // This effect runs only once on mount to set the initial state
+    setUser(inMemoryUser);
+    setLoading(false);
   }, []);
 
-  const login = (email: string, pass: string): User | null => {
-    const storedUsers = localStorage.getItem('users');
-    let users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
-    
-    // One-time check to create default admin if no users exist
-    if (users.length === 0 && email === 'admin@rateease.gov' && pass === 'password') {
-        const defaultAdminUser: User = {
-            id: 'user-0',
-            name: 'Admin',
-            email: 'admin@rateease.gov',
-            role: 'Admin',
-            password: 'password',
-            photoURL: '',
-        };
-        users = [defaultAdminUser];
-        localStorage.setItem('users', JSON.stringify(users));
-    }
-
+  const login = (email: string, pass: string, users: User[]): User | null => {
     const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
 
     if (foundUser) {
+      inMemoryUser = foundUser;
       setUser(foundUser);
-      localStorage.setItem('loggedInUser', JSON.stringify(foundUser));
       return foundUser;
     }
     return null;
   };
 
   const logout = () => {
-    localStorage.removeItem('loggedInUser');
+    inMemoryUser = null;
     setUser(null);
-    router.push('/');
+    router.push('/login');
   };
 
   const updateAuthUser = (updatedUser: User) => {
+    inMemoryUser = updatedUser;
     setUser(updatedUser);
-    localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
   };
 
   // This effect handles protecting routes
   useEffect(() => {
-    if (loading) return; // Don't do anything while loading
-    
-    const isAuthPage = pathname === '/';
+    if (loading) return; // Don't run this effect until initial state is set
+
+    const isAuthPage = pathname === '/login';
 
     if (!user && !isAuthPage) {
         // If not logged in and not on the login page, redirect to login
-        router.push('/');
+        router.push('/login');
     } else if (user && isAuthPage) {
         // If logged in and on the login page, redirect to dashboard
         router.push('/dashboard');
     }
-  }, [user, loading, pathname, router]);
+  }, [user, pathname, router, loading]);
 
-
-  if (loading || (!user && pathname !== '/')) {
+  if (loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

@@ -98,21 +98,12 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     useEffect(() => {
         if (displaySettingsProp) {
             setDisplaySettings(displaySettingsProp);
-        } else {
-            try {
-                const savedSettings = localStorage.getItem('billDisplaySettings');
-                if (savedSettings) {
-                    setDisplaySettings(JSON.parse(savedSettings));
-                } else if (property) {
-                    const allFields = Object.keys(property).reduce((acc, key) => {
-                        acc[key] = true;
-                        return acc;
-                    }, {} as Record<string, boolean>);
-                    setDisplaySettings(allFields);
-                }
-            } catch (error) {
-                console.error("Could not load bill display settings", error);
-            }
+        } else if (property) {
+            const allFields = Object.keys(property).reduce((acc, key) => {
+                acc[key] = true;
+                return acc;
+            }, {} as Record<string, boolean>);
+            setDisplaySettings(allFields);
         }
     }, [property, displaySettingsProp]);
     
@@ -312,16 +303,9 @@ export function BillDialog({ property, isOpen, onOpenChange }: BillDialogProps) 
 
   useEffect(() => {
     if (isOpen) {
-        try {
-            const savedGeneral = localStorage.getItem('generalSettings');
-            const savedAppearance = localStorage.getItem('appearanceSettings');
-            setSettings({
-                general: savedGeneral ? JSON.parse(savedGeneral) : {},
-                appearance: savedAppearance ? JSON.parse(savedAppearance) : {},
-            });
-        } catch (error) {
-            console.error("Could not load settings from localStorage", error);
-        }
+      // Settings are no longer persisted in local storage.
+      // This will use default/empty settings.
+      // A centralized settings service would be needed to fetch them.
     }
   }, [isOpen]);
 
