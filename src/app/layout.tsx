@@ -2,6 +2,8 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
+import { AuthProvider } from '@/context/AuthContext';
+import { UserProvider } from '@/context/UserDataContext';
 
 export const metadata: Metadata = {
   title: 'RateEase',
@@ -23,8 +25,12 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Tinos:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-          {children}
-          <Toaster />
+          <UserProvider>
+            <AuthProvider>
+              {children}
+              <Toaster />
+            </AuthProvider>
+          </UserProvider>
       </body>
     </html>
   );

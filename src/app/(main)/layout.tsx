@@ -221,16 +221,12 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 
 export default function LayoutWithProviders({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <UserProvider>
-        <PermissionsProvider>
-          <PropertyProvider>
-            <BillProvider>
-              <AuthenticatedLayout>{children}</AuthenticatedLayout>
-            </BillProvider>
-          </PropertyProvider>
-        </PermissionsProvider>
-      </UserProvider>
-    </AuthProvider>
+    <PermissionsProvider>
+      <PropertyProvider>
+        <BillProvider>
+          <AuthenticatedLayout>{children}</AuthenticatedLayout>
+        </BillProvider>
+      </PropertyProvider>
+    </PermissionsProvider>
   );
 }

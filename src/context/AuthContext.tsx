@@ -5,11 +5,12 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '@/lib/types';
 import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useUserData } from './UserDataContext';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, pass: string, users: User[]) => User | null;
+  login: (email: string, pass: string) => User | null;
   logout: () => void;
   updateAuthUser: (user: User) => void;
 }
@@ -24,6 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const { users } = useUserData(); // Fetch users here, where the provider is available
 
   useEffect(() => {
     // This effect runs only once on mount to set the initial state
@@ -31,7 +33,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = (email: string, pass: string, users: User[]): User | null => {
+  const login = (email: string, pass: string): User | null => {
+    // The 'users' array is now available from the hook call above
     const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
 
     if (foundUser) {

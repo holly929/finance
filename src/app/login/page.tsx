@@ -10,13 +10,11 @@ import { Label } from '@/components/ui/label';
 import { Landmark, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { useUserData } from '@/context/UserDataContext';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { login } = useAuth();
-  const { users } = useUserData();
   
   const [systemName, setSystemName] = React.useState('RateEase');
   const [assemblyLogo, setAssemblyLogo] = React.useState<string | null>(null);
@@ -36,7 +34,8 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     
-    const loggedInUser = login(email, password, users);
+    // The 'login' function now has access to the user list from its context
+    const loggedInUser = login(email, password);
 
     if (loggedInUser) {
       toast({
