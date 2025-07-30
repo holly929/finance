@@ -39,6 +39,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PermissionsProvider, usePermissions } from '@/context/PermissionsContext';
 import { ProfileDialog } from '@/components/profile-dialog';
 import { BillProvider } from '@/context/BillDataContext';
+import type { User as UserType } from '@/lib/types';
 
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard' },
@@ -51,9 +52,16 @@ const navItems = [
   { href: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-function MainLayout({ children }: { children: React.ReactNode }) {
+function MainLayout({
+  children,
+  user,
+  logout,
+}: {
+  children: React.ReactNode;
+  user: UserType | null;
+  logout: () => void;
+}) {
   const pathname = usePathname();
-  const { user: authUser, logout } = useAuth();
   const { hasPermission } = usePermissions();
   const [systemName, setSystemName] = React.useState('RateEase');
   const [supportEmail, setSupportEmail] = React.useState('');
@@ -63,14 +71,13 @@ function MainLayout({ children }: { children: React.ReactNode }) {
     // Settings are not persisted in a centralized way anymore.
     // This could be updated to fetch from a config file or service.
   }, []);
-  
+
   const filteredNavItems = React.useMemo(() => {
-    if (!authUser) return [];
-    return navItems.filter(item => hasPermission(authUser.role, item.href));
-  }, [authUser, hasPermission]);
-
-
-  if (!authUser) {
+    if (!user) return [];
+    return navItems.filter(item => hasPermission(user.role, item.href));
+  }, [user, hasPermission]);
+  
+  if (!user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -109,12 +116,12 @@ function MainLayout({ children }: { children: React.ReactNode }) {
               <div className="mt-auto border-t p-4">
                  <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 border">
-                    <AvatarImage src={authUser.photoURL || undefined} alt={authUser.name} />
-                    <AvatarFallback>{authUser.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={user.photoURL || undefined} alt={user.name} />
+                    <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
-                    <span className="font-medium text-sm">{authUser.name}</span>
-                    <span className="text-xs text-muted-foreground">{authUser.email}</span>
+                    <span className="font-medium text-sm">{user.name}</span>
+                    <span className="text-xs text-muted-foreground">{user.email}</span>
                   </div>
                 </div>
               </div>
@@ -194,6 +201,23 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
+  const { user, loading, logout } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <MainLayout user={user} logout={logout}>
+      {children}
+    </MainLayout>
+  );
+}
 
 export default function LayoutWithProviders({ children }: { children: React.ReactNode }) {
   return (
@@ -202,7 +226,7 @@ export default function LayoutWithProviders({ children }: { children: React.Reac
         <PermissionsProvider>
           <PropertyProvider>
             <BillProvider>
-                <MainLayout>{children}</MainLayout>
+              <AuthenticatedLayout>{children}</AuthenticatedLayout>
             </BillProvider>
           </PropertyProvider>
         </PermissionsProvider>
