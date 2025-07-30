@@ -16,6 +16,14 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+const defaultAdminUser: Omit<User, 'id'> = {
+    name: 'Admin',
+    email: 'admin@rateease.gov',
+    role: 'Admin',
+    password: 'password',
+    photoURL: '',
+};
+
 export function UserProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
     const [users, setUsersState] = useState<User[]>([]);
@@ -24,9 +32,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const fetchUsers = useCallback(async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.from('users').select();
+            const { data, error, count } = await supabase.from('users').select('*', { count: 'exact' });
+            
             if (error) throw error;
-            if (data) setUsersState(data);
+            
+            if (data) {
+                if (data.length === 0) {
+                    // This is the first run, create the default admin user
+                    const { error: insertError } = await supabase.from('users').insert(defaultAdminUser);
+                    if (insertError) {
+                        console.error("Could not create default admin user:", insertError);
+                        toast({ variant: 'destructive', title: 'Setup Error', description: 'Could not create the default admin user.' });
+                    } else {
+                        // Re-fetch after creation
+                        const { data: newData, error: newError } = await supabase.from('users').select();
+                        if (newError) throw newError;
+                        if(newData) setUsersState(newData);
+                    }
+                } else {
+                    setUsersState(data);
+                }
+            }
         } catch (error: any) {
              toast({
                 variant: 'destructive',
@@ -63,7 +89,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
 
     const deleteUser = async (id: string) => {
-        if (id.startsWith('admin-')) {
+        // Prevent deleting the default admin user by email check, in case ID changes.
+        const userToDelete = users.find(u => u.id === id);
+        if (userToDelete?.email === defaultAdminUser.email) {
             toast({ variant: 'destructive', title: 'Delete Error', description: 'The default admin user cannot be deleted.' });
             return;
         }
