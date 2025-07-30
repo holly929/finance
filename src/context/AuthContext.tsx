@@ -28,27 +28,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const storedUser = localStorage.getItem('loggedInUser');
       if (storedUser) {
         setUser(JSON.parse(storedUser));
-      } else {
-        // If no user is in local storage and we are in a protected route, redirect.
-        if (pathname !== '/') {
-          router.push('/');
-        }
       }
     } catch (error) {
       console.error('Failed to initialize auth state from localStorage', error);
       setUser(null);
-      if (pathname !== '/') {
-        router.push('/');
-      }
     } finally {
       setLoading(false);
     }
-  }, [router, pathname]);
+  }, []);
 
   const login = (email: string, pass: string): User | null => {
     const storedUsers = localStorage.getItem('users');
-    const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
+    let users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
     
+    // One-time check to create default admin if no users exist
+    if (users.length === 0 && email === 'admin@rateease.gov' && pass === 'password') {
+        const defaultAdminUser: User = {
+            id: 'user-0',
+            name: 'Admin',
+            email: 'admin@rateease.gov',
+            role: 'Admin',
+            password: 'password',
+            photoURL: '',
+        };
+        users = [defaultAdminUser];
+        localStorage.setItem('users', JSON.stringify(users));
+    }
+
     const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
 
     if (foundUser) {
@@ -70,18 +76,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
   };
 
+  // This effect handles protecting routes
+  useEffect(() => {
+    if (loading) return; // Don't do anything while loading
+    
+    const isAuthPage = pathname === '/';
 
-  if (loading) {
+    if (!user && !isAuthPage) {
+        // If not logged in and not on the login page, redirect to login
+        router.push('/');
+    } else if (user && isAuthPage) {
+        // If logged in and on the login page, redirect to dashboard
+        router.push('/dashboard');
+    }
+  }, [user, loading, pathname, router]);
+
+
+  if (loading || (!user && pathname !== '/')) {
     return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-    );
-  }
-  
-  // If we're not on the login page and there's no user, show a loader while redirecting
-  if (!user && pathname !== '/') {
-     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>

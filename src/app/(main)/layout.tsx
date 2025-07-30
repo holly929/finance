@@ -59,11 +59,6 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   const [supportEmail, setSupportEmail] = React.useState('');
   const [isProfileDialogOpen, setIsProfileDialogOpen] = React.useState(false);
 
-  const filteredNavItems = React.useMemo(() => {
-    if (!authUser) return [];
-    return navItems.filter(item => hasPermission(authUser.role, item.href));
-  }, [authUser, hasPermission]);
-
   React.useEffect(() => {
     const savedSettings = localStorage.getItem('generalSettings');
     if (savedSettings) {
@@ -76,8 +71,15 @@ function MainLayout({ children }: { children: React.ReactNode }) {
         }
     }
   }, []);
+  
+  const filteredNavItems = React.useMemo(() => {
+    if (!authUser) return [];
+    return navItems.filter(item => hasPermission(authUser.role, item.href));
+  }, [authUser, hasPermission]);
+
 
   if (!authUser) {
+    // AuthProvider will handle the redirect, this just prevents flicker.
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
