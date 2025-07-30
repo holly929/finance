@@ -10,6 +10,7 @@ import type { Property } from '@/lib/types';
 import { Printer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getPropertyValue } from '@/lib/property-utils';
+import { supabase } from '@/lib/supabase-client';
 
 
 interface BillDialogProps {
@@ -97,24 +98,28 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
 
 
     useEffect(() => {
-        if (displaySettingsProp) {
-            setDisplaySettings(displaySettingsProp);
-        } else {
-            try {
-                const savedFields = localStorage.getItem('billDisplaySettings');
-                if (savedFields) {
-                    setDisplaySettings(JSON.parse(savedFields));
-                } else if (property) {
-                    const allFields = Object.keys(property).reduce((acc, key) => {
-                        acc[key] = true;
-                        return acc;
-                    }, {} as Record<string, boolean>);
-                    setDisplaySettings(allFields);
+        const loadSettings = async () => {
+            if (displaySettingsProp) {
+                setDisplaySettings(displaySettingsProp);
+            } else {
+                try {
+                    const { data, error } = await supabase.from('settings').select('value').eq('key', 'billDisplaySettings').single();
+                    if (error) throw error;
+                    if (data?.value) {
+                         setDisplaySettings(data.value);
+                    } else if (property) {
+                        const allFields = Object.keys(property).reduce((acc, key) => {
+                            acc[key] = true;
+                            return acc;
+                        }, {} as Record<string, boolean>);
+                        setDisplaySettings(allFields);
+                    }
+                } catch (error) {
+                    console.error("Could not load bill display settings", error);
                 }
-            } catch (error) {
-                console.error("Could not load bill display settings", error);
             }
-        }
+        };
+        loadSettings();
     }, [property, displaySettingsProp]);
     
     const getNumber = (key: string): number | null => {
@@ -188,7 +193,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     const barcodeValue = useMemo(() => {
         if (!property) return '';
         const propertyNo = formatValue('Property No');
-        const ownerName = (formatValue('Owner Name') || '').substring(0, 20); // Truncate name to keep barcode small
+        const ownerName = (formatValue('Owner Name') || '').substring(0, 20);
         const amount = formatAmount(totalAmountDue);
         const year = new Date().getFullYear();
         return `${propertyNo}|${ownerName}|${amount}|${year}`;
@@ -312,18 +317,27 @@ export function BillDialog({ property, isOpen, onOpenChange }: BillDialogProps) 
   const componentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
-        try {
-            const savedGeneral = localStorage.getItem('generalSettings');
-            const savedAppearance = localStorage.getItem('appearanceSettings');
-            setSettings({
-                general: savedGeneral ? JSON.parse(savedGeneral) : {},
-                appearance: savedAppearance ? JSON.parse(savedAppearance) : {}
-            });
-        } catch (error) {
-            console.error("Could not load settings from localStorage", error);
+    const fetchSettings = async () => {
+        if (isOpen) {
+            try {
+                 const { data, error } = await supabase.from('settings').select('key, value');
+                if (error) throw error;
+                
+                const settingsMap = data.reduce((acc, setting) => {
+                    acc[setting.key] = setting.value;
+                    return acc;
+                }, {} as Record<string, any>);
+
+                setSettings({
+                    general: settingsMap.generalSettings || {},
+                    appearance: settingsMap.appearanceSettings || {}
+                });
+            } catch (error) {
+                console.error("Could not load settings from Supabase", error);
+            }
         }
-    }
+    };
+    fetchSettings();
   }, [isOpen]);
 
   const handlePrint = useReactToPrint({

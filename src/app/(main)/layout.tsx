@@ -40,6 +40,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PermissionsProvider, usePermissions } from '@/context/PermissionsContext';
 import { ProfileDialog } from '@/components/profile-dialog';
 import { BillProvider } from '@/context/BillDataContext';
+import { supabase } from '@/lib/supabase-client';
 
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard' },
@@ -66,20 +67,24 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   }, [authUser, hasPermission]);
 
   React.useEffect(() => {
-    try {
-      const savedGeneral = localStorage.getItem('generalSettings');
-      if (savedGeneral) {
-        const settings = JSON.parse(savedGeneral);
-        if (settings.systemName) {
-          setSystemName(settings.systemName);
+    const fetchSettings = async () => {
+        try {
+            const { data, error } = await supabase.from('settings').select('key, value').eq('key', 'generalSettings');
+             if (error) throw error;
+            if (data && data[0] && data[0].value) {
+                const settings = data[0].value;
+                if (settings.systemName) {
+                    setSystemName(settings.systemName);
+                }
+                if (settings.contactEmail) {
+                    setSupportEmail(settings.contactEmail);
+                }
+            }
+        } catch (error) {
+            console.error("Could not load settings from Supabase", error);
         }
-        if (settings.contactEmail) {
-            setSupportEmail(settings.contactEmail);
-        }
-      }
-    } catch (error) {
-      console.error("Could not load settings from localStorage", error);
-    }
+    };
+    fetchSettings();
   }, []);
 
   const NavLink = ({ href, icon: Icon, label }: typeof navItems[0]) => (

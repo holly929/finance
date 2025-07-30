@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -20,6 +21,8 @@ import { PERMISSION_PAGES, usePermissions, UserRole, PermissionPage } from '@/co
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Property } from '@/lib/types';
 import { PrintableContent } from '@/components/bill-dialog';
+import { supabase } from '@/lib/supabase-client';
+import { Loader2 } from 'lucide-react';
 
 const generalFormSchema = z.object({
   systemName: z.string().min(3, 'System name must be at least 3 characters.'),
@@ -27,14 +30,6 @@ const generalFormSchema = z.object({
   postalAddress: z.string().min(5, 'Postal address seems too short.'),
   contactPhone: z.string().min(10, 'Phone number seems too short.'),
   contactEmail: z.string().email(),
-});
-
-const billingFormSchema = z.object({
-  residentialRate: z.coerce.number().positive(),
-  commercialRate: z.coerce.number().positive(),
-  industrialRate: z.coerce.number().positive(),
-  billingCycle: z.enum(['monthly', 'quarterly', 'annually']),
-  penaltyRate: z.coerce.number().min(0).max(100),
 });
 
 const appearanceFormSchema = z.object({
@@ -45,6 +40,10 @@ const appearanceFormSchema = z.object({
   fontFamily: z.enum(['sans', 'serif', 'mono']).default('sans'),
   fontSize: z.coerce.number().min(8).max(14).default(12),
   accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color code, e.g., #F1F5F9").default('#F1F5F9'),
+});
+
+const integrationsFormSchema = z.object({
+  googleSheetUrl: z.string().url("Please enter a valid Google Sheet URL.").optional().or(z.literal('')),
 });
 
 type AppearanceSettings = {
@@ -67,31 +66,16 @@ const ImageUploadPreview = ({ src, alt, dataAiHint }: { src: string | null, alt:
 }
 
 const permissionPageLabels: Record<PermissionPage, string> = {
-  'dashboard': 'Dashboard',
-  'properties': 'Properties',
-  'billing': 'Billing',
-  'bills': 'Bills',
-  'reports': 'Reports',
-  'users': 'User Management',
-  'settings': 'Settings',
-  'integrations': 'Integrations'
+  'dashboard': 'Dashboard', 'properties': 'Properties', 'billing': 'Billing', 'bills': 'Bills',
+  'reports': 'Reports', 'users': 'User Management', 'settings': 'Settings', 'integrations': 'Integrations'
 };
 
 const mockPropertyForPreview: Property = {
-  id: 'preview-123',
-  'Owner Name': 'John Preview Doe',
-  'Phone Number': '024 123 4567',
-  'Town': 'Settingsville',
-  'Suburb': 'Preview Estates',
-  'Property No': 'PV-001',
-  'Valuation List No.': 'VLN-999',
-  'Account Number': '1234567890',
-  'Property Type': 'Residential',
-  'Rateable Value': 5000,
-  'Rate Impost': 0.05,
-  'Sanitation Charged': 50,
-  'Previous Balance': 200,
-  'Total Payment': 100,
+  id: 'preview-123', 'Owner Name': 'John Preview Doe', 'Phone Number': '024 123 4567',
+  'Town': 'Settingsville', 'Suburb': 'Preview Estates', 'Property No': 'PV-001',
+  'Valuation List No.': 'VLN-999', 'Account Number': '1234567890', 'Property Type': 'Residential',
+  'Rateable Value': 5000, 'Rate Impost': 0.05, 'Sanitation Charged': 50,
+  'Previous Balance': 200, 'Total Payment': 100,
 };
 
 
@@ -99,71 +83,73 @@ export default function SettingsPage() {
   useRequirePermission();
   const { headers } = usePropertyData();
   const { permissions, updatePermissions, loading: permissionsLoading } = usePermissions();
+  const [settingsLoading, setSettingsLoading] = useState(true);
 
   const [generalSettings, setGeneralSettings] = useState<any | null>(null);
   const [appearanceSettings, setAppearanceSettings] = useState<Partial<AppearanceSettings>>({});
   const [billFields, setBillFields] = useState<Record<string, boolean>>({});
   const [localPermissions, setLocalPermissions] = useState(permissions);
 
-  useEffect(() => {
-    setLocalPermissions(permissions);
-  }, [permissions]);
-
-  useEffect(() => {
-    try {
-      const savedGeneral = localStorage.getItem('generalSettings');
-      if (savedGeneral) setGeneralSettings(JSON.parse(savedGeneral));
-
-      const savedAppearance = localStorage.getItem('appearanceSettings');
-      if (savedAppearance) setAppearanceSettings(JSON.parse(savedAppearance));
-      
-      const savedBillFields = localStorage.getItem('billDisplaySettings');
-       if (savedBillFields) {
-        setBillFields(JSON.parse(savedBillFields));
-      } else if (headers.length > 0) {
-        const initialFields = headers.reduce((acc, header) => {
-          if (header.toLowerCase() !== 'id') acc[header] = true;
-          return acc;
-        }, {} as Record<string, boolean>);
-        setBillFields(initialFields);
-      }
-
-    } catch (error) {
-        console.error("Could not load settings from localStorage", error)
-    }
-  }, [headers]);
-
   const generalForm = useForm<z.infer<typeof generalFormSchema>>({
     resolver: zodResolver(generalFormSchema),
-    defaultValues: {
-      systemName: 'RateEase',
-      assemblyName: 'Ayawaso West Municipal Assembly',
-      postalAddress: 'P.O. Box 11, Abetifi',
-      contactPhone: '0303-966-180',
-      contactEmail: 'info@awma.gov.gh',
-    },
-  });
-
-  const billingForm = useForm<z.infer<typeof billingFormSchema>>({
-    resolver: zodResolver(billingFormSchema),
-    defaultValues: {
-      residentialRate: 0.5,
-      commercialRate: 1.2,
-      industrialRate: 2.0,
-      billingCycle: 'quarterly',
-      penaltyRate: 5,
-    },
+    defaultValues: { systemName: '', assemblyName: '', postalAddress: '', contactPhone: '', contactEmail: '' },
   });
 
   const appearanceForm = useForm<z.infer<typeof appearanceFormSchema>>({
     resolver: zodResolver(appearanceFormSchema),
-    defaultValues: {
-      billWarningText: 'PAY AT ONCE OR FACE LEGAL ACTION',
-      fontFamily: 'sans',
-      fontSize: 12,
-      accentColor: '#F1F5F9',
-    },
+    defaultValues: { billWarningText: '', fontFamily: 'sans', fontSize: 12, accentColor: '#000000' },
   });
+  
+  const integrationsForm = useForm<z.infer<typeof integrationsFormSchema>>({
+    resolver: zodResolver(integrationsFormSchema),
+    defaultValues: { googleSheetUrl: '' },
+  });
+  
+  useEffect(() => {
+    const fetchSettings = async () => {
+        setSettingsLoading(true);
+        try {
+            const { data, error } = await supabase.from('settings').select('key, value');
+            if (error) throw error;
+            
+            const settingsMap = data.reduce((acc, setting) => {
+                acc[setting.key] = setting.value;
+                return acc;
+            }, {} as Record<string, any>);
+            
+            if (settingsMap.generalSettings) {
+              setGeneralSettings(settingsMap.generalSettings);
+              generalForm.reset(settingsMap.generalSettings);
+            }
+             if (settingsMap.appearanceSettings) {
+              setAppearanceSettings(settingsMap.appearanceSettings);
+              appearanceForm.reset(settingsMap.appearanceSettings);
+            }
+             if (settingsMap.billDisplaySettings) {
+              setBillFields(settingsMap.billDisplaySettings);
+            } else if (headers.length > 0) {
+                 const initialFields = headers.reduce((acc, header) => {
+                    if (header.toLowerCase() !== 'id') acc[header] = true;
+                    return acc;
+                }, {} as Record<string, boolean>);
+                setBillFields(initialFields);
+            }
+             if (settingsMap.integrationsSettings) {
+                integrationsForm.reset(settingsMap.integrationsSettings);
+            }
+
+        } catch (error) {
+            console.error("Could not load settings from Supabase", error)
+        } finally {
+            setSettingsLoading(false);
+        }
+    };
+    fetchSettings();
+  }, [headers, generalForm, appearanceForm, integrationsForm]);
+  
+  useEffect(() => {
+    setLocalPermissions(permissions);
+  }, [permissions]);
 
   const watchedAppearanceForm = appearanceForm.watch();
   
@@ -177,37 +163,24 @@ export default function SettingsPage() {
       accentColor: watchedAppearanceForm.accentColor,
     },
   };
-  
-  useEffect(() => {
-    if (generalSettings) generalForm.reset(generalSettings);
-    if (appearanceSettings) {
-        appearanceForm.reset({
-            billWarningText: appearanceSettings.billWarningText,
-            fontFamily: appearanceSettings.fontFamily || 'sans',
-            fontSize: appearanceSettings.fontSize || 12,
-            accentColor: appearanceSettings.accentColor || '#F1F5F9',
-        });
-    }
-  }, [generalSettings, appearanceSettings, generalForm, appearanceForm]);
 
-  function onGeneralSave(data: z.infer<typeof generalFormSchema>) {
-    localStorage.setItem('generalSettings', JSON.stringify(data));
-    setGeneralSettings(data);
-    toast({
-      title: 'Settings Saved',
-      description: `Your general settings have been updated successfully.`,
-    });
-    window.location.reload();
+  const saveSettings = async (key: string, value: any) => {
+    const { error } = await supabase.from('settings').upsert({ key, value }, { onConflict: 'key' });
+    if (error) {
+        toast({ variant: 'destructive', title: 'Save Error', description: error.message });
+        return false;
+    }
+    return true;
+  };
+
+  async function onGeneralSave(data: z.infer<typeof generalFormSchema>) {
+    if (await saveSettings('generalSettings', data)) {
+      setGeneralSettings(data);
+      toast({ title: 'Settings Saved', description: `General settings have been updated.` });
+      window.location.reload();
+    }
   }
-  
-  function onBillingSave(data: z.infer<typeof billingFormSchema>) {
-    localStorage.setItem('billingSettings', JSON.stringify(data));
-    toast({
-      title: 'Settings Saved',
-      description: `Your billing settings have been updated successfully.`,
-    });
-  }
-  
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof AppearanceSettings) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -223,35 +196,34 @@ export default function SettingsPage() {
     setBillFields(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
-  const onAppearanceSave = (data: z.infer<typeof appearanceFormSchema>) => {
-    const settingsToSave = {
-        ...appearanceSettings,
-        billWarningText: data.billWarningText,
-        fontFamily: data.fontFamily,
-        fontSize: data.fontSize,
-        accentColor: data.accentColor,
-    };
-    localStorage.setItem('appearanceSettings', JSON.stringify(settingsToSave));
-    localStorage.setItem('billDisplaySettings', JSON.stringify(billFields));
-    toast({ title: 'Settings Saved', description: `Your appearance settings have been updated successfully.`});
+  const onAppearanceSave = async (data: z.infer<typeof appearanceFormSchema>) => {
+    const settingsToSave = { ...appearanceSettings, ...data };
+    const savedAppearance = await saveSettings('appearanceSettings', settingsToSave);
+    const savedBillFields = await saveSettings('billDisplaySettings', billFields);
+    
+    if (savedAppearance && savedBillFields) {
+      toast({ title: 'Settings Saved', description: `Appearance settings have been updated.`});
+    }
   };
 
-  const handlePermissionChange = (role: UserRole, page: string, checked: boolean) => {
-    setLocalPermissions(prev => {
-      const newPerms = JSON.parse(JSON.stringify(prev));
-      if (newPerms[role]) {
-        newPerms[role][page] = checked;
-      }
-      return newPerms;
-    });
-  };
+  async function onIntegrationsSave(data: z.infer<typeof integrationsFormSchema>) {
+    if (await saveSettings('integrationsSettings', data)) {
+      toast({ title: 'Settings Saved', description: 'Integration settings have been updated.' });
+    }
+  }
 
   const onPermissionsSave = () => {
     updatePermissions(localPermissions);
   };
 
-  const capitalize = (s: string) => {
-      return s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+  if (settingsLoading) {
+    return (
+        <div className="flex h-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+    );
   }
 
   return (
@@ -260,9 +232,9 @@ export default function SettingsPage() {
       <Tabs defaultValue="general" className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="permissions">Permissions</TabsTrigger>
+          <TabsTrigger value="integrations">Integrations</TabsTrigger>
         </TabsList>
         
         <TabsContent value="general">
@@ -324,75 +296,6 @@ export default function SettingsPage() {
           </Form>
         </TabsContent>
 
-        <TabsContent value="billing">
-          <Form {...billingForm}>
-            <form onSubmit={billingForm.handleSubmit(onBillingSave)}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Billing & Rates</CardTitle>
-                  <CardDescription>Configure tax rates, billing cycles, and penalties.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <FormField control={billingForm.control} name="residentialRate" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Residential Rate (%)</FormLabel>
-                        <FormControl><Input type="number" step="0.1" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={billingForm.control} name="commercialRate" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Commercial Rate (%)</FormLabel>
-                        <FormControl><Input type="number" step="0.1" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                     <FormField control={billingForm.control} name="industrialRate" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Industrial Rate (%)</FormLabel>
-                        <FormControl><Input type="number" step="0.1" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField control={billingForm.control} name="billingCycle" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Billing Cycle</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a billing cycle" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                            <SelectItem value="quarterly">Quarterly</SelectItem>
-                            <SelectItem value="annually">Annually</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                     )} />
-                    <FormField control={billingForm.control} name="penaltyRate" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Late Payment Penalty (%)</FormLabel>
-                        <FormControl><Input type="number" step="1" {...field} /></FormControl>
-                        <FormDescription>Penalty applied to overdue amounts.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </div>
-                </CardContent>
-                <CardFooter className="border-t px-6 py-4">
-                  <Button type="submit">Save Changes</Button>
-                </CardFooter>
-              </Card>
-            </form>
-          </Form>
-        </TabsContent>
-
         <TabsContent value="appearance">
           <Form {...appearanceForm}>
             <form onSubmit={appearanceForm.handleSubmit(onAppearanceSave)}>
@@ -403,7 +306,6 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                   <div className="space-y-8">
-                    <div className="space-y-8">
                       <FormField control={appearanceForm.control} name="assemblyLogo" render={({ field }) => (
                           <FormItem>
                               <FormLabel>Assembly Logo</FormLabel>
@@ -431,7 +333,6 @@ export default function SettingsPage() {
                           </FormItem>
                           )}
                       />
-                    </div>
                     <FormField control={appearanceForm.control} name="billWarningText" render={({ field }) => (
                         <FormItem>
                           <FormLabel>Bill Warning Text</FormLabel>
@@ -444,12 +345,10 @@ export default function SettingsPage() {
 
                     <div className="border-t pt-6">
                       <h3 className="text-lg font-medium">Printing Styles</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Customize fonts and colors on the printed bill.</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                           <FormField control={appearanceForm.control} name="fontFamily" render={({ field }) => (
-                              <FormItem>
-                                  <FormLabel>Font Family</FormLabel>
-                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormItem><FormLabel>Font Family</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
                                       <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                       <SelectContent>
                                           <SelectItem value="sans">Sans-serif (Inter)</SelectItem>
@@ -460,16 +359,14 @@ export default function SettingsPage() {
                               </FormItem>
                           )} />
                           <FormField control={appearanceForm.control} name="fontSize" render={({ field }) => (
-                              <FormItem>
-                                  <FormLabel>Base Font Size (px)</FormLabel>
+                              <FormItem><FormLabel>Base Font Size (px)</FormLabel>
                                   <FormControl><Input type="number" min="8" max="14" {...field} /></FormControl>
                               </FormItem>
                           )} />
                       </div>
                       <div className="mt-4">
                           <FormField control={appearanceForm.control} name="accentColor" render={({ field }) => (
-                              <FormItem>
-                                  <FormLabel>Accent Color</FormLabel>
+                              <FormItem><FormLabel>Accent Color</FormLabel>
                                   <div className="flex items-center gap-2">
                                       <FormControl><Input type="color" className="p-1 h-10 w-14" {...field} /></FormControl>
                                       <Input type="text" placeholder="#F1F5F9" {...field} />
@@ -483,15 +380,11 @@ export default function SettingsPage() {
 
                     <div className="border-t pt-6 mt-8">
                       <h3 className="text-lg font-medium">Bill Display Fields</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Select which fields to show on the printed bill.</p>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                         {Object.keys(billFields).map((field) => (
                           <FormItem key={field} className="flex flex-row items-start space-x-3 space-y-0">
                             <FormControl>
-                              <Checkbox
-                                checked={billFields[field]}
-                                onCheckedChange={() => handleFieldToggle(field)}
-                              />
+                              <Checkbox checked={billFields[field]} onCheckedChange={() => handleFieldToggle(field)} />
                             </FormControl>
                             <FormLabel className="font-normal">{field}</FormLabel>
                           </FormItem>
@@ -504,16 +397,11 @@ export default function SettingsPage() {
                     <div className="mt-2 w-full aspect-[210/297] bg-white shadow-lg rounded-lg border p-2 overflow-hidden sticky top-24">
                        <div className="scale-[0.55] origin-top-left -translate-x-4 -translate-y-4" style={{ width: '181%', height: '181%' }}>
                           <PrintableContent
-                            property={mockPropertyForPreview}
-                            settings={settingsForPreview}
-                            displaySettings={billFields}
-                            isCompact={false}
+                            property={mockPropertyForPreview} settings={settingsForPreview}
+                            displaySettings={billFields} isCompact={false}
                           />
                        </div>
                     </div>
-                    <FormDescription className="mt-2">
-                        This is a live preview of how your printed bills will appear.
-                    </FormDescription>
                   </div>
                 </CardContent>
                 <CardFooter className="border-t px-6 py-4">
@@ -526,48 +414,68 @@ export default function SettingsPage() {
 
         <TabsContent value="permissions">
             <Card>
-                <CardHeader>
-                    <CardTitle>Role Permissions</CardTitle>
-                    <CardDescription>
-                        Define which user roles can access each page. Admins always have full access.
-                    </CardDescription>
+                <CardHeader><CardTitle>Role Permissions</CardTitle>
+                    <CardDescription>Define which user roles can access each page. Admins always have full access.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {!permissionsLoading && (
+                    {permissionsLoading ? <Loader2 className="mx-auto my-8 h-8 w-8 animate-spin" /> : (
                         <div className="overflow-x-auto">
-                           <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Page / Feature</TableHead>
+                           <Table><TableHeader><TableRow>
+                                <TableHead>Page / Feature</TableHead>
+                                {Object.keys(localPermissions).map(role => (
+                                    <TableHead key={role} className="text-center">{capitalize(role)}</TableHead>
+                                ))}
+                            </TableRow></TableHeader>
+                            <TableBody>
+                                {PERMISSION_PAGES.map(page => (
+                                    <TableRow key={page}>
+                                        <TableCell className="font-medium">{permissionPageLabels[page as PermissionPage]}</TableCell>
                                         {Object.keys(localPermissions).map(role => (
-                                            <TableHead key={role} className="text-center">{capitalize(role)}</TableHead>
+                                            <TableCell key={`${role}-${page}`} className="text-center">
+                                                <Checkbox
+                                                    checked={localPermissions[role as UserRole]?.[page as keyof typeof localPermissions[UserRole]]}
+                                                    onCheckedChange={(checked) => handlePermissionChange(role as UserRole, page, !!checked)}
+                                                    disabled={role === 'Admin'}
+                                                />
+                                            </TableCell>
                                         ))}
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {PERMISSION_PAGES.map(page => (
-                                        <TableRow key={page}>
-                                            <TableCell className="font-medium">{permissionPageLabels[page as PermissionPage]}</TableCell>
-                                            {Object.keys(localPermissions).map(role => (
-                                                <TableCell key={`${role}-${page}`} className="text-center">
-                                                    <Checkbox
-                                                        checked={localPermissions[role as UserRole]?.[page as keyof typeof localPermissions[UserRole]]}
-                                                        onCheckedChange={(checked) => handlePermissionChange(role as UserRole, page, !!checked)}
-                                                        disabled={role === 'Admin'}
-                                                    />
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                ))}
+                            </TableBody></Table>
                         </div>
                     )}
                 </CardContent>
                 <CardFooter className="border-t px-6 py-4">
-                    <Button onClick={onPermissionsSave}>Save Permissions</Button>
+                    <Button onClick={onPermissionsSave} disabled={permissionsLoading}>Save Permissions</Button>
                 </CardFooter>
             </Card>
+        </TabsContent>
+
+        <TabsContent value="integrations">
+          <Form {...integrationsForm}>
+            <form onSubmit={integrationsForm.handleSubmit(onIntegrationsSave)}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Integrations</CardTitle>
+                  <CardDescription>Connect to external services like Google Sheets.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                   <FormField control={integrationsForm.control} name="googleSheetUrl" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Google Sheet URL for Payments</FormLabel>
+                        <FormControl><Input placeholder="https://docs.google.com/spreadsheets/d/..." {...field} /></FormControl>
+                        <FormDescription>Link to a Google Sheet to view payments data directly on the Integrations page.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+                <CardFooter className="border-t px-6 py-4">
+                  <Button type="submit">Save Integration Settings</Button>
+                </CardFooter>
+              </Card>
+            </form>
+          </Form>
         </TabsContent>
 
       </Tabs>

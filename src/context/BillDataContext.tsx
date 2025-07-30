@@ -1,12 +1,14 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { Bill } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase-client';
 
 interface BillContextType {
     bills: Bill[];
-    addBills: (newBills: Omit<Bill, 'id'>[]) => boolean;
+    addBills: (newBills: Omit<Bill, 'id'>[]) => Promise<boolean>;
     loading: boolean;
 }
 
@@ -17,61 +19,49 @@ export function BillProvider({ children }: { children: React.ReactNode }) {
     const [bills, setBillsState] = useState<Bill[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    const fetchBills = useCallback(async () => {
+        setLoading(true);
         try {
-            const storedData = localStorage.getItem('billData');
-            if (storedData) {
-                setBillsState(JSON.parse(storedData));
+            const { data, error } = await supabase.from('bills').select();
+            if (error) throw error;
+            if (data) {
+                setBillsState(data);
             }
-        } catch (error) {
-            console.error("Failed to load bill data from localStorage", error);
-            toast({
+        } catch (error: any) {
+             toast({
                 variant: 'destructive',
                 title: 'Load Error',
-                description: 'Could not load saved bill data.',
+                description: `Could not load bill data: ${error.message}`,
             });
         } finally {
             setLoading(false);
         }
     }, [toast]);
 
-    const saveData = useCallback((newBills: Bill[]): boolean => {
+    useEffect(() => {
+        fetchBills();
+    }, [fetchBills]);
+
+    const addBills = async (newBillsData: Omit<Bill, 'id'>[]): Promise<boolean> => {
         try {
-            localStorage.setItem('billData', JSON.stringify(newBills));
-            return true;
-        } catch (error) {
-            console.error("Failed to save bill data to localStorage", error);
-            toast({
-                variant: 'destructive',
-                title: 'Save Error',
-                description: 'Could not save bill data. The generated bills will not be recorded.',
-            });
-            return false;
-        }
-    }, [toast]);
+            const { error } = await supabase.from('bills').insert(newBillsData);
 
-    const addBills = (newBillsData: Omit<Bill, 'id'>[]): boolean => {
-        try {
-            const billsToAdd: Bill[] = newBillsData.map((b, i) => ({
-                ...b,
-                id: `bill-${Date.now()}-${i}`,
-            }));
-
-            const updatedBills = [...bills, ...billsToAdd];
-            const success = saveData(updatedBills);
-
-            if (success) {
-                setBillsState(updatedBills);
-                return true;
+            if (error) {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Save Error',
+                    description: `Could not save bill data: ${error.message}`,
+                });
+                return false;
             }
-            return false;
 
-        } catch (error) {
-             console.error("Failed to create bills", error);
+            await fetchBills();
+            return true;
+        } catch (error: any) {
              toast({
                 variant: 'destructive',
                 title: 'Bill Creation Error',
-                description: 'An unexpected error occurred while preparing the bills.',
+                description: `An unexpected error occurred: ${error.message}`,
             });
             return false;
         }

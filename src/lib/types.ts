@@ -1,3 +1,4 @@
+
 export type Property = {
   id: string;
   'Property No'?: string;
@@ -13,6 +14,7 @@ export type Property = {
   'Sanitation Charged'?: number;
   'Previous Balance'?: number;
   'Total Payment'?: number;
+  created_at?: string;
   [key: string]: any;
 };
 
@@ -25,10 +27,11 @@ export type PropertyWithStatus = Property & {
 export type Bill = {
   id: string;
   propertyId: string;
-  propertySnapshot: Property;
+  propertySnapshot: Property; // This will be a JSONB field in Supabase
   generatedAt: string; // ISO Date string
   year: number;
   totalAmountDue: number;
+  created_at?: string;
 };
 
 export type RevenueData = {
@@ -49,6 +52,7 @@ export type User = {
   role: 'Admin' | 'Data Entry' | 'Viewer';
   password?: string;
   photoURL?: string;
+  created_at?: string;
 };
 
 export type RevenueByPropertyType = {

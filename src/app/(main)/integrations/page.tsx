@@ -1,21 +1,15 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useRequirePermission } from '@/hooks/useRequirePermission';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { BookCopy, AlertCircle } from 'lucide-react';
+import { BookCopy, AlertCircle, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase-client';
 
 const getEditableSheetUrl = (originalUrl: string): string => {
   if (!originalUrl) return '';
@@ -33,20 +27,22 @@ function GoogleSheetIntegration() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem('integrationsSettings');
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        if (settings.googleSheetUrl) {
-          const editableUrl = getEditableSheetUrl(settings.googleSheetUrl);
-          setSheetUrl(editableUrl);
+    const fetchSettings = async () => {
+        try {
+            const { data, error } = await supabase.from('settings').select('value').eq('key', 'integrationsSettings').single();
+            if (error) throw error;
+
+            if (data?.value?.googleSheetUrl) {
+                const editableUrl = getEditableSheetUrl(data.value.googleSheetUrl);
+                setSheetUrl(editableUrl);
+            }
+        } catch (error) {
+            console.error("Could not load integration settings from Supabase", error);
+        } finally {
+            setIsLoading(false);
         }
-      }
-    } catch (error) {
-      console.error("Could not load integration settings", error);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+    fetchSettings();
   }, []);
 
   return (
@@ -59,7 +55,9 @@ function GoogleSheetIntegration() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <p>Loading settings...</p>
+          <div className="flex h-64 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
         ) : sheetUrl ? (
           <div className="space-y-4">
             <Alert>

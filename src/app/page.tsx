@@ -7,80 +7,66 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Landmark } from 'lucide-react';
+import { Landmark, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { User } from '@/lib/types';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase-client';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { login } = useAuth();
+  
   const [systemName, setSystemName] = React.useState('RateEase');
   const [assemblyLogo, setAssemblyLogo] = React.useState<string | null>(null);
   const [email, setEmail] = React.useState('admin@rateease.gov');
   const [password, setPassword] = React.useState('password');
+  const [isLoading, setIsLoading] = React.useState(false);
 
   React.useEffect(() => {
-    try {
-      const savedGeneral = localStorage.getItem('generalSettings');
-      if (savedGeneral) {
-        const settings = JSON.parse(savedGeneral);
-        if (settings.systemName) {
-          setSystemName(settings.systemName);
+    const fetchSettings = async () => {
+        try {
+            const { data, error } = await supabase.from('settings').select('key, value');
+            if (error) throw error;
+            
+            const settingsMap = data.reduce((acc, setting) => {
+                acc[setting.key] = setting.value;
+                return acc;
+            }, {} as Record<string, any>);
+
+            if (settingsMap.generalSettings?.systemName) {
+                setSystemName(settingsMap.generalSettings.systemName);
+            }
+            if (settingsMap.appearanceSettings?.assemblyLogo) {
+                setAssemblyLogo(settingsMap.appearanceSettings.assemblyLogo);
+            }
+        } catch (error) {
+            console.error("Could not load settings from Supabase", error);
         }
-      }
-      const savedAppearance = localStorage.getItem('appearanceSettings');
-      if (savedAppearance) {
-        const settings = JSON.parse(savedAppearance);
-        if (settings.assemblyLogo) {
-          setAssemblyLogo(settings.assemblyLogo);
-        }
-      }
-    } catch (error) {
-      console.error("Could not load settings from localStorage", error);
-    }
+    };
+    fetchSettings();
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const storedUsers = localStorage.getItem('userData');
-      const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
+    setIsLoading(true);
+    
+    const loggedInUser = await login(email, password);
 
-      // Add default admin if no users are found in storage, to ensure login is always possible
-      if (users.length === 0) {
-          users.push({
-            id: 'admin-001',
-            name: 'Admin User',
-            email: 'admin@rateease.gov',
-            role: 'Admin',
-            password: 'password',
-          });
-      }
-
-      const foundUser = users.find(user => user.email === email);
-
-      if (foundUser && foundUser.password === password) {
-        localStorage.setItem('loggedInUser', JSON.stringify(foundUser));
-        toast({
-          title: 'Login Successful',
-          description: `Welcome back, ${foundUser.name}!`,
-        });
-        router.push('/dashboard');
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: 'Invalid email or password. Please try again.',
-        });
-      }
-    } catch (error) {
-      console.error("Login error:", error);
+    if (loggedInUser) {
+      toast({
+        title: 'Login Successful',
+        description: `Welcome back, ${loggedInUser.name}!`,
+      });
+      router.push('/dashboard');
+    } else {
       toast({
         variant: 'destructive',
-        title: 'An Error Occurred',
-        description: 'Could not process login. Please try again later.',
+        title: 'Login Failed',
+        description: 'Invalid email or password. Please try again.',
       });
     }
+    setIsLoading(false);
   };
 
   return (
@@ -111,6 +97,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -121,11 +108,13 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
             </CardContent>
             <CardFooter className="px-6 pb-6 pt-4">
-              <Button type="submit" className="w-full" size="lg">
+              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign In
               </Button>
             </CardFooter>

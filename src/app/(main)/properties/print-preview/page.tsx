@@ -17,6 +17,7 @@ import { useBillData } from '@/context/BillDataContext';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getPropertyValue } from '@/lib/property-utils';
+import { supabase } from '@/lib/supabase-client';
 
 type GeneralSettings = {
   assemblyName?: string;
@@ -36,7 +37,6 @@ type AppearanceSettings = {
 
 const BillSheet = React.forwardRef<HTMLDivElement, { properties: Property[], settings: { general: GeneralSettings, appearance: AppearanceSettings }, billsPerPage: number, isCompact: boolean }>(({ properties, settings, billsPerPage, isCompact }, ref) => {
     
-    // Logic for 4 bills per page
     if (billsPerPage === 4) {
         const propertyChunks: Property[][] = [];
         for (let i = 0; i < properties.length; i += 4) {
@@ -54,7 +54,6 @@ const BillSheet = React.forwardRef<HTMLDivElement, { properties: Property[], set
                                </div>
                             </div>
                         ))}
-                         {/* Fill empty grid cells if the last page is not full */}
                         {Array.from({ length: 4 - chunk.length }).map((_, i) => <div key={`empty-${i}`}></div>)}
                     </div>
                 ))}
@@ -62,7 +61,6 @@ const BillSheet = React.forwardRef<HTMLDivElement, { properties: Property[], set
         );
     }
     
-    // Logic for 2 bills per page
     if (billsPerPage === 2) {
         const propertyChunks: Property[][] = [];
         for (let i = 0; i < properties.length; i += 2) {
@@ -92,7 +90,6 @@ const BillSheet = React.forwardRef<HTMLDivElement, { properties: Property[], set
         );
     }
     
-    // Default to 1 bill per page
     return (
         <div ref={ref}>
             <div className="print:space-y-0">
@@ -138,24 +135,34 @@ export default function BulkPrintPage() {
 
   useEffect(() => {
     setIsClient(true);
-    try {
-      const storedProperties = localStorage.getItem('selectedPropertiesForPrinting');
-      if (storedProperties) {
-        setAllProperties(JSON.parse(storedProperties));
-      }
-      
-      const savedGeneral = localStorage.getItem('generalSettings');
-      const savedAppearance = localStorage.getItem('appearanceSettings');
-      setSettings({
-          general: savedGeneral ? JSON.parse(savedGeneral) : {},
-          appearance: savedAppearance ? JSON.parse(savedAppearance) : {}
-      });
-    } catch (error) {
-      console.error("Could not load data from localStorage", error);
+    const loadData = async () => {
+        try {
+            const storedProperties = localStorage.getItem('selectedPropertiesForPrinting');
+            if (storedProperties) {
+                setAllProperties(JSON.parse(storedProperties));
+            }
+            
+            const { data, error } = await supabase.from('settings').select('key, value');
+            if (error) throw error;
+            
+            const settingsMap = data.reduce((acc, setting) => {
+                acc[setting.key] = setting.value;
+                return acc;
+            }, {} as Record<string, any>);
+
+            setSettings({
+                general: settingsMap.generalSettings || {},
+                appearance: settingsMap.appearanceSettings || {}
+            });
+
+        } catch (error) {
+            console.error("Could not load data", error);
+        }
     }
+    loadData();
   }, []);
 
-  const recordBills = () => {
+  const recordBills = async () => {
     if (renderedProperties.length === 0) return;
 
     const newBills: Omit<Bill, 'id'>[] = renderedProperties.map(p => {
@@ -178,7 +185,7 @@ export default function BulkPrintPage() {
         };
     });
     
-    const success = addBills(newBills);
+    const success = await addBills(newBills);
     if (success) {
       toast({
           title: 'Bills Recorded',

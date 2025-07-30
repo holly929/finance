@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -6,29 +7,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 import type { User } from '@/lib/types';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { useUserData } from '@/context/UserDataContext';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Loader2 } from 'lucide-react';
 
 interface ProfileDialogProps {
   isOpen: boolean;
@@ -56,6 +43,7 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
   const { updateUser } = useUserData();
   const { toast } = useToast();
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   
   const form = useForm<z.infer<typeof profileFormSchema>>({
     resolver: zodResolver(profileFormSchema),
@@ -88,8 +76,9 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
   };
 
 
-  function onSubmit(data: z.infer<typeof profileFormSchema>) {
+  async function onSubmit(data: z.infer<typeof profileFormSchema>) {
     if (!user) return;
+    setIsSaving(true);
     
     const { confirmPassword, ...userData } = data;
     const updatedUserData: User = { ...user };
@@ -97,16 +86,19 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
     updatedUserData.name = userData.name;
     if (userData.password) {
         updatedUserData.password = userData.password;
+    } else {
+        delete updatedUserData.password; // Don't send empty password to Supabase
     }
     updatedUserData.photoURL = userData.photoURL;
 
-    updateUser(updatedUserData);
+    await updateUser(updatedUserData);
     updateAuthUser(updatedUserData);
 
     toast({
         title: 'Profile Updated',
         description: 'Your profile details have been saved.',
     });
+    setIsSaving(false);
     onOpenChange(false);
   }
 
@@ -130,7 +122,7 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
                         <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <FormControl>
-                        <Input type="file" accept="image/*" className="max-w-[250px]" onChange={handlePhotoChange}/>
+                        <Input type="file" accept="image/*" className="max-w-[250px]" onChange={handlePhotoChange} disabled={isSaving}/>
                       </FormControl>
                     </div>
                   </FormItem>
@@ -138,7 +130,7 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
                   <FormField control={form.control} name="name" render={({ field }) => (
                       <FormItem>
                           <FormLabel>Full Name</FormLabel>
-                          <FormControl><Input placeholder="e.g. John Doe" {...field} /></FormControl>
+                          <FormControl><Input placeholder="e.g. John Doe" {...field} disabled={isSaving}/></FormControl>
                           <FormMessage />
                       </FormItem>
                   )} />
@@ -152,7 +144,7 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
                   <FormField control={form.control} name="password" render={({ field }) => (
                       <FormItem>
                           <FormLabel>New Password</FormLabel>
-                          <FormControl><Input type="password" {...field} /></FormControl>
+                          <FormControl><Input type="password" {...field} disabled={isSaving}/></FormControl>
                           <FormDescription>
                               Leave blank to keep your current password.
                           </FormDescription>
@@ -162,13 +154,16 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
                   <FormField control={form.control} name="confirmPassword" render={({ field }) => (
                       <FormItem>
                           <FormLabel>Confirm New Password</FormLabel>
-                          <FormControl><Input type="password" {...field} /></FormControl>
+                          <FormControl><Input type="password" {...field} disabled={isSaving}/></FormControl>
                           <FormMessage />
                       </FormItem>
                   )} />
                 <DialogFooter className="pt-4">
-                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                  <Button type="submit">Save Changes</Button>
+                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>Cancel</Button>
+                  <Button type="submit" disabled={isSaving}>
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Changes
+                  </Button>
                 </DialogFooter>
               </form>
             </Form>
