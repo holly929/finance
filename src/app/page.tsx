@@ -10,6 +10,15 @@ import { Label } from '@/components/ui/label';
 import { Landmark, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
+import type { User } from '@/lib/types';
+
+const defaultAdminUser: Omit<User, 'id'> = {
+    name: 'Admin',
+    email: 'admin@rateease.gov',
+    role: 'Admin',
+    password: 'password',
+    photoURL: '',
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -48,13 +57,34 @@ export default function LoginPage() {
     fetchSettings();
   }, []);
 
-  const login = async (email: string, password?: string) => {
+  const login = async (emailToLogin: string, passwordToLogin?: string) => {
     setIsLoading(true);
     try {
+        // Check if any users exist at all.
+        const { count, error: countError } = await supabase.from('users').select('*', { count: 'exact', head: true });
+        
+        if (countError) {
+            console.error("Error checking for users:", countError.message);
+            toast({ variant: 'destructive', title: 'Database Error', description: 'Could not connect to the user database.' });
+            return null;
+        }
+
+        // If no users exist, create the default admin user.
+        if (count === 0) {
+            const { error: insertError } = await supabase.from('users').insert(defaultAdminUser);
+            if (insertError) {
+                console.error("Could not create default admin user:", insertError);
+                toast({ variant: 'destructive', title: 'Setup Error', description: 'Could not create the default admin user.' });
+                return null;
+            }
+            toast({ title: 'System Initialized', description: 'Default admin user has been created.' });
+        }
+
+        // Now, attempt to log in the user.
         const { data, error } = await supabase
             .from('users')
             .select()
-            .eq('email', email)
+            .eq('email', emailToLogin)
             .single();
 
         if (error || !data) {
@@ -62,7 +92,7 @@ export default function LoginPage() {
              return null;
         }
 
-        if (data.password === password) {
+        if (data.password === passwordToLogin) {
             localStorage.setItem('loggedInUser', JSON.stringify(data));
             return data;
         }

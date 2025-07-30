@@ -32,27 +32,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const fetchUsers = useCallback(async () => {
         setLoading(true);
         try {
-            const { data, error, count } = await supabase.from('users').select('*', { count: 'exact' });
-            
+            const { data, error } = await supabase.from('users').select('*');
             if (error) throw error;
-            
-            if (data) {
-                if (data.length === 0) {
-                    // This is the first run, create the default admin user
-                    const { error: insertError } = await supabase.from('users').insert(defaultAdminUser);
-                    if (insertError) {
-                        console.error("Could not create default admin user:", insertError);
-                        toast({ variant: 'destructive', title: 'Setup Error', description: 'Could not create the default admin user.' });
-                    } else {
-                        // Re-fetch after creation
-                        const { data: newData, error: newError } = await supabase.from('users').select();
-                        if (newError) throw newError;
-                        if(newData) setUsersState(newData);
-                    }
-                } else {
-                    setUsersState(data);
-                }
-            }
+            if (data) setUsersState(data);
         } catch (error: any) {
              toast({
                 variant: 'destructive',
