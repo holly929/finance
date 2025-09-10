@@ -537,9 +537,9 @@ export default function SettingsPage() {
                             <FormLabel>New Property Message Template</FormLabel>
                             <FormControl><Textarea placeholder="Enter your message here" {...field} className="min-h-[120px]"/></FormControl>
                             <FormDescription>
-                                Customize the message sent to new property owners. Use placeholders like 
-                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold mx-1">{{'{{Owner Name}}'}}</code>, 
-                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold mx-1">{{'{{Property No}}'}}</code>, or any other property header.
+                                Customize the message sent to new property owners. Use placeholders like
+                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold mx-1">{'{{Owner Name}}'}</code>, 
+                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold mx-1">{'{{Property No}}'}</code>, or any other property header.
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
