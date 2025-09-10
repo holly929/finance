@@ -10,6 +10,7 @@ import {
   View,
   FilePenLine,
   Loader2,
+  MessageSquare,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +44,7 @@ import { usePropertyData } from '@/context/PropertyDataContext';
 import { useAuth } from '@/context/AuthContext';
 import { EditPropertyDialog } from '@/components/edit-property-dialog';
 import { getPropertyValue } from '@/lib/property-utils';
+import { SmsDialog } from '@/components/sms-dialog';
 
 const ROWS_PER_PAGE = 15;
 
@@ -61,6 +63,7 @@ export default function BillingPage() {
   const [selectedRows, setSelectedRows] = React.useState<string[]>([]);
   const isMobile = useIsMobile();
   const [currentPage, setCurrentPage] = React.useState(1);
+  const [isSmsDialogOpen, setIsSmsDialogOpen] = React.useState(false);
 
   const handleViewBill = (property: Property) => {
     localStorage.setItem('selectedPropertiesForPrinting', JSON.stringify([property]));
@@ -78,6 +81,18 @@ export default function BillingPage() {
         description: 'Please select at least one property to print.',
       });
     }
+  };
+
+  const handleSendSms = () => {
+    if (selectedRows.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'No Properties Selected',
+        description: 'Please select properties to send SMS to.',
+      });
+      return;
+    }
+    setIsSmsDialogOpen(true);
   };
   
   const handleDeleteRow = (id: string) => {
@@ -361,10 +376,16 @@ export default function BillingPage() {
                             Print ({selectedRows.length})
                         </Button>
                         {!isViewer && 
+                        <>
+                          <Button variant="outline" size="sm" onClick={handleSendSms}>
+                              <MessageSquare className="h-4 w-4 mr-2"/>
+                              Send SMS ({selectedRows.length})
+                          </Button>
                           <Button variant="destructive" size="sm" onClick={handleDeleteSelected}>
                               <Trash2 className="h-4 w-4 mr-2"/>
                               Delete ({selectedRows.length})
                           </Button>
+                        </>
                         }
                     </div>
                 )}
@@ -415,6 +436,11 @@ export default function BillingPage() {
         isOpen={!!editingProperty}
         onOpenChange={(isOpen) => !isOpen && setEditingProperty(null)}
         onPropertyUpdate={handlePropertyUpdate}
+      />
+      <SmsDialog
+        isOpen={isSmsDialogOpen}
+        onOpenChange={setIsSmsDialogOpen}
+        selectedProperties={selectedProperties}
       />
     </>
   );

@@ -5,6 +5,11 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Property } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { mockProperties } from '@/lib/mock-data';
+import { sendNewPropertySms } from '@/lib/sms-service';
+
+// In-memory store
+let inMemoryProperties: Property[] = mockProperties;
+let inMemoryHeaders: string[] = mockProperties.length > 0 ? Object.keys(mockProperties[0]).filter(key => key !== 'id') : ['Owner Name', 'Property No', 'Town', 'Rateable Value', 'Total Payment'];
 
 interface PropertyContextType {
     properties: Property[];
@@ -19,10 +24,6 @@ interface PropertyContextType {
 }
 
 const PropertyContext = createContext<PropertyContextType | undefined>(undefined);
-
-// In-memory store
-let inMemoryProperties: Property[] = mockProperties;
-let inMemoryHeaders: string[] = mockProperties.length > 0 ? Object.keys(mockProperties[0]).filter(key => key !== 'id') : ['Owner Name', 'Property No', 'Town', 'Rateable Value', 'Total Payment'];
 
 export function PropertyProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
@@ -44,6 +45,8 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         };
         const updatedProperties = [...properties, newProperty];
         setProperties(updatedProperties, headers);
+        // Trigger SMS notification
+        sendNewPropertySms(newProperty);
     };
 
     const updateProperty = (updatedProperty: Property) => {

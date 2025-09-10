@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { Property } from '@/lib/types';
 import { PrintableContent } from '@/components/bill-dialog';
 import { Loader2 } from 'lucide-react';
+import { inMemorySettings } from '@/lib/settings';
 
 const generalFormSchema = z.object({
   systemName: z.string().min(3, 'System name must be at least 3 characters.'),
@@ -43,6 +44,14 @@ const appearanceFormSchema = z.object({
 
 const integrationsFormSchema = z.object({
   googleSheetUrl: z.string().url("Please enter a valid Google Sheet URL.").optional().or(z.literal('')),
+});
+
+const smsFormSchema = z.object({
+  smsApiUrl: z.string().url("Please enter a valid API URL.").optional().or(z.literal('')),
+  smsApiKey: z.string().optional(),
+  smsSenderId: z.string().min(3, "Sender ID must be at least 3 characters.").max(11, "Sender ID cannot exceed 11 characters.").optional().or(z.literal('')),
+  enableSmsOnNewProperty: z.boolean().default(false),
+  newPropertyMessageTemplate: z.string().max(320, "Message cannot exceed 2 SMS pages (320 chars).").optional(),
 });
 
 type AppearanceSettings = {
@@ -77,9 +86,6 @@ const mockPropertyForPreview: Property = {
   'Previous Balance': 200, 'Total Payment': 100,
 };
 
-// In-memory store for settings
-let inMemorySettings: { [key: string]: any } = {};
-
 export default function SettingsPage() {
   useRequirePermission();
   const { headers } = usePropertyData();
@@ -105,16 +111,27 @@ export default function SettingsPage() {
     resolver: zodResolver(integrationsFormSchema),
     defaultValues: { googleSheetUrl: '' },
   });
+
+  const smsForm = useForm<z.infer<typeof smsFormSchema>>({
+    resolver: zodResolver(smsFormSchema),
+    defaultValues: {
+      smsApiUrl: '',
+      smsApiKey: '',
+      smsSenderId: '',
+      enableSmsOnNewProperty: false,
+      newPropertyMessageTemplate: "Dear {{Owner Name}}, your property ({{Property No}}) has been successfully registered with the District Assembly. Thank you.",
+    },
+  });
   
   useEffect(() => {
     setSettingsLoading(true);
     if (inMemorySettings.generalSettings) {
-        setGeneralSettings(inMemorySettings.generalSettings);
         generalForm.reset(inMemorySettings.generalSettings);
+        setGeneralSettings(inMemorySettings.generalSettings);
     }
     if (inMemorySettings.appearanceSettings) {
-        setAppearanceSettings(inMemorySettings.appearanceSettings);
         appearanceForm.reset(inMemorySettings.appearanceSettings);
+        setAppearanceSettings(inMemorySettings.appearanceSettings);
     }
     if (inMemorySettings.billDisplaySettings) {
         setBillFields(inMemorySettings.billDisplaySettings);
@@ -128,8 +145,11 @@ export default function SettingsPage() {
     if (inMemorySettings.integrationsSettings) {
         integrationsForm.reset(inMemorySettings.integrationsSettings);
     }
+    if (inMemorySettings.smsSettings) {
+        smsForm.reset(inMemorySettings.smsSettings);
+    }
     setSettingsLoading(false);
-  }, [headers, generalForm, appearanceForm, integrationsForm]);
+  }, [headers, generalForm, appearanceForm, integrationsForm, smsForm]);
   
   useEffect(() => {
     setLocalPermissions(permissions);
@@ -185,6 +205,10 @@ export default function SettingsPage() {
   function onIntegrationsSave(data: z.infer<typeof integrationsFormSchema>) {
     saveSettings('integrationsSettings', data);
   }
+  
+  function onSmsSave(data: z.infer<typeof smsFormSchema>) {
+    saveSettings('smsSettings', data);
+  }
 
   const onPermissionsSave = () => {
     updatePermissions(localPermissions);
@@ -211,11 +235,12 @@ export default function SettingsPage() {
     <>
       <h1 className="text-3xl font-bold tracking-tight font-headline">Settings</h1>
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="permissions">Permissions</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
+          <TabsTrigger value="sms">SMS</TabsTrigger>
         </TabsList>
         
         <TabsContent value="general">
@@ -453,6 +478,76 @@ export default function SettingsPage() {
                 </CardContent>
                 <CardFooter className="border-t px-6 py-4">
                   <Button type="submit">Save Integration Settings</Button>
+                </CardFooter>
+              </Card>
+            </form>
+          </Form>
+        </TabsContent>
+        
+        <TabsContent value="sms">
+          <Form {...smsForm}>
+            <form onSubmit={smsForm.handleSubmit(onSmsSave)}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>SMS Settings</CardTitle>
+                  <CardDescription>Configure your SMS provider to send notifications to property owners.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                   <FormField control={smsForm.control} name="smsApiUrl" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>SMS Provider API URL</FormLabel>
+                        <FormControl><Input placeholder="e.g. https://api.sms-provider.com/sendsms" {...field} /></FormControl>
+                        <FormDescription>The endpoint URL for your SMS provider's API.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField control={smsForm.control} name="smsApiKey" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>API Key</FormLabel>
+                        <FormControl><Input type="password" placeholder="e.g. sk_xxxxxxxxxxxxxxxx" {...field} /></FormControl>
+                        <FormDescription>Your secret API key from your SMS provider.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField control={smsForm.control} name="smsSenderId" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sender ID</FormLabel>
+                        <FormControl><Input placeholder="e.g. RateEase" {...field} /></FormControl>
+                        <FormDescription>The name that appears as the sender of the SMS (max 11 characters).</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="border-t pt-6 space-y-6">
+                    <FormField control={smsForm.control} name="enableSmsOnNewProperty" render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <FormLabel className="text-base">Auto-send SMS on New Property</FormLabel>
+                                <FormDescription>
+                                    Automatically send a welcome SMS when a new property is added to the system.
+                                </FormDescription>
+                            </div>
+                             <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        </FormItem>
+                    )} />
+                    <FormField control={smsForm.control} name="newPropertyMessageTemplate" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>New Property Message Template</FormLabel>
+                            <FormControl><Textarea placeholder="Enter your message here" {...field} className="min-h-[120px]"/></FormControl>
+                            <FormDescription>
+                                Customize the message sent to new property owners. Use placeholders like 
+                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold mx-1">{{'{{Owner Name}}'}}</code>, 
+                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold mx-1">{{'{{Property No}}'}}</code>, or any other property header.
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                  </div>
+                </CardContent>
+                <CardFooter className="border-t px-6 py-4">
+                  <Button type="submit">Save SMS Settings</Button>
                 </CardFooter>
               </Card>
             </form>
