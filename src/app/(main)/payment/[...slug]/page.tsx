@@ -9,11 +9,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Loader2, CheckCircle, ShieldCheck } from 'lucide-react';
-import type { PaymentBill } from '@/lib/types';
+import type { PaymentBill, Property, Bop, Bill } from '@/lib/types';
 import { getPropertyValue } from '@/lib/property-utils';
 import { getBillStatus, getBopBillStatus } from '@/lib/billing-utils';
 import { paymentMethodIcons } from '@/components/payment-method-icons';
 import { useToast } from '@/hooks/use-toast';
+import { usePropertyData } from '@/context/PropertyDataContext';
+import { useBopData } from '@/context/BopDataContext';
+import { useBillData } from '@/context/BillDataContext';
 
 const formatCurrency = (value: number) => `GHS ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -43,6 +46,10 @@ export default function PaymentPage() {
     const [isPaid, setIsPaid] = useState(false);
     const [isClient, setIsClient] = useState(false);
 
+    const { updateProperty } = usePropertyData();
+    const { updateBop } = useBopData();
+    const { addBills } = useBillData();
+
     useEffect(() => {
         setIsClient(true);
         const storedBill = localStorage.getItem('paymentBill');
@@ -69,7 +76,8 @@ export default function PaymentPage() {
             const payment = Number(getPropertyValue(billToCalc.data, 'Payment')) || 0;
             due = permitFee - payment;
         }
-        setAmountDue(due);
+        setAmountDue(due > 0 ? due : 0);
+        
         const status = billToCalc.type === 'property' ? getBillStatus(billToCalc.data) : getBopBillStatus(billToCalc.data);
         if (status === 'Paid') {
             setIsPaid(true);
@@ -77,16 +85,39 @@ export default function PaymentPage() {
     };
 
     const handlePayment = () => {
+        if (!bill) return;
         setIsProcessing(true);
-        setTimeout(() => {
+        
+        setTimeout(async () => {
+            let updatedRecord;
+            if (bill.type === 'property') {
+                const existingPayment = Number(getPropertyValue(bill.data, 'Total Payment')) || 0;
+                updatedRecord = { ...bill.data, 'Total Payment': existingPayment + amountDue };
+                updateProperty(updatedRecord as Property);
+            } else {
+                const existingPayment = Number(getPropertyValue(bill.data, 'Payment')) || 0;
+                updatedRecord = { ...bill.data, 'Payment': existingPayment + amountDue };
+                updateBop(updatedRecord as Bop);
+            }
+            
+            const newBill: Omit<Bill, 'id'> = {
+                propertyId: bill.data.id,
+                propertySnapshot: updatedRecord,
+                generatedAt: new Date().toISOString(),
+                year: new Date().getFullYear(),
+                totalAmountDue: amountDue, // Log the amount that was paid
+                billType: bill.type,
+            };
+
+            await addBills([newBill]);
+
             setIsProcessing(false);
             setIsPaid(true);
             toast({
                 title: 'Payment Successful',
-                description: 'Your payment has been received and is being processed.',
+                description: `Your payment of ${formatCurrency(amountDue)} has been recorded.`,
             });
-            // In a real app, you would update the property/BOP record here
-            // and likely redirect to a success page.
+            
         }, 3000);
     };
 
@@ -150,7 +181,7 @@ export default function PaymentPage() {
                             <CardDescription>Select a secure payment option.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {isPaid ? (
+                            {isPaid || amountDue <= 0 ? (
                                 <div className="flex flex-col items-center justify-center text-center py-10 bg-green-50 dark:bg-green-900/20 rounded-lg">
                                     <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
                                     <h3 className="text-2xl font-bold text-green-600 dark:text-green-400">Payment Complete</h3>
@@ -186,7 +217,7 @@ export default function PaymentPage() {
                                 </RadioGroup>
                             )}
                         </CardContent>
-                        {!isPaid && (
+                        {!(isPaid || amountDue <= 0) && (
                             <CardFooter className="flex-col items-stretch space-y-4 border-t pt-6">
                                 <Button size="lg" onClick={handlePayment} disabled={isProcessing}>
                                     {isProcessing ? (
@@ -208,5 +239,3 @@ export default function PaymentPage() {
         </div>
     );
 }
-
-    
