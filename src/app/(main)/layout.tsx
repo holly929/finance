@@ -43,6 +43,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PermissionsProvider, usePermissions } from '@/context/PermissionsContext';
 import { ProfileDialog } from '@/components/profile-dialog';
 import { BillProvider } from '@/context/BillDataContext';
+import { BopProvider } from '@/context/BopDataContext';
 import type { User as UserType } from '@/lib/types';
 import { inMemorySettings } from '@/lib/settings';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -192,7 +193,7 @@ function MainLayout({
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="search"
-                      placeholder="Search properties..."
+                      placeholder="Search..."
                       className="w-full appearance-none bg-background pl-8 shadow-none sm:w-1/2 md:w-1/3"
                     />
                   </div>
@@ -256,17 +257,19 @@ export default function LayoutWithProviders({ children }: { children: React.Reac
       enableSystem
       disableTransitionOnChange
     >
-      <UserProvider>
         <AuthProvider>
           <PermissionsProvider>
-            <PropertyProvider>
-              <BillProvider>
-                <AuthenticatedLayout>{children}</AuthenticatedLayout>
-              </BillProvider>
-            </PropertyProvider>
+            <UserProvider>
+                <PropertyProvider>
+                    <BopProvider>
+                        <BillProvider>
+                            <AuthenticatedLayout>{children}</AuthenticatedLayout>
+                        </BillProvider>
+                    </BopProvider>
+                </PropertyProvider>
+            </UserProvider>
           </PermissionsProvider>
         </AuthProvider>
-      </UserProvider>
     </ThemeProvider>
   );
 }
