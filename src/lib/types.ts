@@ -51,6 +51,11 @@ export type Bill = {
   billType: 'property' | 'bop';
 };
 
+export type PaymentBill = {
+  type: 'property' | 'bop';
+  data: Property | Bop;
+}
+
 export type RevenueData = {
   month: string;
   revenue: number;
@@ -76,3 +81,5 @@ export type RevenueByPropertyType = {
   name: string;
   revenue: number;
 };
+
+    

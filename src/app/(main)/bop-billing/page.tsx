@@ -12,6 +12,7 @@ import {
   Loader2,
   MessageSquare,
   Store,
+  CreditCard,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -82,6 +83,11 @@ export default function BopBillingPage() {
         description: 'Please select at least one record to print.',
       });
     }
+  };
+
+  const handlePayOnline = (bop: Bop) => {
+    localStorage.setItem('paymentBill', JSON.stringify({ type: 'bop', data: bop }));
+    router.push(`/payment/bop/${bop.id}`);
   };
 
   const handleSendSms = () => {
@@ -230,10 +236,16 @@ export default function BopBillingPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       {getPropertyValue(row, 'Business Name') && getPropertyValue(row, 'Permit Fee') ? (
+                        <>
                         <DropdownMenuItem onSelect={() => handleViewBill(row)}>
                           <View className="mr-2 h-4 w-4" />
                           View Bill
                         </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => handlePayOnline(row)}>
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          Pay Online
+                        </DropdownMenuItem>
+                        </>
                       ) : null}
                       {!isViewer && (
                         <>
@@ -287,9 +299,14 @@ export default function BopBillingPage() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 {getPropertyValue(row, 'Business Name') && getPropertyValue(row, 'Permit Fee') ? (
+                  <>
                   <DropdownMenuItem onSelect={() => handleViewBill(row)}>
                     <View className="mr-2 h-4 w-4" /> View Bill
                   </DropdownMenuItem>
+                   <DropdownMenuItem onSelect={() => handlePayOnline(row)}>
+                    <CreditCard className="mr-2 h-4 w-4" /> Pay Online
+                  </DropdownMenuItem>
+                  </>
                 ) : null}
                  {!isViewer && (
                    <>
@@ -446,3 +463,5 @@ export default function BopBillingPage() {
     </>
   );
 }
+
+    

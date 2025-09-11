@@ -11,6 +11,7 @@ import {
   FilePenLine,
   Loader2,
   MessageSquare,
+  CreditCard,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -81,6 +82,11 @@ export default function BillingPage() {
         description: 'Please select at least one property to print.',
       });
     }
+  };
+
+  const handlePayOnline = (property: Property) => {
+    localStorage.setItem('paymentBill', JSON.stringify({ type: 'property', data: property }));
+    router.push(`/payment/property/${property.id}`);
   };
 
   const handleSendSms = () => {
@@ -229,10 +235,16 @@ export default function BillingPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       {getPropertyValue(row, 'Owner Name') && getPropertyValue(row, 'Rateable Value') ? (
-                        <DropdownMenuItem onSelect={() => handleViewBill(row)}>
-                          <View className="mr-2 h-4 w-4" />
-                          View Bill
-                        </DropdownMenuItem>
+                        <>
+                          <DropdownMenuItem onSelect={() => handleViewBill(row)}>
+                            <View className="mr-2 h-4 w-4" />
+                            View Bill
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handlePayOnline(row)}>
+                            <CreditCard className="mr-2 h-4 w-4" />
+                            Pay Online
+                          </DropdownMenuItem>
+                        </>
                       ) : null}
                       {!isViewer && (
                         <>
@@ -286,9 +298,14 @@ export default function BillingPage() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 {getPropertyValue(row, 'Owner Name') && getPropertyValue(row, 'Rateable Value') ? (
+                  <>
                   <DropdownMenuItem onSelect={() => handleViewBill(row)}>
                     <View className="mr-2 h-4 w-4" /> View Bill
                   </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => handlePayOnline(row)}>
+                    <CreditCard className="mr-2 h-4 w-4" /> Pay Online
+                  </DropdownMenuItem>
+                  </>
                 ) : null}
                  {!isViewer && (
                    <>
@@ -445,3 +462,5 @@ export default function BillingPage() {
     </>
   );
 }
+
+    

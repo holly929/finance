@@ -22,6 +22,7 @@ import {
   Sun,
   Store,
   AlertCircle,
+  CreditCard,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -58,6 +59,7 @@ const navItems = [
   { href: '/bop-billing', icon: ReceiptText, label: 'BOP Billing' },
   { href: '/bills', icon: BookCopy, label: 'Bills' },
   { href: '/defaulters', icon: AlertCircle, label: 'Defaulters' },
+  { href: '/payment', icon: CreditCard, label: 'Online Payment', isHidden: true },
   { href: '/reports', icon: LineChart, label: 'Reports' },
   { href: '/integrations', icon: Plug, label: 'Integrations' },
   { href: '/users', icon: Users, label: 'User Management' },
@@ -129,7 +131,7 @@ function MainLayout({
               </div>
               <div className="flex-1 overflow-y-auto">
                 <nav className="grid items-start px-4 text-sm font-medium">
-                  {filteredNavItems.map((item) => (
+                  {filteredNavItems.filter(item => !item.isHidden).map((item) => (
                     <Link
                       key={item.label}
                       href={item.href}
@@ -173,7 +175,7 @@ function MainLayout({
                       <Landmark className="h-6 w-6 text-primary" />
                       <span className="font-headline">{systemName}</span>
                     </Link>
-                    {filteredNavItems.map((item) => (
+                    {filteredNavItems.filter(item => !item.isHidden).map((item) => (
                      <Link
                         key={item.label}
                         href={item.href}
@@ -275,3 +277,5 @@ export default function LayoutWithProviders({ children }: { children: React.Reac
     </ThemeProvider>
   );
 }
+
+    
