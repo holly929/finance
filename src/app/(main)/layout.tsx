@@ -257,19 +257,19 @@ export default function LayoutWithProviders({ children }: { children: React.Reac
       enableSystem
       disableTransitionOnChange
     >
+      <UserProvider>
         <AuthProvider>
           <PermissionsProvider>
-            <UserProvider>
-                <PropertyProvider>
-                    <BopProvider>
-                        <BillProvider>
-                            <AuthenticatedLayout>{children}</AuthenticatedLayout>
-                        </BillProvider>
-                    </BopProvider>
-                </PropertyProvider>
-            </UserProvider>
+            <PropertyProvider>
+              <BopProvider>
+                <BillProvider>
+                  <AuthenticatedLayout>{children}</AuthenticatedLayout>
+                </BillProvider>
+              </BopProvider>
+            </PropertyProvider>
           </PermissionsProvider>
         </AuthProvider>
+      </UserProvider>
     </ThemeProvider>
   );
 }
