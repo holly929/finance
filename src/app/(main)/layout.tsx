@@ -18,7 +18,10 @@ import {
   Loader2,
   BookCopy,
   Plug,
+  Moon,
+  Sun,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -40,6 +43,9 @@ import { PermissionsProvider, usePermissions } from '@/context/PermissionsContex
 import { ProfileDialog } from '@/components/profile-dialog';
 import { BillProvider } from '@/context/BillDataContext';
 import type { User as UserType } from '@/lib/types';
+import { inMemorySettings } from '@/lib/settings';
+import { ThemeProvider } from '@/components/theme-provider';
+
 
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard' },
@@ -51,6 +57,22 @@ const navItems = [
   { href: '/users', icon: Users, label: 'User Management' },
   { href: '/settings', icon: Settings, label: 'Settings' },
 ];
+
+function ThemeToggle() {
+    const { setTheme, theme } = useTheme();
+
+    return (
+        <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+        >
+            <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">Toggle theme</span>
+        </Button>
+    )
+}
 
 function MainLayout({
   children,
@@ -68,8 +90,11 @@ function MainLayout({
   const [isProfileDialogOpen, setIsProfileDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
-    // Settings are not persisted in a centralized way anymore.
-    // This could be updated to fetch from a config file or service.
+    const generalSettings = inMemorySettings.generalSettings;
+    if (generalSettings) {
+        setSystemName(generalSettings.systemName || 'RateEase');
+        setSupportEmail(generalSettings.contactEmail || '');
+    }
   }, []);
 
   const filteredNavItems = React.useMemo(() => {
@@ -170,6 +195,7 @@ function MainLayout({
                   </div>
                 </form>
               </div>
+              <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="secondary" size="icon" className="rounded-full">
@@ -221,12 +247,23 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 
 export default function LayoutWithProviders({ children }: { children: React.ReactNode }) {
   return (
-    <PermissionsProvider>
-      <PropertyProvider>
-        <BillProvider>
-          <AuthenticatedLayout>{children}</AuthenticatedLayout>
-        </BillProvider>
-      </PropertyProvider>
-    </PermissionsProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <UserProvider>
+        <AuthProvider>
+          <PermissionsProvider>
+            <PropertyProvider>
+              <BillProvider>
+                <AuthenticatedLayout>{children}</AuthenticatedLayout>
+              </BillProvider>
+            </PropertyProvider>
+          </PermissionsProvider>
+        </AuthProvider>
+      </UserProvider>
+    </ThemeProvider>
   );
 }

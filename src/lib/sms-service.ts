@@ -7,26 +7,34 @@ import { toast } from '@/hooks/use-toast';
 // This is a mock SMS service. In a real application, this would
 // make an HTTP request to an SMS provider's API.
 
-function getSmsConfig() {
+export function getSmsConfig() {
     return inMemorySettings.smsSettings || {};
 }
 
 function compileTemplate(template: string, data: Property | Bill): string {
+    if (!template) return '';
     return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, key) => {
-        // For bills, we might need data from the propertySnapshot
-        if ('propertySnapshot' in data) {
+        let value: any;
+        if ('propertySnapshot' in data) { // It's a Bill object
             const bill = data as Bill;
-            // First check top-level bill properties (like totalAmountDue, year)
-            if (key in bill) {
-                return String((bill as any)[key]);
+            if (Object.prototype.hasOwnProperty.call(bill, key)) {
+                value = (bill as any)[key];
+            } else {
+                value = getPropertyValue(bill.propertySnapshot, key);
             }
-            // Then check the property snapshot
-            return getPropertyValue(bill.propertySnapshot, key) || match;
+        } else { // It's a Property object
+            value = getPropertyValue(data as Property, key);
         }
-        // For properties, just use getPropertyValue
-        return getPropertyValue(data as Property, key) || match;
+        
+        // Format numbers to 2 decimal places if applicable
+        if (typeof value === 'number' && ['totalAmountDue', 'Rateable Value', 'Total Payment'].includes(key)) {
+            return value.toFixed(2);
+        }
+        
+        return value !== null && value !== undefined ? String(value) : '';
     });
 }
+
 
 /**
  * Sends a single SMS. This is the core function.
@@ -39,7 +47,11 @@ async function sendSingleSms(phoneNumber: string, message: string): Promise<bool
     const { smsApiUrl, smsApiKey, smsSenderId } = config;
 
     if (!smsApiUrl || !smsApiKey || !smsSenderId) {
-        console.error("SMS settings are not configured.");
+        console.error("SMS settings are not configured. Cannot send SMS.");
+        return false;
+    }
+    if (!message) {
+        console.error("SMS message is empty. Cannot send.");
         return false;
     }
 
@@ -54,12 +66,21 @@ async function sendSingleSms(phoneNumber: string, message: string): Promise<bool
     await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
     
     // In a real app, you would use fetch:
-    // const response = await fetch(smsApiUrl, {
-    //   method: 'POST',
-    //   headers: { 'Authorization': `Bearer ${smsApiKey}`, 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ to: phoneNumber, from: smsSenderId, message: message })
-    // });
-    // return response.ok;
+    // try {
+    //   const response = await fetch(smsApiUrl, {
+    //     method: 'POST',
+    //     headers: { 'Authorization': `Bearer ${smsApiKey}`, 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ to: phoneNumber, from: smsSenderId, message: message })
+    //   });
+    //   if (!response.ok) {
+    //      console.error(`SMS API error for ${phoneNumber}:`, await response.text());
+    //      return false;
+    //   }
+    //   return true;
+    // } catch (error) {
+    //    console.error(`Failed to send SMS to ${phoneNumber}:`, error);
+    //    return false;
+    // }
     
     return true; // Assume success for mock service
 }
@@ -74,11 +95,8 @@ async function sendSingleSms(phoneNumber: string, message: string): Promise<bool
 export async function sendSms(properties: Property[], messageTemplate: string): Promise<{ propertyId: string; success: boolean; }[]> {
     const config = getSmsConfig();
     if (!config.smsApiUrl) {
-         toast({
-            variant: 'destructive',
-            title: 'SMS Not Configured',
-            description: 'Please configure SMS settings on the Settings page first.',
-        });
+        // The dialog itself will show a warning, so a toast here is redundant.
+        console.error("SMS not configured.");
         return [];
     }
     
@@ -86,9 +104,9 @@ export async function sendSms(properties: Property[], messageTemplate: string): 
 
     for (const prop of properties) {
         const phoneNumber = getPropertyValue(prop, 'Phone Number');
-        if (phoneNumber) {
+        if (phoneNumber && String(phoneNumber).trim()) {
             const message = compileTemplate(messageTemplate, prop);
-            const success = await sendSingleSms(phoneNumber, message);
+            const success = await sendSingleSms(String(phoneNumber), message);
             results.push({ propertyId: prop.id, success });
         } else {
              results.push({ propertyId: prop.id, success: false });
@@ -111,25 +129,22 @@ export async function sendNewPropertySms(property: Property) {
     }
 
     const phoneNumber = getPropertyValue(property, 'Phone Number');
-    if (!phoneNumber) {
-        console.log("Skipping new property SMS: No phone number found.");
+    if (!phoneNumber || !String(phoneNumber).trim()) {
+        console.log("Skipping new property SMS: No phone number found for property ID", property.id);
         return;
     }
 
     const message = compileTemplate(newPropertyMessageTemplate, property);
-    const success = await sendSingleSms(phoneNumber, message);
+    const success = await sendSingleSms(String(phoneNumber), message);
     
+    // We only show a toast if it succeeds, to avoid spamming the user with failure notices for an automated background task.
     if(success) {
         toast({
             title: 'SMS Notification Sent',
             description: `A welcome message was sent to ${phoneNumber}.`,
         });
     } else {
-        toast({
-            variant: 'destructive',
-            title: 'SMS Notification Failed',
-            description: 'Could not send the welcome SMS. Check SMS settings.',
-        });
+        console.error(`Failed to send automated new property SMS to ${phoneNumber}.`);
     }
 }
 
@@ -149,9 +164,9 @@ export async function sendBillGeneratedSms(bills: Bill[]) {
     let sentCount = 0;
     for (const bill of bills) {
         const phoneNumber = getPropertyValue(bill.propertySnapshot, 'Phone Number');
-        if (phoneNumber) {
+        if (phoneNumber && String(phoneNumber).trim()) {
             const message = compileTemplate(billGeneratedMessageTemplate, bill);
-            const success = await sendSingleSms(phoneNumber, message);
+            const success = await sendSingleSms(String(phoneNumber), message);
             if (success) {
                 sentCount++;
             }

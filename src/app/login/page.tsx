@@ -10,32 +10,39 @@ import { Label } from '@/components/ui/label';
 import { Landmark, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { inMemorySettings } from '@/lib/settings';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { login } = useAuth();
+  const { login, loading: authLoading } = useAuth();
   
   const [systemName, setSystemName] = React.useState('RateEase');
   const [assemblyLogo, setAssemblyLogo] = React.useState<string | null>(null);
   const [email, setEmail] = React.useState('admin@rateease.gov');
   const [password, setPassword] = React.useState('password');
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
   const [isMounted, setIsMounted] = React.useState(false);
 
 
   React.useEffect(() => {
     setIsMounted(true);
-    // Settings are now in-memory, so we don't load from localStorage here.
-    // This could be enhanced to fetch from a central config if needed.
+    const generalSettings = inMemorySettings.generalSettings;
+    const appearanceSettings = inMemorySettings.appearanceSettings;
+
+    if (generalSettings && generalSettings.systemName) {
+      setSystemName(generalSettings.systemName);
+    }
+    if (appearanceSettings && appearanceSettings.assemblyLogo) {
+      setAssemblyLogo(appearanceSettings.assemblyLogo);
+    }
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsLoggingIn(true);
     
-    // The 'login' function now has access to the user list from its context
-    const loggedInUser = login(email, password);
+    const loggedInUser = await login(email, password);
 
     if (loggedInUser) {
       toast({
@@ -49,19 +56,25 @@ export default function LoginPage() {
         title: 'Login Failed',
         description: 'Invalid email or password. Please try again.',
       });
-       setIsLoading(false);
+       setIsLoggingIn(false);
     }
   };
 
+  const isLoading = isLoggingIn || authLoading;
+
   if (!isMounted) {
-    return null;
+    return (
+       <div className="flex h-screen w-full items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+       </div>
+    );
   }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4 relative overflow-hidden">
-       <div className="absolute inset-0 z-0 bg-gradient-to-br from-primary/20 via-background to-background animate-gradient-xy"></div>
+       <div className="absolute inset-0 z-0 bg-gradient-to-br from-primary/20 via-background to-background dark:from-primary/10 animate-gradient-xy"></div>
        <div className="relative z-10 w-full max-w-md">
-        <Card className="shadow-2xl animate-fade-in-up">
+        <Card className="shadow-2xl animate-fade-in-up bg-card/80 backdrop-blur-lg">
           <CardHeader className="text-center p-6">
             <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center text-primary overflow-hidden">
                {assemblyLogo ? (
