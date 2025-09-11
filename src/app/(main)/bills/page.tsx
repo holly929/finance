@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, Loader2, Calendar, Filter, BookCopy, MoreHorizontal, Printer } from 'lucide-react';
+import { Eye, Loader2, Calendar, Filter, BookCopy, MoreHorizontal, Printer, Building, Home } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBillData } from '@/context/BillDataContext';
 import { useRequirePermission } from '@/hooks/useRequirePermission';
-import type { Bill, Property } from '@/lib/types';
+import type { Bill, Property, Bop } from '@/lib/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BillDialog } from '@/components/bill-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +39,7 @@ export default function BillsPage() {
   const { toast } = useToast();
 
   const [filterYear, setFilterYear] = React.useState('all');
+  const [filterType, setFilterType] = React.useState('all');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [viewingBill, setViewingBill] = React.useState<Bill | null>(null);
   const [selectedRows, setSelectedRows] = React.useState<string[]>([]);
@@ -51,9 +52,10 @@ export default function BillsPage() {
 
   const filteredData = React.useMemo(() => {
     if (!bills) return [];
-    if (filterYear === 'all') return bills;
-    return bills.filter(b => b.year === Number(filterYear));
-  }, [bills, filterYear]);
+    let yearFiltered = filterYear === 'all' ? bills : bills.filter(b => b.year === Number(filterYear));
+    let typeFiltered = filterType === 'all' ? yearFiltered : yearFiltered.filter(b => b.billType === filterType);
+    return typeFiltered;
+  }, [bills, filterYear, filterType]);
 
   const sortedData = React.useMemo(() => {
     return [...filteredData].sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
@@ -71,7 +73,7 @@ export default function BillsPage() {
   React.useEffect(() => {
     setCurrentPage(1);
     setSelectedRows([]);
-  }, [filterYear]);
+  }, [filterYear, filterType]);
   
   const handleViewBill = (bill: Bill) => {
     setViewingBill(bill);
@@ -104,8 +106,20 @@ export default function BillsPage() {
     }
     const selectedBills = bills.filter(bill => selectedRows.includes(bill.id));
     const propertiesToPrint = selectedBills.map(bill => bill.propertySnapshot);
-    localStorage.setItem('selectedPropertiesForPrinting', JSON.stringify(propertiesToPrint));
-    router.push('/properties/print-preview');
+    const billType = selectedBills[0]?.billType;
+
+    if (selectedBills.some(b => b.billType !== billType)) {
+        toast({ variant: 'destructive', title: 'Mixed Bill Types', description: 'Please select bills of the same type to print.' });
+        return;
+    }
+
+    if (billType === 'property') {
+      localStorage.setItem('selectedPropertiesForPrinting', JSON.stringify(propertiesToPrint));
+      router.push('/properties/print-preview');
+    } else if (billType === 'bop') {
+      localStorage.setItem('selectedBopsForPrinting', JSON.stringify(propertiesToPrint));
+      router.push('/bop/print-preview');
+    }
   };
 
   if (loading) {
@@ -122,7 +136,7 @@ export default function BillsPage() {
         <BookCopy className="h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No Bills Generated Yet</h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          Go to the <Button variant="link" onClick={() => router.push('/billing')} className="p-0 h-auto">Billing</Button> page, select properties, and print to generate bills.
+          Go to the <Button variant="link" onClick={() => router.push('/billing')} className="p-0 h-auto">Billing</Button> pages to generate bills.
         </p>
       </div>
     );
@@ -130,6 +144,21 @@ export default function BillsPage() {
   
   const isAllFilteredSelected = filteredData.length > 0 && selectedRows.length === filteredData.length;
   const isSomeRowsSelected = selectedRows.length > 0 && selectedRows.length < filteredData.length;
+  
+  const identifyBillName = (bill: Bill): string => {
+    if (bill.billType === 'property') {
+      return getPropertyValue(bill.propertySnapshot as Property, 'Owner Name') || '';
+    }
+    return getPropertyValue(bill.propertySnapshot as Bop, 'Business Name') || '';
+  }
+
+  const identifyBillIdentifier = (bill: Bill): {key: string, value: string} => {
+    if (bill.billType === 'property') {
+      return { key: 'Property No', value: getPropertyValue(bill.propertySnapshot as Property, 'Property No') || '' };
+    }
+    return { key: 'Business Name', value: getPropertyValue(bill.propertySnapshot as Bop, 'Business Name') || '' };
+  }
+
 
   const renderDesktopView = () => (
     <Table>
@@ -142,8 +171,9 @@ export default function BillsPage() {
                 aria-label="Select all rows"
               />
           </TableHead>
-          <TableHead>Property No.</TableHead>
-          <TableHead>Owner Name</TableHead>
+          <TableHead>Type</TableHead>
+          <TableHead>Identifier</TableHead>
+          <TableHead>Billed To</TableHead>
           <TableHead>Date Generated</TableHead>
           <TableHead>Year</TableHead>
           <TableHead className="text-right">Amount Due</TableHead>
@@ -151,31 +181,40 @@ export default function BillsPage() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {paginatedData.length > 0 ? paginatedData.map(bill => (
-          <TableRow key={bill.id} data-state={selectedRows.includes(bill.id) ? "selected" : undefined}>
-            <TableCell>
-                  <Checkbox
-                    checked={selectedRows.includes(bill.id)}
-                    onCheckedChange={(checked) => handleSelectRow(bill.id, !!checked)}
-                    aria-label={`Select row ${bill.id}`}
-                  />
-            </TableCell>
-            <TableCell className="font-medium">{getPropertyValue(bill.propertySnapshot, 'Property No') || ''}</TableCell>
-            <TableCell>{getPropertyValue(bill.propertySnapshot, 'Owner Name') || ''}</TableCell>
-            <TableCell>{formatDate(bill.generatedAt)}</TableCell>
-            <TableCell><Badge variant="outline">{bill.year}</Badge></TableCell>
-            <TableCell className="text-right font-mono">{formatCurrency(bill.totalAmountDue)}</TableCell>
-            <TableCell className="text-right">
-              <Button variant="ghost" size="icon" onClick={() => handleViewBill(bill)}>
-                <Eye className="h-4 w-4" />
-                <span className="sr-only">View Bill</span>
-              </Button>
-            </TableCell>
-          </TableRow>
-        )) : (
+        {paginatedData.length > 0 ? paginatedData.map(bill => {
+          const identifier = identifyBillIdentifier(bill);
+          return (
+            <TableRow key={bill.id} data-state={selectedRows.includes(bill.id) ? "selected" : undefined}>
+              <TableCell>
+                    <Checkbox
+                      checked={selectedRows.includes(bill.id)}
+                      onCheckedChange={(checked) => handleSelectRow(bill.id, !!checked)}
+                      aria-label={`Select row ${bill.id}`}
+                    />
+              </TableCell>
+              <TableCell>
+                <Badge variant={bill.billType === 'property' ? 'secondary' : 'outline'} className="capitalize">
+                    {bill.billType === 'property' ? <Home className="h-3 w-3 mr-1" /> : <Building className="h-3 w-3 mr-1" />}
+                    {bill.billType}
+                </Badge>
+              </TableCell>
+              <TableCell className="font-medium">{identifier.value}</TableCell>
+              <TableCell>{identifyBillName(bill)}</TableCell>
+              <TableCell>{formatDate(bill.generatedAt)}</TableCell>
+              <TableCell><Badge variant="outline">{bill.year}</Badge></TableCell>
+              <TableCell className="text-right font-mono">{formatCurrency(bill.totalAmountDue)}</TableCell>
+              <TableCell className="text-right">
+                <Button variant="ghost" size="icon" onClick={() => handleViewBill(bill)}>
+                  <Eye className="h-4 w-4" />
+                  <span className="sr-only">View Bill</span>
+                </Button>
+              </TableCell>
+            </TableRow>
+          );
+        }) : (
           <TableRow>
-            <TableCell colSpan={7} className="h-24 text-center">
-              No results found for the selected year.
+            <TableCell colSpan={8} className="h-24 text-center">
+              No results found for the selected filters.
             </TableCell>
           </TableRow>
         )}
@@ -185,54 +224,64 @@ export default function BillsPage() {
 
   const renderMobileView = () => (
     <div className="space-y-4">
-      {paginatedData.length > 0 ? paginatedData.map(bill => (
-        <Card key={bill.id} data-state={selectedRows.includes(bill.id) ? "selected" : undefined} className="data-[state=selected]:bg-muted/50">
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-4">
-                <Checkbox
-                    checked={selectedRows.includes(bill.id)}
-                    onCheckedChange={(checked) => handleSelectRow(bill.id, !!checked)}
-                    aria-label={`Select row ${bill.id}`}
-                  />
-                <div>
-                  <CardTitle className="text-base font-semibold">{getPropertyValue(bill.propertySnapshot, 'Owner Name') || ''}</CardTitle>
-                  <CardDescription>Property No: {getPropertyValue(bill.propertySnapshot, 'Property No') || ''}</CardDescription>
+      {paginatedData.length > 0 ? paginatedData.map(bill => {
+        const identifier = identifyBillIdentifier(bill);
+        return (
+          <Card key={bill.id} data-state={selectedRows.includes(bill.id) ? "selected" : undefined} className="data-[state=selected]:bg-muted/50">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-4">
+                  <Checkbox
+                      checked={selectedRows.includes(bill.id)}
+                      onCheckedChange={(checked) => handleSelectRow(bill.id, !!checked)}
+                      aria-label={`Select row ${bill.id}`}
+                    />
+                  <div>
+                    <CardTitle className="text-base font-semibold">{identifyBillName(bill)}</CardTitle>
+                    <CardDescription>{identifier.key}: {identifier.value}</CardDescription>
+                  </div>
                 </div>
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 -mt-2">
+                        <MoreHorizontal className="h-4 w-4"/>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem onSelect={() => handleViewBill(bill)}>
+                        <Eye className="mr-2 h-4 w-4" /> View Bill
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
               </div>
-               <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 -mt-2">
-                      <MoreHorizontal className="h-4 w-4"/>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onSelect={() => handleViewBill(bill)}>
-                      <Eye className="mr-2 h-4 w-4" /> View Bill
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm pl-16">
-             <div className="flex justify-between items-center text-xs text-muted-foreground">
-                <span className="font-semibold">Date Generated</span>
-                <span>{formatDate(bill.generatedAt)}</span>
-            </div>
-             <div className="flex justify-between items-center text-xs text-muted-foreground">
-                <span className="font-semibold">Bill Year</span>
-                 <Badge variant="outline">{bill.year}</Badge>
-            </div>
-            <div className="flex justify-between items-center pt-2 border-t mt-2">
-                <span className="font-semibold">Amount Due</span>
-                <span className="font-bold text-base text-foreground">{formatCurrency(bill.totalAmountDue)}</span>
-            </div>
-          </CardContent>
-        </Card>
-      )) : (
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm pl-16">
+               <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <span className="font-semibold">Type</span>
+                   <Badge variant={bill.billType === 'property' ? 'secondary' : 'outline'} className="capitalize">
+                      {bill.billType === 'property' ? <Home className="h-3 w-3 mr-1" /> : <Building className="h-3 w-3 mr-1" />}
+                      {bill.billType}
+                  </Badge>
+              </div>
+               <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <span className="font-semibold">Date Generated</span>
+                  <span>{formatDate(bill.generatedAt)}</span>
+              </div>
+               <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <span className="font-semibold">Bill Year</span>
+                   <Badge variant="outline">{bill.year}</Badge>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t mt-2">
+                  <span className="font-semibold">Amount Due</span>
+                  <span className="font-bold text-base text-foreground">{formatCurrency(bill.totalAmountDue)}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      }) : (
         <div className="text-center text-muted-foreground py-12">
-          <p>No results found for the selected year.</p>
+          <p>No results found for the selected filters.</p>
         </div>
       )}
     </div>
@@ -251,8 +300,18 @@ export default function BillsPage() {
           )}
           <div className="flex items-center gap-2 flex-grow sm:flex-grow-0">
             <Filter className="h-4 w-4 text-muted-foreground" />
+             <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <SelectValue placeholder="Filter by type..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="property">Property Rate</SelectItem>
+                <SelectItem value="bop">BOP</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={filterYear} onValueChange={setFilterYear}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[140px]">
                 <SelectValue placeholder="Filter by year..." />
               </SelectTrigger>
               <SelectContent>
@@ -305,7 +364,7 @@ export default function BillsPage() {
       <BillDialog
         isOpen={!!viewingBill}
         onOpenChange={(isOpen) => !isOpen && setViewingBill(null)}
-        property={viewingBill?.propertySnapshot || null}
+        bill={viewingBill}
       />
     </>
   );

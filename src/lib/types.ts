@@ -36,10 +36,14 @@ export type PropertyWithStatus = Property & {
   status: BillStatus;
 };
 
+export type BopWithStatus = Bop & {
+  status: BillStatus;
+};
+
 export type Bill = {
   id: string;
   propertyId: string;
-  propertySnapshot: Property; // This will be a JSONB field in Supabase
+  propertySnapshot: Property | Bop; // This will be a JSONB field in Supabase
   generatedAt: string; // ISO Date string
   year: number;
   totalAmountDue: number;

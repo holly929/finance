@@ -6,13 +6,14 @@ import { useReactToPrint } from 'react-to-print';
 import JsBarcode from 'jsbarcode';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import type { Property } from '@/lib/types';
+import type { Property, Bop, Bill } from '@/lib/types';
 import { Printer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getPropertyValue } from '@/lib/property-utils';
+import { inMemorySettings } from '@/lib/settings';
 
 interface BillDialogProps {
-  property: Property | null;
+  bill: Bill | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
 }
@@ -63,8 +64,14 @@ const BillRow = ({ label, value, isBold = false }: { label: string; value: strin
   </div>
 );
 
-export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Property, settings: { general?: GeneralSettings, appearance?: AppearanceSettings }, isCompact?: boolean, displaySettings?: Record<string, boolean> }>(
-  ({ property, settings, isCompact = false, displaySettings: displaySettingsProp }, ref) => {
+export const PrintableContent = React.forwardRef<HTMLDivElement, { 
+    data: Property | Bop;
+    billType: 'property' | 'bop';
+    settings: { general?: GeneralSettings, appearance?: AppearanceSettings }; 
+    isCompact?: boolean; 
+    displaySettings?: Record<string, boolean>;
+}>(
+  ({ data, billType, settings, isCompact = false, displaySettings: displaySettingsProp }, ref) => {
     
     const [displaySettings, setDisplaySettings] = useState<Record<string, boolean>>({});
 
@@ -98,34 +105,24 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     useEffect(() => {
         if (displaySettingsProp) {
             setDisplaySettings(displaySettingsProp);
-        } else if (property) {
-            const allFields = Object.keys(property).reduce((acc, key) => {
+        } else if (data) {
+            const allFields = Object.keys(data).reduce((acc, key) => {
                 acc[key] = true;
                 return acc;
             }, {} as Record<string, boolean>);
             setDisplaySettings(allFields);
         }
-    }, [property, displaySettingsProp]);
+    }, [data, displaySettingsProp]);
     
     const getNumber = (key: string): number | null => {
-        if (!property) return null;
-        const value = getPropertyValue(property, key);
+        if (!data) return null;
+        const value = getPropertyValue(data as Property, key);
         if (value === null || value === undefined || String(value).trim() === '') return null;
         const cleanedValue = String(value).replace(/[^0-9.-]/g, '');
         if (cleanedValue === '') return null;
         const num = Number(cleanedValue);
         return isNaN(num) ? null : num;
     };
-
-    const rateableValue = getNumber('Rateable Value');
-    const rateImpost = getNumber('Rate Impost');
-    const sanitationCharged = getNumber('Sanitation Charged');
-    const previousBalance = getNumber('Previous Balance');
-    const totalPayment = getNumber('Total Payment');
-
-    const amountCharged = (rateableValue != null && rateImpost != null) ? rateableValue * rateImpost : null;
-    const totalThisYear = (amountCharged != null ? amountCharged : 0) + (sanitationCharged != null ? sanitationCharged : 0);
-    const totalAmountDue = (totalThisYear != null ? totalThisYear : 0) + (previousBalance != null ? previousBalance : 0) - (totalPayment != null ? totalPayment : 0);
 
     const formatDate = (date: Date) => {
         const day = date.getDate();
@@ -146,10 +143,10 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
     const formatAmount = useCallback((amount: number | null) => (amount != null ? amount.toFixed(2) : '0.00'), []);
     
     const formatValue = useCallback((valueKey: string) => {
-        if (!property) return '...';
-        const val = getPropertyValue(property, valueKey);
+        if (!data) return '...';
+        const val = getPropertyValue(data as Property, valueKey);
         return val != null && val !== '' ? String(val) : '...';
-    }, [property]);
+    }, [data]);
     
     const normalizeDisplayKey = (key: string): string => {
         return (key || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
@@ -174,16 +171,152 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
         if (!shouldDisplay(valueKey)) return <div className="flex"><div className="w-1/2 font-bold border-b border-black p-1 min-h-[1.5em]"></div><div className="w-1/2 border-b border-l border-black p-1"></div></div>;
         return <div className="flex"><div className="w-1/2 font-bold border-b border-black p-1">{label}</div><div className="w-1/2 border-b border-l border-black p-1">{formatValue(valueKey)}</div></div>;
     };
-    
-    const barcodeValue = useMemo(() => {
-        if (!property) return '';
-        const propertyNo = formatValue('Property No');
-        const ownerName = (formatValue('Owner Name') || '').substring(0, 20);
-        const amount = formatAmount(totalAmountDue);
-        const year = new Date().getFullYear();
-        return `${propertyNo}|${ownerName}|${amount}|${year}`;
-    }, [property, totalAmountDue, formatValue, formatAmount]);
 
+    // Calculations
+    const { totalAmountDue, barcodeValue } = useMemo(() => {
+        let finalAmount = 0;
+        let finalBarcode = '';
+
+        if (billType === 'property') {
+            const property = data as Property;
+            const rateableValue = getNumber('Rateable Value');
+            const rateImpost = getNumber('Rate Impost');
+            const sanitationCharged = getNumber('Sanitation Charged');
+            const previousBalance = getNumber('Previous Balance');
+            const totalPayment = getNumber('Total Payment');
+            const amountCharged = (rateableValue != null && rateImpost != null) ? rateableValue * rateImpost : 0;
+            const totalThisYear = amountCharged + (sanitationCharged || 0);
+            finalAmount = totalThisYear + (previousBalance || 0) - (totalPayment || 0);
+            
+            const propertyNo = formatValue('Property No');
+            const ownerName = (formatValue('Owner Name') || '').substring(0, 20);
+            const amount = formatAmount(finalAmount);
+            const year = new Date().getFullYear();
+            finalBarcode = `${propertyNo}|${ownerName}|${amount}|${year}`;
+        } else { // BOP
+            const bop = data as Bop;
+            const permitFee = getNumber('Permit Fee');
+            const payment = getNumber('Payment');
+            finalAmount = (permitFee || 0) - (payment || 0);
+
+            const businessName = (formatValue('Business Name') || '').substring(0, 20);
+            const amount = formatAmount(finalAmount);
+            const year = new Date().getFullYear();
+            finalBarcode = `${bop.id}|${businessName}|${amount}|${year}`;
+        }
+        return { totalAmountDue: finalAmount, barcodeValue: finalBarcode };
+    }, [data, billType, formatValue, formatAmount]);
+
+
+    const renderPropertyBill = () => {
+      const rateableValue = getNumber('Rateable Value');
+      const rateImpost = getNumber('Rate Impost');
+      const sanitationCharged = getNumber('Sanitation Charged');
+      const previousBalance = getNumber('Previous Balance');
+      const totalPayment = getNumber('Total Payment');
+      const amountCharged = (rateableValue != null && rateImpost != null) ? rateableValue * rateImpost : null;
+      const totalThisYear = (amountCharged ?? 0) + (sanitationCharged ?? 0);
+
+      return (
+        <>
+            <div className="flex border-b-2 border-black">
+                <div className="w-[67%] border-r-2 border-black">
+                    <DetailRow label="OWNER NAME" valueKey="Owner Name" />
+                    <DetailRow label="PHONE NUMBER" valueKey="Phone Number" />
+                    <DetailRow label="TOWN" valueKey="Town" />
+                    <DetailRow label="PROPERTY NO:" valueKey="Property No" />
+                    <DetailRow label="VALUATION LIST NO.:" valueKey="Valuation List No." />
+                </div>
+                <div className="w-[33%]">
+                    <DetailRowRight label="SUBURB" valueKey="Suburb" />
+                    <DetailRowRight label="ACCOUNT NUMBER" valueKey="Account Number" />
+                    <div className="flex"><div className="w-1/2 font-bold border-b border-black p-1">BILL DATE</div><div className="w-1/2 border-b border-l border-black p-1">{formatDate(new Date())}</div></div>
+                    <DetailRowRight label="PROPERTY TYPE" valueKey="Property Type" />
+                    <div className="font-bold text-center p-1">AMOUNT (GH&#8373;)</div>
+                </div>
+            </div>
+
+            <div className="flex">
+                <div className="w-[67%] border-r-2 border-black">
+                    <div className="flex border-b-2 border-black">
+                        <div className="w-1/3 font-bold flex items-center justify-center p-1 text-center">BILLING DETAILS</div>
+                        <div className="w-1/3 border-x border-black p-1">
+                            <div className="font-bold">RATEABLE VALUE</div>
+                            <div className="flex justify-between items-end"><span>GH&#8373;</span><span>{formatAmount(rateableValue)}</span></div>
+                        </div>
+                        <div className="w-1/3 p-1">
+                            <div className="font-bold">RATE IMPOST</div>
+                            <div className="flex justify-end items-end h-full"><span>{formatValue('Rate Impost')}</span></div>
+                        </div>
+                    </div>
+                    <BillRow label="AMOUNT CHARGED (Rateable Value * Rate Impost)" value={formatAmount(amountCharged)} />
+                    <BillRow label="SANITATION CHARGED" value={formatAmount(sanitationCharged)} />
+                    <BillRow label="UNASSESSED RATE" value="..." />
+                    <BillRow label="TOTAL THIS YEAR" value={formatAmount(totalThisYear)} isBold />
+                    <BillRow label="PREVIOUS BALANCE" value={formatAmount(previousBalance)} />
+                    <BillRow label="TOTAL PAYMENT" value={formatAmount(totalPayment)} />
+                    <div className="flex justify-between p-1 border-b border-black items-center font-bold" style={accentStyle}>
+                        <span>TOTAL AMOUNT DUE</span>
+                        <span className="text-right" style={{ fontSize: `${finalFontSize * 1.2}px` }}>{formatAmount(totalAmountDue)}</span>
+                    </div>
+                </div>
+                <div className="w-[33%] text-right font-bold">
+                    <div className="p-1 border-b-2 border-black flex items-end justify-end">FINANCIAL DETAILS</div>
+                    <div className="p-1 border-b border-black">{formatAmount(amountCharged)}</div>
+                    <div className="p-1 border-b border-black">{formatAmount(sanitationCharged)}</div>
+                    <div className="p-1 border-b border-black">...</div>
+                    <div className="p-1 border-b border-black">{formatAmount(totalThisYear)}</div>
+                    <div className="p-1 border-b border-black">{formatAmount(previousBalance)}</div>
+                    <div className="p-1 border-b border-black">{formatAmount(totalPayment)}</div>
+                    <div className="p-1 border-b border-black flex items-center justify-end" style={accentStyle}>
+                        <span style={{ fontSize: `${finalFontSize * 1.2}px` }}>{formatAmount(totalAmountDue)}</span>
+                    </div>
+                </div>
+            </div>
+        </>
+      )
+    }
+
+    const renderBopBill = () => {
+      const permitFee = getNumber('Permit Fee');
+      const payment = getNumber('Payment');
+
+      return (
+        <>
+            <div className="flex border-b-2 border-black">
+                <div className="w-[67%] border-r-2 border-black">
+                    <DetailRow label="BUSINESS NAME" valueKey="Business Name" />
+                    <DetailRow label="OWNER NAME" valueKey="Owner Name" />
+                    <DetailRow label="PHONE NUMBER" valueKey="Phone Number" />
+                    <DetailRow label="TOWN" valueKey="Town" />
+                </div>
+                <div className="w-[33%]">
+                    <div className="flex"><div className="w-1/2 font-bold border-b border-black p-1">BILL DATE</div><div className="w-1/2 border-b border-l border-black p-1">{formatDate(new Date())}</div></div>
+                    <div className="font-bold text-center p-1">AMOUNT (GH&#8373;)</div>
+                </div>
+            </div>
+            <div className="flex">
+                <div className="w-[67%] border-r-2 border-black">
+                    <div className="font-bold text-center p-1 border-b-2 border-black">BILLING DETAILS</div>
+                    <BillRow label="PERMIT FEE" value={formatAmount(permitFee)} />
+                    <BillRow label="PAYMENT" value={formatAmount(payment)} />
+                    <div className="flex justify-between p-1 border-b border-black items-center font-bold" style={accentStyle}>
+                        <span>TOTAL AMOUNT DUE</span>
+                        <span className="text-right" style={{ fontSize: `${finalFontSize * 1.2}px` }}>{formatAmount(totalAmountDue)}</span>
+                    </div>
+                </div>
+                <div className="w-[33%] text-right font-bold">
+                    <div className="p-1 border-b-2 border-black flex items-end justify-end">FINANCIAL DETAILS</div>
+                    <div className="p-1 border-b border-black">{formatAmount(permitFee)}</div>
+                    <div className="p-1 border-b border-black">{formatAmount(payment)}</div>
+                    <div className="p-1 border-b border-black flex items-center justify-end" style={accentStyle}>
+                        <span style={{ fontSize: `${finalFontSize * 1.2}px` }}>{formatAmount(totalAmountDue)}</span>
+                    </div>
+                </div>
+            </div>
+        </>
+      )
+    }
 
     return (
       <div ref={ref} className={cn("text-black bg-white w-full h-full box-border", fontClass, isCompact ? 'p-1' : 'p-2')} style={baseStyle}>
@@ -200,7 +333,9 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
                 </div>
                 <div className="w-1/2 text-center">
                     <h1 className="font-bold tracking-wide" style={{ fontSize: `${finalFontSize * 1.5}px` }}>{settings.general?.assemblyName?.toUpperCase() || 'DISTRICT ASSEMBLY'}</h1>
-                    <h2 className="font-bold tracking-wide" style={{ fontSize: `${finalFontSize * 1.3}px` }}>PROPERTY BILLING</h2>
+                    <h2 className="font-bold tracking-wide" style={{ fontSize: `${finalFontSize * 1.3}px` }}>
+                      {billType === 'property' ? 'PROPERTY RATE BILL' : 'B.O.P. BILL'}
+                    </h2>
                     <p style={{ fontSize: `${finalFontSize * 0.9}px` }}>{settings.general?.postalAddress}</p>
                     <p style={{ fontSize: `${finalFontSize * 0.9}px` }}>TEL: {settings.general?.contactPhone}</p>
                 </div>
@@ -210,60 +345,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
             </header>
             
             <main className="border-t-2 border-b-2 border-black flex-grow">
-                <div className="flex border-b-2 border-black">
-                    <div className="w-[67%] border-r-2 border-black">
-                        <DetailRow label="OWNER NAME" valueKey="Owner Name" />
-                        <DetailRow label="PHONE NUMBER" valueKey="Phone Number" />
-                        <DetailRow label="TOWN" valueKey="Town" />
-                        <DetailRow label="PROPERTY NO:" valueKey="Property No" />
-                        <DetailRow label="VALUATION LIST NO.:" valueKey="Valuation List No." />
-                    </div>
-                    <div className="w-[33%]">
-                        <DetailRowRight label="SUBURB" valueKey="Suburb" />
-                        <DetailRowRight label="ACCOUNT NUMBER" valueKey="Account Number" />
-                        <div className="flex"><div className="w-1/2 font-bold border-b border-black p-1">BILL DATE</div><div className="w-1/2 border-b border-l border-black p-1">{formatDate(new Date())}</div></div>
-                        <DetailRowRight label="PROPERTY TYPE" valueKey="Property Type" />
-                        <div className="font-bold text-center p-1">AMOUNT (GH&#8373;)</div>
-                    </div>
-                </div>
-
-                <div className="flex">
-                    <div className="w-[67%] border-r-2 border-black">
-                        <div className="flex border-b-2 border-black">
-                            <div className="w-1/3 font-bold flex items-center justify-center p-1 text-center">BILLING DETAILS</div>
-                            <div className="w-1/3 border-x border-black p-1">
-                                <div className="font-bold">RATEABLE VALUE</div>
-                                <div className="flex justify-between items-end"><span>GH&#8373;</span><span>{formatAmount(rateableValue)}</span></div>
-                            </div>
-                            <div className="w-1/3 p-1">
-                                <div className="font-bold">RATE IMPOST</div>
-                                <div className="flex justify-end items-end h-full"><span>{formatValue('Rate Impost')}</span></div>
-                            </div>
-                        </div>
-                        <BillRow label="AMOUNT CHARGED (Rateable Value * Rate Impost)" value={formatAmount(amountCharged)} />
-                        <BillRow label="SANITATION CHARGED" value={formatAmount(sanitationCharged)} />
-                        <BillRow label="UNASSESSED RATE" value="..." />
-                        <BillRow label="TOTAL THIS YEAR" value={formatAmount(totalThisYear)} isBold />
-                        <BillRow label="PREVIOUS BALANCE" value={formatAmount(previousBalance)} />
-                        <BillRow label="TOTAL PAYMENT" value={formatAmount(totalPayment)} />
-                        <div className="flex justify-between p-1 border-b border-black items-center font-bold" style={accentStyle}>
-                            <span>TOTAL AMOUNT DUE</span>
-                            <span className="text-right" style={{ fontSize: `${finalFontSize * 1.2}px` }}>{formatAmount(totalAmountDue)}</span>
-                        </div>
-                    </div>
-                    <div className="w-[33%] text-right font-bold">
-                        <div className="p-1 border-b-2 border-black flex items-end justify-end">FINANCIAL DETAILS</div>
-                        <div className="p-1 border-b border-black">{formatAmount(amountCharged)}</div>
-                        <div className="p-1 border-b border-black">{formatAmount(sanitationCharged)}</div>
-                        <div className="p-1 border-b border-black">...</div>
-                        <div className="p-1 border-b border-black">{formatAmount(totalThisYear)}</div>
-                        <div className="p-1 border-b border-black">{formatAmount(previousBalance)}</div>
-                        <div className="p-1 border-b border-black">{formatAmount(totalPayment)}</div>
-                        <div className="p-1 border-b border-black flex items-center justify-end" style={accentStyle}>
-                            <span style={{ fontSize: `${finalFontSize * 1.2}px` }}>{formatAmount(totalAmountDue)}</span>
-                        </div>
-                    </div>
-                </div>
+                {billType === 'property' ? renderPropertyBill() : renderBopBill()}
             </main>
             
             <footer className="mt-auto pt-2">
@@ -297,15 +379,16 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, { property: Pro
 PrintableContent.displayName = 'PrintableContent';
 
 
-export function BillDialog({ property, isOpen, onOpenChange }: BillDialogProps) {
+export function BillDialog({ bill, isOpen, onOpenChange }: BillDialogProps) {
   const [settings, setSettings] = useState<{general: GeneralSettings, appearance: AppearanceSettings}>({ general: {}, appearance: {} });
   const componentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
-      // Settings are no longer persisted in local storage.
-      // This will use default/empty settings.
-      // A centralized settings service would be needed to fetch them.
+      setSettings({
+        general: inMemorySettings.generalSettings || {},
+        appearance: inMemorySettings.appearanceSettings || {},
+      });
     }
   }, [isOpen]);
 
@@ -313,7 +396,7 @@ export function BillDialog({ property, isOpen, onOpenChange }: BillDialogProps) 
     content: () => componentRef.current,
   });
 
-  if (!property) return null;
+  if (!bill) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -321,7 +404,12 @@ export function BillDialog({ property, isOpen, onOpenChange }: BillDialogProps) 
         <div className="max-h-[80vh] overflow-y-auto bg-muted">
           <div className="py-8">
             <div className="w-[210mm] min-h-[297mm] mx-auto bg-white shadow-lg">
-              <PrintableContent ref={componentRef} property={property} settings={settings} />
+              <PrintableContent 
+                ref={componentRef} 
+                data={bill.propertySnapshot} 
+                billType={bill.billType} 
+                settings={settings} 
+              />
             </div>
           </div>
         </div>

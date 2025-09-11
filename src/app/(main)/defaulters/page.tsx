@@ -2,9 +2,9 @@
 'use client';
 
 import * as React from 'react';
-import { Download, Loader2, BarChart2, MessageSquare, Trash2, Home, Store, AlertTriangle } from 'lucide-react';
+import { Download, Loader2, MessageSquare, Trash2, Home, Store, AlertTriangle, Users } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import { ChartContainer, ChartTooltipContent, ChartConfig } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { usePropertyData } from '@/context/PropertyDataContext';
 import { useBopData } from '@/context/BopDataContext';
 import { getBillStatus, getBopBillStatus } from '@/lib/billing-utils';
@@ -21,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getPropertyValue } from '@/lib/property-utils';
 import { SmsDialog } from '@/components/sms-dialog';
+import { useAuth } from '@/context/AuthContext';
 
 const formatCurrency = (value: number) => `GHS ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -45,9 +47,10 @@ interface DefaulterListProps<T extends Property | Bop> {
     isMobile: boolean;
     onDelete: (ids: string[]) => void;
     title: 'property' | 'bop';
+    isViewer: boolean;
 }
 
-function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDelete, title }: DefaulterListProps<T>) {
+function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDelete, title, isViewer }: DefaulterListProps<T>) {
     const { toast } = useToast();
     const [filter, setFilter] = React.useState('');
     const [currentPage, setCurrentPage] = React.useState(1);
@@ -73,6 +76,7 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
     
     React.useEffect(() => {
         setCurrentPage(1);
+        setSelectedRows([]);
     }, [filter]);
 
     const handleSelectAll = (checked: boolean) => {
@@ -150,16 +154,87 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
             toast({ variant: 'destructive', title: 'No Data to Export' });
             return;
         }
-        const worksheet = XLSX.utils.json_to_sheet(filteredData);
+        const worksheet = XLSX.utils.json_to_sheet(filteredData.map(({id, status, ...rest}) => rest));
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Defaulters');
         XLSX.writeFile(workbook, `${title}_defaulters_report.xlsx`);
         toast({ title: 'Export Successful', description: `Downloaded ${title}_defaulters_report.xlsx` });
     };
+
+    const isAllFilteredSelected = filteredData.length > 0 && selectedRows.length === filteredData.length;
+    const isSomeRowsSelected = selectedRows.length > 0 && selectedRows.length < filteredData.length;
     
-    if (data.length === 0) {
-        return <EmptyState title={`No ${title === 'property' ? 'Property' : 'BOP'} Defaulters`} message="All accounts are settled, or no overdue bills were found."/>
+    if (data.length === 0 && !filter) {
+        return <EmptyState title={`No ${title === 'property' ? 'Property' : 'BOP'} Defaulters`} message="All accounts are settled, or no overdue items were found."/>
     }
+
+    const renderDesktopView = () => (
+      <div className="w-full overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {!isViewer && <TableHead className="w-[50px]">
+                <Checkbox
+                  checked={isAllFilteredSelected ? true : isSomeRowsSelected ? 'indeterminate' : false}
+                  onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                />
+              </TableHead>}
+              <TableHead className="w-[120px]">Status</TableHead>
+              {headers.map((header) => (
+                <TableHead key={header}>{header}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedData.map((row) => (
+              <TableRow key={row.id}>
+                {!isViewer && <TableCell>
+                  <Checkbox 
+                    checked={selectedRows.includes(row.id)}
+                    onCheckedChange={(checked) => handleSelectRow(row.id, !!checked)}
+                  />
+                </TableCell>}
+                <TableCell><Badge variant="destructive">{row.status}</Badge></TableCell>
+                {headers.map((header, cellIndex) => (
+                  <TableCell key={cellIndex} className={cellIndex === 0 ? 'font-medium' : ''}>
+                    {getPropertyValue(row as Property, header)}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+
+    const renderMobileView = () => (
+        <div className="space-y-4">
+            {paginatedData.map(row => (
+                <Card key={row.id} className="transition-shadow hover:shadow-lg">
+                    <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                        {!isViewer && <Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(checked) => handleSelectRow(row.id, !!checked)} />}
+                        <CardTitle className="text-base font-semibold">{getPropertyValue(row as Property, headers[0]) || 'N/A'}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm pl-6 pr-6 pb-4">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-semibold text-muted-foreground">Status</span>
+                          <Badge variant="destructive">{row.status}</Badge>
+                        </div>
+                        {headers.slice(1).map(header => {
+                        const value = getPropertyValue(row as Property, header);
+                        if (header.toLowerCase() === 'id' || !value) return null;
+                        return (
+                            <div key={header} className="flex justify-between items-center text-xs">
+                            <span className="font-semibold text-muted-foreground">{header}</span>
+                            <span className="text-right">{String(value)}</span>
+                            </div>
+                        );
+                        })}
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+    )
 
     return (
         <div className="space-y-4">
@@ -221,7 +296,7 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
                             </Button>
                          </div>
                     </div>
-                     {selectedRows.length > 0 && (
+                     {!isViewer && selectedRows.length > 0 && (
                         <div className="flex items-center gap-2 flex-wrap mt-4">
                             <span className="text-sm text-muted-foreground">{selectedRows.length} of {filteredData.length} selected</span>
                             <Button variant="outline" size="sm" onClick={handleSendSms}>
@@ -236,33 +311,10 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
                     )}
                 </CardHeader>
                 <CardContent>
-                    {isMobile ? 'Mobile view not implemented' : (
-                         <div className="w-full overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="w-[50px]"><input type="checkbox" onChange={(e) => handleSelectAll(e.target.checked)}/></TableHead>
-                                <TableHead className="w-[120px]">Status</TableHead>
-                                {headers.map((header) => (
-                                  <TableHead key={header}>{header}</TableHead>
-                                ))}
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {paginatedData.map((row) => (
-                                <TableRow key={row.id}>
-                                  <TableCell><input type="checkbox" checked={selectedRows.includes(row.id)} onChange={(e) => handleSelectRow(row.id, e.target.checked)}/></TableCell>
-                                  <TableCell><Badge variant="destructive">{row.status}</Badge></TableCell>
-                                  {headers.map((header, cellIndex) => (
-                                    <TableCell key={cellIndex} className={cellIndex === 0 ? 'font-medium' : ''}>
-                                      {getPropertyValue(row as Property, header)}
-                                    </TableCell>
-                                  ))}
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
+                    {paginatedData.length === 0 ? (
+                      <div className="h-64 flex items-center justify-center text-muted-foreground">No results found for your filter.</div>
+                    ) : (
+                      isMobile ? renderMobileView() : renderDesktopView()
                     )}
                 </CardContent>
                 {totalPages > 1 && (
@@ -285,6 +337,8 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
 export default function DefaultersPage() {
   const { properties, headers: propertyHeaders, loading: propertiesLoading, deleteProperties } = usePropertyData();
   const { bopData, headers: bopHeaders, loading: bopLoading, deleteBops } = useBopData();
+  const { user: authUser } = useAuth();
+  const isViewer = authUser?.role === 'Viewer';
   const isMobile = useIsMobile();
   const loading = propertiesLoading || bopLoading;
 
@@ -316,10 +370,10 @@ export default function DefaultersPage() {
       <Tabs defaultValue="properties" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="properties">
-              <Home className="mr-2 h-4 w-4"/> Property Rates
+              <Home className="mr-2 h-4 w-4"/> Property Rates ({propertyDefaulters.length})
           </TabsTrigger>
           <TabsTrigger value="bop">
-               <Store className="mr-2 h-4 w-4"/> BOP
+               <Store className="mr-2 h-4 w-4"/> BOP ({bopDefaulters.length})
           </TabsTrigger>
         </TabsList>
         <TabsContent value="properties">
@@ -329,6 +383,7 @@ export default function DefaultersPage() {
                 isMobile={isMobile}
                 onDelete={deleteProperties}
                 title="property"
+                isViewer={isViewer}
             />
         </TabsContent>
         <TabsContent value="bop">
@@ -338,6 +393,7 @@ export default function DefaultersPage() {
                 isMobile={isMobile}
                 onDelete={deleteBops}
                 title="bop"
+                isViewer={isViewer}
             />
         </TabsContent>
       </Tabs>
