@@ -18,7 +18,19 @@ export type Property = {
   [key: string]: any;
 };
 
-export type BillStatus = 'Paid' | 'Pending' | 'Overdue' | string;
+export type Bop = {
+  id: string;
+  'Business Name'?: string;
+  'Owner Name'?: string;
+  'Phone Number'?: string;
+  'Town'?: string;
+  'Permit Fee'?: number;
+  'Payment'?: number;
+  created_at?: string;
+  [key: string]: any;
+}
+
+export type BillStatus = 'Paid' | 'Pending' | 'Overdue' | 'Unbilled';
 
 export type PropertyWithStatus = Property & {
   status: BillStatus;
@@ -32,6 +44,7 @@ export type Bill = {
   year: number;
   totalAmountDue: number;
   created_at?: string;
+  billType: 'property' | 'bop';
 };
 
 export type RevenueData = {

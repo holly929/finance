@@ -20,6 +20,7 @@ import {
   Plug,
   Moon,
   Sun,
+  Store,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -51,6 +52,8 @@ const navItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard' },
   { href: '/properties', icon: FileText, label: 'Properties' },
   { href: '/billing', icon: ReceiptText, label: 'Billing' },
+  { href: '/bop', icon: Store, label: 'BOP Data' },
+  { href: '/bop-billing', icon: ReceiptText, label: 'BOP Billing' },
   { href: '/bills', icon: BookCopy, label: 'Bills' },
   { href: '/reports', icon: LineChart, label: 'Reports' },
   { href: '/integrations', icon: Plug, label: 'Integrations' },

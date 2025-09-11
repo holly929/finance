@@ -44,6 +44,7 @@ const appearanceFormSchema = z.object({
 
 const integrationsFormSchema = z.object({
   googleSheetUrl: z.string().url("Please enter a valid Google Sheet URL.").optional().or(z.literal('')),
+  bopGoogleSheetUrl: z.string().url("Please enter a valid Google Sheet URL.").optional().or(z.literal('')),
 });
 
 const smsFormSchema = z.object({
@@ -77,7 +78,8 @@ const ImageUploadPreview = ({ src, alt, dataAiHint }: { src: string | null, alt:
 
 const permissionPageLabels: Record<PermissionPage, string> = {
   'dashboard': 'Dashboard', 'properties': 'Properties', 'billing': 'Billing', 'bills': 'Bills',
-  'reports': 'Reports', 'users': 'User Management', 'settings': 'Settings', 'integrations': 'Integrations'
+  'reports': 'Reports', 'users': 'User Management', 'settings': 'Settings', 'integrations': 'Integrations',
+  'bop': 'BOP Data', 'bop-billing': 'BOP Billing',
 };
 
 const mockPropertyForPreview: Property = {
@@ -111,7 +113,7 @@ export default function SettingsPage() {
   
   const integrationsForm = useForm<z.infer<typeof integrationsFormSchema>>({
     resolver: zodResolver(integrationsFormSchema),
-    defaultValues: { googleSheetUrl: '' },
+    defaultValues: { googleSheetUrl: '', bopGoogleSheetUrl: '' },
   });
 
   const smsForm = useForm<z.infer<typeof smsFormSchema>>({
@@ -472,9 +474,18 @@ export default function SettingsPage() {
                 <CardContent className="space-y-6">
                    <FormField control={integrationsForm.control} name="googleSheetUrl" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Google Sheet URL for Payments</FormLabel>
+                        <FormLabel>Google Sheet URL for Property Rate Payments</FormLabel>
                         <FormControl><Input placeholder="https://docs.google.com/spreadsheets/d/..." {...field} /></FormControl>
                         <FormDescription>Link to a Google Sheet to view payments data directly on the Integrations page.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField control={integrationsForm.control} name="bopGoogleSheetUrl" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Google Sheet URL for BOP Payments</FormLabel>
+                        <FormControl><Input placeholder="https://docs.google.com/spreadsheets/d/..." {...field} /></FormControl>
+                        <FormDescription>Link to a Google Sheet to view BOP payments data directly on the Integrations page.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -529,9 +540,9 @@ export default function SettingsPage() {
                      <FormField control={smsForm.control} name="enableSmsOnNewProperty" render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                             <div className="space-y-0.5">
-                                <FormLabel className="text-base">SMS on New Property</FormLabel>
+                                <FormLabel className="text-base">SMS on New Property/BOP</FormLabel>
                                 <FormDescription>
-                                    Automatically send a welcome SMS when a new property is added to the system.
+                                    Automatically send a welcome SMS when a new property or business is added.
                                 </FormDescription>
                             </div>
                              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
@@ -539,12 +550,12 @@ export default function SettingsPage() {
                     )} />
                     <FormField control={smsForm.control} name="newPropertyMessageTemplate" render={({ field }) => (
                         <FormItem>
-                            <FormLabel>New Property Message Template</FormLabel>
+                            <FormLabel>New Property/BOP Message Template</FormLabel>
                             <FormControl><Textarea placeholder="Enter your message here" {...field} className="min-h-[100px]"/></FormControl>
                             <FormDescription>
                                 Use placeholders like{' '}
                                 <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">{'{{Owner Name}}'}</code> or{' '}
-                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">{'{{Property No}}'}</code>.
+                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">{'{{Property No}}'}</code> / <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">{'{{Business Name}}'}</code>.
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -556,7 +567,7 @@ export default function SettingsPage() {
                             <div className="space-y-0.5">
                                 <FormLabel className="text-base">SMS on Bill Generation</FormLabel>
                                 <FormDescription>
-                                    Automatically send an SMS when a new bill is generated for a property.
+                                    Automatically send an SMS when a new bill is generated for a property or BOP.
                                 </FormDescription>
                             </div>
                              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>

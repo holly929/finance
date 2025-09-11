@@ -1,4 +1,5 @@
-import type { Property } from '@/lib/types';
+
+import type { Property, Bop } from '@/lib/types';
 import { getPropertyValue } from './property-utils';
 
 export type BillStatus = 'Paid' | 'Pending' | 'Overdue' | 'Unbilled';
@@ -25,4 +26,23 @@ export function getBillStatus(property: Property): BillStatus {
   }
 
   return 'Overdue'; // totalPayment <= 0 and grandTotalDue > 0
+}
+
+export function getBopBillStatus(bop: Bop): BillStatus {
+  const permitFee = Number(getPropertyValue(bop, 'Permit Fee')) || 0;
+  const payment = Number(getPropertyValue(bop, 'Payment')) || 0;
+
+  if (permitFee <= 0) {
+    return 'Unbilled';
+  }
+
+  if (payment >= permitFee) {
+    return 'Paid';
+  }
+
+  if (payment > 0) {
+    return 'Pending';
+  }
+
+  return 'Overdue';
 }

@@ -23,17 +23,15 @@ const getEditableSheetUrl = (originalUrl: string): string => {
 
 // This component will not function as expected without a proper way to persist settings centrally.
 // For now, it will appear empty as the in-memory settings are not shared from the settings page.
-function GoogleSheetIntegration() {
+function GoogleSheetIntegration({ settingKey, title, description, emptyStateText }: { settingKey: 'googleSheetUrl' | 'bopGoogleSheetUrl', title: string, description: string, emptyStateText: string }) {
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Bills Spreadsheet</CardTitle>
-        <CardDescription>
-          View and edit your connected bills spreadsheet directly within the application.
-        </CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -64,7 +62,7 @@ function GoogleSheetIntegration() {
         ) : (
           <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 text-center h-[calc(100vh-30rem)]">
             <BookCopy className="h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">No Bills Spreadsheet Connected</h3>
+            <h3 className="mt-4 text-lg font-semibold">{emptyStateText}</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               Please go to the <Button variant="link" asChild className="p-0 h-auto"><Link href="/settings">Settings</Link></Button> page to connect a Google Sheet.
             </p>
@@ -85,11 +83,25 @@ export default function IntegrationsPage() {
       </div>
       
       <Tabs defaultValue="sheets" className="w-full">
-        <TabsList className="grid w-full grid-cols-1">
-          <TabsTrigger value="sheets">Google Sheets</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="sheets">Property Rates</TabsTrigger>
+          <TabsTrigger value="bop-sheets">BOP</TabsTrigger>
         </TabsList>
         <TabsContent value="sheets">
-          <GoogleSheetIntegration />
+          <GoogleSheetIntegration 
+            settingKey="googleSheetUrl"
+            title="Property Rate Payments"
+            description="View and edit your connected property rate payments spreadsheet."
+            emptyStateText="No Property Rate Spreadsheet Connected"
+          />
+        </TabsContent>
+        <TabsContent value="bop-sheets">
+          <GoogleSheetIntegration 
+            settingKey="bopGoogleSheetUrl"
+            title="BOP Payments"
+            description="View and edit your connected Business Operating Permit (BOP) payments spreadsheet."
+            emptyStateText="No BOP Spreadsheet Connected"
+          />
         </TabsContent>
       </Tabs>
     </>
