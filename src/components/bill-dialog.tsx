@@ -65,13 +65,17 @@ const BillRow = ({ label, value, isBold = false }: { label: string; value: strin
 );
 
 export const PrintableContent = React.forwardRef<HTMLDivElement, { 
-    data: Property | Bop;
-    billType: 'property' | 'bop';
+    property?: Property;
+    data?: Property | Bop;
+    billType?: 'property' | 'bop';
     settings: { general?: GeneralSettings, appearance?: AppearanceSettings }; 
     isCompact?: boolean; 
     displaySettings?: Record<string, boolean>;
 }>(
-  ({ data, billType, settings, isCompact = false, displaySettings: displaySettingsProp }, ref) => {
+  ({ property: propertyProp, data: dataProp, billType: billTypeProp, settings, isCompact = false, displaySettings: displaySettingsProp }, ref) => {
+    
+    const data = dataProp || propertyProp;
+    const billType = billTypeProp || 'property';
     
     const [displaySettings, setDisplaySettings] = useState<Record<string, boolean>>({});
 
@@ -176,6 +180,10 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, {
     const { totalAmountDue, barcodeValue } = useMemo(() => {
         let finalAmount = 0;
         let finalBarcode = '';
+
+        if (!data) {
+            return { totalAmountDue: 0, barcodeValue: '' };
+        }
 
         if (billType === 'property') {
             const property = data as Property;
@@ -316,6 +324,10 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, {
             </div>
         </>
       )
+    }
+
+    if (!data) {
+        return <div ref={ref}>Loading...</div>;
     }
 
     return (
