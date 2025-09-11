@@ -52,6 +52,8 @@ const smsFormSchema = z.object({
   smsSenderId: z.string().min(3, "Sender ID must be at least 3 characters.").max(11, "Sender ID cannot exceed 11 characters.").optional().or(z.literal('')),
   enableSmsOnNewProperty: z.boolean().default(false),
   newPropertyMessageTemplate: z.string().max(320, "Message cannot exceed 2 SMS pages (320 chars).").optional(),
+  enableSmsOnBillGenerated: z.boolean().default(false),
+  billGeneratedMessageTemplate: z.string().max(320, "Message cannot exceed 2 SMS pages (320 chars).").optional(),
 });
 
 type AppearanceSettings = {
@@ -120,6 +122,8 @@ export default function SettingsPage() {
       smsSenderId: '',
       enableSmsOnNewProperty: false,
       newPropertyMessageTemplate: "Dear {{Owner Name}}, your property ({{Property No}}) has been successfully registered with the District Assembly. Thank you.",
+      enableSmsOnBillGenerated: false,
+      billGeneratedMessageTemplate: "Dear {{Owner Name}}, your property rate bill for {{Year}} is ready. Amount Due: GHS {{Total Amount Due}}. Please arrange for payment. Thank you.",
     },
   });
   
@@ -520,11 +524,12 @@ export default function SettingsPage() {
                       </FormItem>
                     )}
                   />
-                  <div className="border-t pt-6 space-y-6">
-                    <FormField control={smsForm.control} name="enableSmsOnNewProperty" render={({ field }) => (
+                  <div className="border-t pt-6 space-y-4">
+                     <h3 className="text-lg font-medium">Automatic SMS Notifications</h3>
+                     <FormField control={smsForm.control} name="enableSmsOnNewProperty" render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                             <div className="space-y-0.5">
-                                <FormLabel className="text-base">Auto-send SMS on New Property</FormLabel>
+                                <FormLabel className="text-base">SMS on New Property</FormLabel>
                                 <FormDescription>
                                     Automatically send a welcome SMS when a new property is added to the system.
                                 </FormDescription>
@@ -535,11 +540,37 @@ export default function SettingsPage() {
                     <FormField control={smsForm.control} name="newPropertyMessageTemplate" render={({ field }) => (
                         <FormItem>
                             <FormLabel>New Property Message Template</FormLabel>
-                            <FormControl><Textarea placeholder="Enter your message here" {...field} className="min-h-[120px]"/></FormControl>
+                            <FormControl><Textarea placeholder="Enter your message here" {...field} className="min-h-[100px]"/></FormControl>
                             <FormDescription>
-                                Customize the message sent to new property owners. Use placeholders like
-                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold mx-1">{'{{Owner Name}}'}</code>, 
-                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold mx-1">{'{{Property No}}'}</code>, or any other property header.
+                                Use placeholders like{' '}
+                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">{'{{Owner Name}}'}</code> or{' '}
+                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">{'{{Property No}}'}</code>.
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                  </div>
+                  <div className="border-t pt-6 space-y-4">
+                     <FormField control={smsForm.control} name="enableSmsOnBillGenerated" render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <FormLabel className="text-base">SMS on Bill Generation</FormLabel>
+                                <FormDescription>
+                                    Automatically send an SMS when a new bill is generated for a property.
+                                </FormDescription>
+                            </div>
+                             <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        </FormItem>
+                    )} />
+                    <FormField control={smsForm.control} name="billGeneratedMessageTemplate" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Bill Generated Message Template</FormLabel>
+                            <FormControl><Textarea placeholder="Enter your message here" {...field} className="min-h-[100px]"/></FormControl>
+                            <FormDescription>
+                                Use placeholders like{' '}
+                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">{'{{Owner Name}}'}</code>,{' '}
+                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">{'{{Total Amount Due}}'}</code>, or{' '}
+                                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">{'{{Year}}'}</code>.
                             </FormDescription>
                             <FormMessage />
                         </FormItem>

@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { Bill } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { sendBillGeneratedSms } from '@/lib/sms-service';
 
 interface BillContextType {
     bills: Bill[];
@@ -34,6 +35,10 @@ export function BillProvider({ children }: { children: React.ReactNode }) {
             }));
             const updatedBills = [...bills, ...billsWithIds];
             setBills(updatedBills);
+
+            // Trigger SMS notifications for the newly created bills
+            sendBillGeneratedSms(billsWithIds);
+            
             return true;
         } catch (error) {
              toast({

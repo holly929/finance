@@ -1,5 +1,5 @@
 
-import type { Property } from './types';
+import type { Property, Bill } from './types';
 import { inMemorySettings } from './settings';
 import { getPropertyValue } from './property-utils';
 import { toast } from '@/hooks/use-toast';
@@ -11,9 +11,20 @@ function getSmsConfig() {
     return inMemorySettings.smsSettings || {};
 }
 
-function compileTemplate(template: string, property: Property): string {
-    return template.replace(/\{\{\s*([^}\s]+)\s*\}\}/g, (match, key) => {
-        return getPropertyValue(property, key) || match;
+function compileTemplate(template: string, data: Property | Bill): string {
+    return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, key) => {
+        // For bills, we might need data from the propertySnapshot
+        if ('propertySnapshot' in data) {
+            const bill = data as Bill;
+            // First check top-level bill properties (like totalAmountDue, year)
+            if (key in bill) {
+                return String((bill as any)[key]);
+            }
+            // Then check the property snapshot
+            return getPropertyValue(bill.propertySnapshot, key) || match;
+        }
+        // For properties, just use getPropertyValue
+        return getPropertyValue(data as Property, key) || match;
     });
 }
 
@@ -118,6 +129,39 @@ export async function sendNewPropertySms(property: Property) {
             variant: 'destructive',
             title: 'SMS Notification Failed',
             description: 'Could not send the welcome SMS. Check SMS settings.',
+        });
+    }
+}
+
+/**
+ * Sends notifications when new bills are generated.
+ * Triggered from the BillDataContext.
+ * @param bills An array of newly created bills.
+ */
+export async function sendBillGeneratedSms(bills: Bill[]) {
+    const config = getSmsConfig();
+    const { enableSmsOnBillGenerated, billGeneratedMessageTemplate } = config;
+
+    if (!enableSmsOnBillGenerated || !billGeneratedMessageTemplate) {
+        return;
+    }
+
+    let sentCount = 0;
+    for (const bill of bills) {
+        const phoneNumber = getPropertyValue(bill.propertySnapshot, 'Phone Number');
+        if (phoneNumber) {
+            const message = compileTemplate(billGeneratedMessageTemplate, bill);
+            const success = await sendSingleSms(phoneNumber, message);
+            if (success) {
+                sentCount++;
+            }
+        }
+    }
+
+    if (sentCount > 0) {
+        toast({
+            title: 'Bill Notifications Sent',
+            description: `Sent ${sentCount} SMS messages to property owners.`,
         });
     }
 }
