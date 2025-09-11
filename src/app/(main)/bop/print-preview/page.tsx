@@ -161,14 +161,16 @@ export default function BulkBopPrintPage() {
             totalAmountDue: totalAmountDue,
             billType: 'bop',
         };
-    });
+    }).filter(Boolean) as Omit<Bill, 'id'>[];
     
-    const success = await addBills(newBills);
-    if (success) {
-      toast({
-          title: 'Bills Recorded',
-          description: `${newBills.length} BOP bills have been recorded in the bill history.`,
-      });
+    if (newBills.length > 0) {
+        const success = await addBills(newBills);
+        if (success) {
+          toast({
+              title: 'Bills Recorded',
+              description: `${newBills.length} BOP bills have been recorded in the bill history.`,
+          });
+        }
     }
   };
 
@@ -311,3 +313,5 @@ export default function BulkBopPrintPage() {
 }
 
   
+
+    
