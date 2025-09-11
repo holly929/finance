@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { usePropertyData } from '@/context/PropertyDataContext';
 import { useBopData } from '@/context/BopDataContext';
-import { getBillStatus, getBopBillStatus } from '@/lib/billing-utils';
+import { getBillStatus, getBopBillStatus, BillStatus } from '@/lib/billing-utils';
 import type { Property, Bop, PropertyWithStatus, BopWithStatus } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -163,6 +163,15 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
 
     const isAllFilteredSelected = filteredData.length > 0 && selectedRows.length === filteredData.length;
     const isSomeRowsSelected = selectedRows.length > 0 && selectedRows.length < filteredData.length;
+
+    const statusVariant = (status: BillStatus): 'default' | 'secondary' | 'destructive' | 'outline' => {
+      switch(String(status).toLowerCase()) {
+          case 'paid': return 'default';
+          case 'pending': return 'secondary';
+          case 'overdue': return 'destructive';
+          default: return 'outline';
+      }
+    }
     
     if (data.length === 0 && !filter) {
         return <EmptyState title={`No ${title === 'property' ? 'Property' : 'BOP'} Defaulters`} message="All accounts are settled, or no overdue items were found."/>
@@ -194,7 +203,7 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
                     onCheckedChange={(checked) => handleSelectRow(row.id, !!checked)}
                   />
                 </TableCell>}
-                <TableCell><Badge variant="destructive">{row.status}</Badge></TableCell>
+                <TableCell><Badge variant={statusVariant(row.status)}>{row.status}</Badge></TableCell>
                 {headers.map((header, cellIndex) => (
                   <TableCell key={cellIndex} className={cellIndex === 0 ? 'font-medium' : ''}>
                     {getPropertyValue(row as Property, header)}
@@ -218,7 +227,7 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
                     <CardContent className="space-y-2 text-sm pl-6 pr-6 pb-4">
                         <div className="flex justify-between items-center text-xs">
                           <span className="font-semibold text-muted-foreground">Status</span>
-                          <Badge variant="destructive">{row.status}</Badge>
+                          <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
                         </div>
                         {headers.slice(1).map(header => {
                         const value = getPropertyValue(row as Property, header);
@@ -246,7 +255,7 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{filteredData.length}</div>
-                        <p className="text-xs text-muted-foreground">Total records with overdue status</p>
+                        <p className="text-xs text-muted-foreground">Total records with an outstanding balance</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -281,7 +290,7 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                          <div>
                             <CardTitle>Defaulter List</CardTitle>
-                            <CardDescription>A list of all records with an overdue payment status.</CardDescription>
+                            <CardDescription>A list of all records with an outstanding payment balance.</CardDescription>
                          </div>
                          <div className="flex items-center gap-2 w-full sm:w-auto">
                             <Input
@@ -345,13 +354,13 @@ export default function DefaultersPage() {
   const propertyDefaulters = React.useMemo<PropertyWithStatus[]>(() => {
     return properties
       .map(p => ({ ...p, status: getBillStatus(p) }))
-      .filter(p => p.status === 'Overdue');
+      .filter(p => p.status === 'Overdue' || p.status === 'Pending');
   }, [properties]);
 
   const bopDefaulters = React.useMemo<BopWithStatus[]>(() => {
     return bopData
       .map(b => ({ ...b, status: getBopBillStatus(b) }))
-      .filter(b => b.status === 'Overdue');
+      .filter(b => b.status === 'Overdue' || b.status === 'Pending');
   }, [bopData]);
 
   if (loading) {
