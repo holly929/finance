@@ -21,6 +21,7 @@ import {
   Moon,
   Sun,
   Store,
+  AlertCircle,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -56,6 +57,7 @@ const navItems = [
   { href: '/bop', icon: Store, label: 'BOP Data' },
   { href: '/bop-billing', icon: ReceiptText, label: 'BOP Billing' },
   { href: '/bills', icon: BookCopy, label: 'Bills' },
+  { href: '/defaulters', icon: AlertCircle, label: 'Defaulters' },
   { href: '/reports', icon: LineChart, label: 'Reports' },
   { href: '/integrations', icon: Plug, label: 'Integrations' },
   { href: '/users', icon: Users, label: 'User Management' },

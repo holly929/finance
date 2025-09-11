@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { User } from '@/lib/types';
 
 export const PERMISSION_PAGES = [
-  'dashboard', 'properties', 'billing', 'bop', 'bop-billing', 'bills', 'reports', 'users', 'settings', 'integrations'
+  'dashboard', 'properties', 'billing', 'bop', 'bop-billing', 'bills', 'defaulters', 'reports', 'users', 'settings', 'integrations'
 ] as const;
 
 export type PermissionPage = typeof PERMISSION_PAGES[number];
@@ -15,15 +15,15 @@ export type RolePermissions = Record<UserRole, Partial<Record<PermissionPage, bo
 
 const defaultPermissions: RolePermissions = {
   Admin: {
-    dashboard: true, properties: true, billing: true, bop: true, 'bop-billing': true, bills: true, reports: true,
+    dashboard: true, properties: true, billing: true, bop: true, 'bop-billing': true, bills: true, defaulters: true, reports: true,
     users: true, settings: true, 'integrations': true,
   },
   'Data Entry': {
-    dashboard: true, properties: true, billing: true, bop: true, 'bop-billing': true, bills: true, reports: true,
+    dashboard: true, properties: true, billing: true, bop: true, 'bop-billing': true, bills: true, defaulters: true, reports: true,
     users: false, settings: false, 'integrations': true,
   },
   Viewer: {
-    dashboard: true, properties: false, billing: false, bop: false, 'bop-billing': false, bills: false, reports: false,
+    dashboard: true, properties: false, billing: false, bop: false, 'bop-billing': false, bills: false, defaulters: false, reports: false,
     users: false, settings: false, 'integrations': false,
   },
 };
