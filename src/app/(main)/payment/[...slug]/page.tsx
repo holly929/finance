@@ -191,28 +191,38 @@ export default function PaymentPage() {
                                 <RadioGroup value={selectedMethod} onValueChange={setSelectedMethod} className="space-y-4">
                                     <div>
                                         <h3 className="mb-2 font-semibold text-sm">Mobile Money</h3>
-                                        {paymentMethods.momo.map(method => (
-                                            <Label key={method.id} htmlFor={method.id} className="flex items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary mb-2">
-                                                <div className="flex items-center gap-3">
-                                                    <RadioGroupItem value={method.id} id={method.id} />
-                                                    {method.name}
-                                                </div>
-                                                <div className="h-8 w-12 flex items-center justify-center">{paymentMethodIcons[method.id]()}</div>
-                                            </Label>
-                                        ))}
+                                        {paymentMethods.momo.map(method => {
+                                            const Icon = paymentMethodIcons[method.id];
+                                            return (
+                                                <Label key={method.id} htmlFor={method.id} className="flex items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <RadioGroupItem value={method.id} id={method.id} />
+                                                        {method.name}
+                                                    </div>
+                                                    <div className="h-8 w-12 flex items-center justify-center">
+                                                        {Icon && <Icon />}
+                                                    </div>
+                                                </Label>
+                                            );
+                                        })}
                                     </div>
                                     <Separator />
                                     <div>
                                         <h3 className="mb-2 font-semibold text-sm">Card</h3>
-                                        {paymentMethods.card.map(method => (
-                                            <Label key={method.id} htmlFor={method.id} className="flex items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary mb-2">
-                                                <div className="flex items-center gap-3">
-                                                    <RadioGroupItem value={method.id} id={method.id} />
-                                                    {method.name}
-                                                </div>
-                                                <div className="h-8 w-12 flex items-center justify-center">{paymentMethodIcons[method.id]()}</div>
-                                            </Label>
-                                        ))}
+                                        {paymentMethods.card.map(method => {
+                                            const Icon = paymentMethodIcons[method.id];
+                                            return (
+                                                <Label key={method.id} htmlFor={method.id} className="flex items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <RadioGroupItem value={method.id} id={method.id} />
+                                                        {method.name}
+                                                    </div>
+                                                    <div className="h-8 w-12 flex items-center justify-center">
+                                                        {Icon && <Icon />}
+                                                    </div>
+                                                </Label>
+                                            );
+                                        })}
                                     </div>
                                 </RadioGroup>
                             )}
