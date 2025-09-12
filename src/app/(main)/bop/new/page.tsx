@@ -13,6 +13,11 @@ import { toast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useBopData } from '@/context/BopDataContext';
 import { useRequirePermission } from '@/hooks/useRequirePermission';
+import { CalendarIcon } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const bopFormSchema = z.object({
   'Business Name': z.string().min(3, 'Business name is required.'),
@@ -21,6 +26,7 @@ const bopFormSchema = z.object({
   'Town': z.string().optional(),
   'Permit Fee': z.coerce.number().min(0, 'Permit fee must be a positive number.'),
   'Payment': z.coerce.number().min(0, 'Payment must be a positive number.'),
+  'created_at': z.date().optional(),
 });
 
 
@@ -38,12 +44,17 @@ export default function NewBopPage() {
             'Town': '',
             'Permit Fee': 100,
             'Payment': 0,
+            'created_at': new Date(),
         },
     });
 
     function onSubmit(data: z.infer<typeof bopFormSchema>) {
         try {
-            addBop(data);
+            const finalData = {
+                ...data,
+                created_at: data.created_at?.toISOString() ?? new Date().toISOString(),
+            };
+            addBop(finalData);
             toast({
                 title: 'BOP Record Added',
                 description: `The BOP record for ${data['Business Name']} has been successfully created.`,
@@ -113,6 +124,49 @@ export default function NewBopPage() {
                         </FormItem>
                       )}
                     />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <FormField
+                        control={form.control}
+                        name="created_at"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                            <FormLabel>Date Created</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-full pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                    )}
+                                    >
+                                    {field.value ? (
+                                        format(field.value, "PPP")
+                                    ) : (
+                                        <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    disabled={(date) =>
+                                    date > new Date() || date < new Date("1900-01-01")
+                                    }
+                                    initialFocus
+                                />
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
                   </div>
                   
                   <div className="border-t pt-4 mt-4">

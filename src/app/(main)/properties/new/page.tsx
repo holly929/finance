@@ -13,6 +13,11 @@ import { toast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { usePropertyData } from '@/context/PropertyDataContext';
 import { useRequirePermission } from '@/hooks/useRequirePermission';
+import { CalendarIcon } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const propertyFormSchema = z.object({
   'Owner Name': z.string().min(3, 'Owner name must be at least 3 characters.'),
@@ -28,6 +33,7 @@ const propertyFormSchema = z.object({
   'Sanitation Charged': z.coerce.number().min(0).default(0),
   'Previous Balance': z.coerce.number().min(0).default(0),
   'Total Payment': z.coerce.number().min(0).default(0),
+  'created_at': z.date().optional(),
 });
 
 
@@ -52,12 +58,17 @@ export default function NewPropertyPage() {
             'Sanitation Charged': 0,
             'Previous Balance': 0,
             'Total Payment': 0,
+            'created_at': new Date(),
         },
     });
 
     function onSubmit(data: z.infer<typeof propertyFormSchema>) {
         try {
-            addProperty(data);
+            const finalData = {
+                ...data,
+                created_at: data.created_at?.toISOString() ?? new Date().toISOString(),
+            };
+            addProperty(finalData);
             toast({
                 title: 'Property Added',
                 description: `The property for ${data['Owner Name']} has been successfully created.`,
@@ -157,7 +168,7 @@ export default function NewPropertyPage() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField control={form.control} name="Valuation List No." render={({ field }) => (
                           <FormItem>
                             <FormLabel>Valuation List No.</FormLabel>
@@ -174,6 +185,47 @@ export default function NewPropertyPage() {
                           </FormItem>
                         )}
                       />
+                      <FormField
+                            control={form.control}
+                            name="created_at"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                <FormLabel>Date Created</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full pl-3 text-left font-normal",
+                                            !field.value && "text-muted-foreground"
+                                        )}
+                                        >
+                                        {field.value ? (
+                                            format(field.value, "PPP")
+                                        ) : (
+                                            <span>Pick a date</span>
+                                        )}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        disabled={(date) =>
+                                        date > new Date() || date < new Date("1900-01-01")
+                                        }
+                                        initialFocus
+                                    />
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                   </div>
                   
                   <div className="border-t pt-4 mt-4">
