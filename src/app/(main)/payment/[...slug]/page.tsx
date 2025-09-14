@@ -78,7 +78,7 @@ export default function PaymentPage() {
         }
         setAmountDue(due > 0 ? due : 0);
         
-        const status = billToCalc.type === 'property' ? getBillStatus(billToCalc.data) : getBopBillStatus(billToCalc.data);
+        const status = billToCalc.type === 'property' ? getBillStatus(billToCalc.data as Property) : getBopBillStatus(billToCalc.data as Bop);
         if (status === 'Paid') {
             setIsPaid(true);
         }
