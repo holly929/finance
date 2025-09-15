@@ -50,8 +50,7 @@ export default function PaymentPage() {
     const { addBills } = useBillData();
 
     useEffect(() => {
-        const calculateAmountDue = (billToCalc: PaymentBill | null) => {
-            if (!billToCalc) return;
+        const calculateAmountDue = (billToCalc: PaymentBill) => {
             let due = 0;
             if (billToCalc.type === 'property') {
                 const rateableValue = Number(getPropertyValue(billToCalc.data, 'Rateable Value')) || 0;
