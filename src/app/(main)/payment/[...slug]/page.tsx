@@ -44,16 +44,11 @@ export default function PaymentPage() {
     const [selectedMethod, setSelectedMethod] = useState('mtn');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isPaid, setIsPaid] = useState(false);
-    const [isClient, setIsClient] = useState(false);
 
     const { updateProperty } = usePropertyData();
     const { updateBop } = useBopData();
     const { addBills } = useBillData();
 
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
-    
     const calculateAmountDue = (billToCalc: PaymentBill) => {
         let due = 0;
         if (billToCalc.type === 'property') {
@@ -77,32 +72,28 @@ export default function PaymentPage() {
     };
 
     useEffect(() => {
-        if (isClient) {
-            try {
-                const storedBill = localStorage.getItem('paymentBill');
-                if (storedBill) {
-                    const parsedBill: PaymentBill = JSON.parse(storedBill);
-                    setBill(parsedBill);
-                    if (parsedBill) {
-                      calculateAmountDue(parsedBill);
-                    }
-                } else {
-                    toast({
-                        variant: 'destructive',
-                        title: 'Error',
-                        description: 'No bill selected for payment.',
-                    });
-                }
-            } catch (error) {
-                console.error("Failed to parse payment bill from localStorage", error);
+        try {
+            const storedBill = localStorage.getItem('paymentBill');
+            if (storedBill) {
+                const parsedBill: PaymentBill = JSON.parse(storedBill);
+                setBill(parsedBill);
+                calculateAmountDue(parsedBill);
+            } else {
                 toast({
                     variant: 'destructive',
                     title: 'Error',
-                    description: 'Could not load bill details for payment.',
+                    description: 'No bill selected for payment.',
                 });
             }
+        } catch (error) {
+            console.error("Failed to parse payment bill from localStorage", error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Could not load bill details for payment.',
+            });
         }
-    }, [isClient, toast]);
+    }, [toast]);
 
 
     const handlePayment = async () => {
@@ -117,22 +108,10 @@ export default function PaymentPage() {
         }, 1500);
     };
 
-    if (!isClient || !bill) {
+    if (!bill) {
         return (
           <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        );
-    }
-    
-    if (!bill && isClient) {
-        return (
-          <div className="flex h-screen items-center justify-center text-center">
-            <div>
-              <h2 className="text-xl font-semibold">Bill Not Found</h2>
-              <p className="text-muted-foreground">The bill you are trying to pay could not be found.</p>
-              <Button onClick={() => router.back()} className="mt-4">Go Back</Button>
-            </div>
           </div>
         );
     }
