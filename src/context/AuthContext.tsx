@@ -17,28 +17,39 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// In-memory store for the logged-in user
-let inMemoryUser: User | null = null;
+const USER_STORAGE_KEY = 'rateease.user';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(inMemoryUser);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const { users } = useUserData(); // Fetch users here, where the provider is available
+  const { users } = useUserData();
 
   useEffect(() => {
-    // This effect runs only once on mount to set the initial state
-    setUser(inMemoryUser);
-    setLoading(false);
-  }, []);
+    try {
+      const storedUserJson = localStorage.getItem(USER_STORAGE_KEY);
+      if (storedUserJson) {
+        const storedUser = JSON.parse(storedUserJson);
+        // We still need to find the user from our "source of truth" in case details changed
+        const foundUser = users.find(u => u.id === storedUser.id);
+        if (foundUser) {
+            setUser(foundUser);
+        }
+      }
+    } catch (e) {
+      console.error("Could not parse user from localStorage", e);
+      localStorage.removeItem(USER_STORAGE_KEY);
+    } finally {
+        setLoading(false);
+    }
+  }, [users]);
 
   const login = (email: string, pass: string): User | null => {
-    // The 'users' array is now available from the hook call above
     const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
 
     if (foundUser) {
-      inMemoryUser = foundUser;
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(foundUser));
       setUser(foundUser);
       return foundUser;
     }
@@ -46,27 +57,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    inMemoryUser = null;
+    localStorage.removeItem(USER_STORAGE_KEY);
     setUser(null);
     router.push('/login');
   };
 
   const updateAuthUser = (updatedUser: User) => {
-    inMemoryUser = updatedUser;
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
     setUser(updatedUser);
   };
 
-  // This effect handles protecting routes
   useEffect(() => {
-    if (loading) return; // Don't run this effect until initial state is set
+    if (loading) return; 
 
     const isAuthPage = pathname === '/login';
 
     if (!user && !isAuthPage) {
-        // If not logged in and not on the login page, redirect to login
         router.push('/login');
     } else if (user && isAuthPage) {
-        // If logged in and on the login page, redirect to dashboard
         router.push('/dashboard');
     }
   }, [user, pathname, router, loading]);
