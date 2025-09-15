@@ -73,12 +73,6 @@ export default function PaymentPage() {
         }
     }, [isClient, toast]);
 
-    useEffect(() => {
-        if (bill) {
-            calculateAmountDue(bill);
-        }
-    }, [bill]);
-
     const calculateAmountDue = (billToCalc: PaymentBill) => {
         let due = 0;
         if (billToCalc.type === 'property') {
@@ -100,6 +94,12 @@ export default function PaymentPage() {
             setIsPaid(true);
         }
     };
+    
+    useEffect(() => {
+        if (bill) {
+            calculateAmountDue(bill);
+        }
+    }, [bill]);
 
 
     const handlePayment = async () => {
@@ -247,4 +247,3 @@ export default function PaymentPage() {
     );
 }
 
-    
