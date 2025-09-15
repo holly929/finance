@@ -52,15 +52,18 @@ export default function PaymentPage() {
 
     useEffect(() => {
         setIsClient(true);
-        const storedBill = localStorage.getItem('paymentBill');
-        if (storedBill) {
-            const parsedBill: PaymentBill = JSON.parse(storedBill);
-            setBill(parsedBill);
-            calculateAmountDue(parsedBill);
-        } else {
-            // Handle case where no bill is found
-        }
     }, []);
+
+    useEffect(() => {
+        if (isClient) {
+            const storedBill = localStorage.getItem('paymentBill');
+            if (storedBill) {
+                const parsedBill: PaymentBill = JSON.parse(storedBill);
+                setBill(parsedBill);
+                calculateAmountDue(parsedBill);
+            }
+        }
+    }, [isClient]);
 
     const calculateAmountDue = (billToCalc: PaymentBill) => {
         let due = 0;
@@ -247,5 +250,3 @@ export default function PaymentPage() {
         </div>
     );
 }
-
-    
