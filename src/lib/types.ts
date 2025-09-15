@@ -1,3 +1,9 @@
+export type Payment = {
+  id: string;
+  amount: number;
+  date: string;
+  method: string;
+};
 
 export type Property = {
   id: string;
@@ -15,6 +21,7 @@ export type Property = {
   'Previous Balance'?: number;
   'Total Payment'?: number;
   created_at?: string;
+  payments?: Payment[];
   [key: string]: any;
 };
 
@@ -27,6 +34,7 @@ export type Bop = {
   'Permit Fee'?: number;
   'Payment'?: number;
   created_at?: string;
+  payments?: Payment[];
   [key: string]: any;
 }
 
@@ -81,5 +89,3 @@ export type RevenueByPropertyType = {
   name: string;
   revenue: number;
 };
-
-    

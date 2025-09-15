@@ -12,6 +12,7 @@ import {
   Loader2,
   UploadCloud,
   FilePenLine,
+  Wallet,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -47,6 +48,7 @@ import {
 } from '@/components/ui/table';
 import type { Property } from '@/lib/types';
 import { EditPropertyDialog } from '@/components/edit-property-dialog';
+import { PropertyPaymentHistoryDialog } from '@/components/property-payment-history-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePropertyData } from '@/context/PropertyDataContext';
@@ -68,6 +70,7 @@ export default function PropertiesPage() {
   
   const [filter, setFilter] = React.useState('');
   const [editingProperty, setEditingProperty] = React.useState<Property | null>(null);
+  const [viewingPaymentsProperty, setViewingPaymentsProperty] = React.useState<Property | null>(null);
   const [currentPage, setCurrentPage] = React.useState(1);
   const isMobile = useIsMobile();
 
@@ -277,6 +280,10 @@ export default function PropertiesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onSelect={() => setViewingPaymentsProperty(row)}>
+                          <Wallet className="mr-2 h-4 w-4" />
+                          View Payments
+                        </DropdownMenuItem>
                         {getPropertyValue(row, 'Owner Name') && getPropertyValue(row, 'Rateable Value') ? (
                           <DropdownMenuItem onSelect={() => handleViewBill(row)}>
                             <View className="mr-2 h-4 w-4" />
@@ -325,6 +332,10 @@ export default function PropertiesPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={() => setViewingPaymentsProperty(row)}>
+                    <Wallet className="mr-2 h-4 w-4" />
+                    View Payments
+                  </DropdownMenuItem>
                   {getPropertyValue(row, 'Owner Name') && getPropertyValue(row, 'Rateable Value') ? (
                     <DropdownMenuItem onSelect={() => handleViewBill(row)}>
                       <View className="mr-2 h-4 w-4" /> View Bill
@@ -544,6 +555,11 @@ export default function PropertiesPage() {
         isOpen={!!editingProperty}
         onOpenChange={(isOpen) => !isOpen && setEditingProperty(null)}
         onPropertyUpdate={handlePropertyUpdate}
+      />
+      <PropertyPaymentHistoryDialog
+        property={viewingPaymentsProperty}
+        isOpen={!!viewingPaymentsProperty}
+        onOpenChange={(isOpen) => !isOpen && setViewingPaymentsProperty(null)}
       />
     </>
   );

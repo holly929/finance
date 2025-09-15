@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, Loader2, Calendar, Filter, BookCopy, MoreHorizontal, Printer, Building, Home } from 'lucide-react';
+import { Eye, Loader2, Calendar, Filter, BookCopy, MoreHorizontal, Printer, Building, Home, Wallet } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import { useRequirePermission } from '@/hooks/useRequirePermission';
 import type { Bill, Property, Bop } from '@/lib/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BillDialog } from '@/components/bill-dialog';
+import { PaymentHistoryDialog } from '@/components/payment-history-dialog';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -42,6 +43,7 @@ export default function BillsPage() {
   const [filterType, setFilterType] = React.useState('all');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [viewingBill, setViewingBill] = React.useState<Bill | null>(null);
+  const [viewingPaymentsBill, setViewingPaymentsBill] = React.useState<Bill | null>(null);
   const [selectedRows, setSelectedRows] = React.useState<string[]>([]);
 
   const availableYears = React.useMemo(() => {
@@ -204,6 +206,10 @@ export default function BillsPage() {
               <TableCell><Badge variant="outline">{bill.year}</Badge></TableCell>
               <TableCell className="text-right font-mono">{formatCurrency(bill.totalAmountDue)}</TableCell>
               <TableCell className="text-right">
+                <Button variant="ghost" size="icon" onClick={() => setViewingPaymentsBill(bill)}>
+                    <Wallet className="h-4 w-4" />
+                    <span className="sr-only">View Payments</span>
+                </Button>
                 <Button variant="ghost" size="icon" onClick={() => handleViewBill(bill)}>
                   <Eye className="h-4 w-4" />
                   <span className="sr-only">View Bill</span>
@@ -249,6 +255,9 @@ export default function BillsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem onSelect={() => setViewingPaymentsBill(bill)}>
+                        <Wallet className="mr-2 h-4 w-4" /> View Payments
+                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => handleViewBill(bill)}>
                         <Eye className="mr-2 h-4 w-4" /> View Bill
                       </DropdownMenuItem>
@@ -365,6 +374,11 @@ export default function BillsPage() {
         isOpen={!!viewingBill}
         onOpenChange={(isOpen) => !isOpen && setViewingBill(null)}
         bill={viewingBill}
+      />
+      <PaymentHistoryDialog
+        isOpen={!!viewingPaymentsBill}
+        onOpenChange={(isOpen) => !isOpen && setViewingPaymentsBill(null)}
+        bill={viewingPaymentsBill}
       />
     </>
   );

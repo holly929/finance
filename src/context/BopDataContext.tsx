@@ -5,9 +5,10 @@ import React, { createContext, useContext, useState } from 'react';
 import type { Bop } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { sendNewPropertySms } from '@/lib/sms-service';
+import { mockBops } from '@/lib/mock-data';
 
 // In-memory store
-let inMemoryBopData: Bop[] = [];
+let inMemoryBopData: Bop[] = mockBops;
 let inMemoryHeaders: string[] = ['Business Name', 'Owner Name', 'Phone Number', 'Town', 'Permit Fee', 'Payment'];
 
 interface BopContextType {

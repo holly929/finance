@@ -55,34 +55,25 @@ async function sendSingleSms(phoneNumber: string, message: string): Promise<bool
         return false;
     }
 
-    console.log("--- MOCK SMS SENT ---");
-    console.log(`To: ${phoneNumber}`);
-    console.log(`From: ${smsSenderId}`);
-    console.log(`Message: ${message}`);
-    console.log(`Using API URL: ${smsApiUrl}`);
-    console.log("-----------------------");
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
-    
-    // In a real app, you would use fetch:
-    // try {
-    //   const response = await fetch(smsApiUrl, {
-    //     method: 'POST',
-    //     headers: { 'Authorization': `Bearer ${smsApiKey}`, 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ to: phoneNumber, from: smsSenderId, message: message })
-    //   });
-    //   if (!response.ok) {
-    //      console.error(`SMS API error for ${phoneNumber}:`, await response.text());
-    //      return false;
-    //   }
-    //   return true;
-    // } catch (error) {
-    //    console.error(`Failed to send SMS to ${phoneNumber}:`, error);
-    //    return false;
-    // }
-    
-    return true; // Assume success for mock service
+    const url = `${smsApiUrl}?action=send-sms&api_key=${smsApiKey}&to=${phoneNumber}&from=${smsSenderId}&sms=${encodeURIComponent(message)}`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'GET',
+        });
+
+        if (response.ok) {
+            console.log(`SMS sent to ${phoneNumber}`);
+            return true;
+        } else {
+            const errorText = await response.text();
+            console.error(`SMS API error for ${phoneNumber}:`, errorText);
+            return false;
+        }
+    } catch (error) {
+        console.error(`Failed to send SMS to ${phoneNumber}:`, error);
+        return false;
+    }
 }
 
 /**

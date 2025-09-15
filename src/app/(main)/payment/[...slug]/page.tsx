@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Loader2, CheckCircle, ShieldCheck } from 'lucide-react';
-import type { PaymentBill, Property, Bop, Bill } from '@/lib/types';
+import type { PaymentBill, Property, Bop, Bill, Payment } from '@/lib/types';
 import { getPropertyValue } from '@/lib/property-utils';
 import { getBillStatus, getBopBillStatus } from '@/lib/billing-utils';
 import { paymentMethodIcons } from '@/components/payment-method-icons';
@@ -84,41 +84,39 @@ export default function PaymentPage() {
         }
     };
 
-    const handlePayment = () => {
+    const handlePayment = async () => {
         if (!bill) return;
         setIsProcessing(true);
-        
-        setTimeout(async () => {
-            let updatedRecord;
-            if (bill.type === 'property') {
-                const existingPayment = Number(getPropertyValue(bill.data, 'Total Payment')) || 0;
-                updatedRecord = { ...bill.data, 'Total Payment': existingPayment + amountDue };
-                updateProperty(updatedRecord as Property);
-            } else {
-                const existingPayment = Number(getPropertyValue(bill.data, 'Payment')) || 0;
-                updatedRecord = { ...bill.data, 'Payment': existingPayment + amountDue };
-                updateBop(updatedRecord as Bop);
-            }
-            
-            const newBill: Omit<Bill, 'id'> = {
-                propertyId: bill.data.id,
-                propertySnapshot: updatedRecord,
-                generatedAt: new Date().toISOString(),
-                year: new Date().getFullYear(),
-                totalAmountDue: amountDue, // Log the amount that was paid
-                billType: bill.type,
-            };
 
-            await addBills([newBill]);
-
-            setIsProcessing(false);
-            setIsPaid(true);
-            toast({
-                title: 'Payment Successful',
-                description: `Your payment of ${formatCurrency(amountDue)} has been recorded.`,
+        try {
+            const response = await fetch('/api/payment/initiate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    amount: amountDue,
+                    email: getPropertyValue(bill.data, 'Owner Name'), // Assuming owner name is used as email for mock
+                    billId: bill.data.id,
+                }),
             });
-            
-        }, 3000);
+
+            const data = await response.json();
+
+            if (response.ok) {
+                router.push(data.authorization_url);
+            } else {
+                throw new Error(data.message || 'Failed to initiate payment');
+            }
+        } catch (error) {
+            console.error('Payment initiation failed:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Payment Error',
+                description: 'Could not initiate the payment process. Please try again.',
+            });
+            setIsProcessing(false);
+        }
     };
 
     if (!isClient) {

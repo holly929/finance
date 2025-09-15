@@ -11,6 +11,7 @@ import {
   Loader2,
   UploadCloud,
   FilePenLine,
+  Wallet,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -46,6 +47,7 @@ import {
 } from '@/components/ui/table';
 import type { Bop } from '@/lib/types';
 import { EditBopDialog } from '@/components/edit-bop-dialog';
+import { BopPaymentHistoryDialog } from '@/components/bop-payment-history-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useBopData } from '@/context/BopDataContext';
@@ -67,6 +69,7 @@ export default function BopPage() {
   
   const [filter, setFilter] = React.useState('');
   const [editingBop, setEditingBop] = React.useState<Bop | null>(null);
+  const [viewingPaymentsBop, setViewingPaymentsBop] = React.useState<Bop | null>(null);
   const [currentPage, setCurrentPage] = React.useState(1);
   const isMobile = useIsMobile();
 
@@ -269,6 +272,10 @@ export default function BopPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onSelect={() => setViewingPaymentsBop(row)}>
+                          <Wallet className="mr-2 h-4 w-4" />
+                          View Payments
+                        </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => setEditingBop(row)}>
                           <FilePenLine className="mr-2 h-4 w-4" />
                           Edit
@@ -525,6 +532,11 @@ export default function BopPage() {
         isOpen={!!editingBop}
         onOpenChange={(isOpen) => !isOpen && setEditingBop(null)}
         onBopUpdate={handleBopUpdate}
+      />
+      <BopPaymentHistoryDialog
+        bop={viewingPaymentsBop}
+        isOpen={!!viewingPaymentsBop}
+        onOpenChange={(isOpen) => !isOpen && setViewingPaymentsBop(null)}
       />
     </>
   );

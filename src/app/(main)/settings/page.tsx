@@ -153,6 +153,11 @@ export default function SettingsPage() {
     }
     if (inMemorySettings.smsSettings) {
         smsForm.reset(inMemorySettings.smsSettings);
+    } else {
+        smsForm.reset({
+            smsApiUrl: '',
+            smsApiKey: '',
+        });
     }
     setSettingsLoading(false);
   }, [headers, generalForm, appearanceForm, integrationsForm, smsForm]);
