@@ -266,7 +266,9 @@ export default function PropertiesPage() {
               <TableRow key={row.id}>
                 {headers.map((header, cellIndex) => (
                   <TableCell key={cellIndex} className={cellIndex === 0 ? 'font-medium' : ''}>
-                    {getPropertyValue(row, header)}
+                    {typeof getPropertyValue(row, header) === 'object' && getPropertyValue(row, header) !== null
+                      ? 'View Details'
+                      : String(getPropertyValue(row, header))}
                   </TableCell>
                 ))}
                 {!isViewer && 
