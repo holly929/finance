@@ -50,50 +50,45 @@ export default function PaymentPage() {
     const { addBills } = useBillData();
 
     useEffect(() => {
-        const calculateAmountDue = (billToCalc: PaymentBill) => {
+        const storedBillJson = localStorage.getItem('paymentBill');
+        if (storedBillJson) {
+            try {
+                const parsedBill: PaymentBill = JSON.parse(storedBillJson);
+                setBill(parsedBill);
+            } catch (error) {
+                 console.error("Failed to parse payment bill from localStorage", error);
+                 toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Could not load bill details for payment.',
+                });
+            }
+        }
+    }, [toast]);
+    
+    useEffect(() => {
+        if (bill) {
             let due = 0;
-            if (billToCalc.type === 'property') {
-                const rateableValue = Number(getPropertyValue(billToCalc.data, 'Rateable Value')) || 0;
-                const rateImpost = Number(getPropertyValue(billToCalc.data, 'Rate Impost')) || 0;
-                const sanitation = Number(getPropertyValue(billToCalc.data, 'Sanitation Charged')) || 0;
-                const previousBalance = Number(getPropertyValue(billToCalc.data, 'Previous Balance')) || 0;
-                const payment = Number(getPropertyValue(billToCalc.data, 'Total Payment')) || 0;
+            if (bill.type === 'property') {
+                const rateableValue = Number(getPropertyValue(bill.data, 'Rateable Value')) || 0;
+                const rateImpost = Number(getPropertyValue(bill.data, 'Rate Impost')) || 0;
+                const sanitation = Number(getPropertyValue(bill.data, 'Sanitation Charged')) || 0;
+                const previousBalance = Number(getPropertyValue(bill.data, 'Previous Balance')) || 0;
+                const payment = Number(getPropertyValue(bill.data, 'Total Payment')) || 0;
                 due = (rateableValue * rateImpost) + sanitation + previousBalance - payment;
             } else { // BOP
-                const permitFee = Number(getPropertyValue(billToCalc.data, 'Permit Fee')) || 0;
-                const payment = Number(getPropertyValue(billToCalc.data, 'Payment')) || 0;
+                const permitFee = Number(getPropertyValue(bill.data, 'Permit Fee')) || 0;
+                const payment = Number(getPropertyValue(bill.data, 'Payment')) || 0;
                 due = permitFee - payment;
             }
             setAmountDue(due > 0 ? due : 0);
             
-            const status = billToCalc.type === 'property' ? getBillStatus(billToCalc.data as Property) : getBopBillStatus(billToCalc.data as Bop);
+            const status = bill.type === 'property' ? getBillStatus(bill.data as Property) : getBopBillStatus(bill.data as Bop);
             if (status === 'Paid') {
                 setIsPaid(true);
             }
-        };
-        
-        try {
-            const storedBill = localStorage.getItem('paymentBill');
-            if (storedBill) {
-                const parsedBill: PaymentBill = JSON.parse(storedBill);
-                setBill(parsedBill);
-                calculateAmountDue(parsedBill);
-            } else {
-                toast({
-                    variant: 'destructive',
-                    title: 'Error',
-                    description: 'No bill selected for payment.',
-                });
-            }
-        } catch (error) {
-            console.error("Failed to parse payment bill from localStorage", error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Could not load bill details for payment.',
-            });
         }
-    }, [toast]);
+    }, [bill]);
 
 
     const handlePayment = async () => {
