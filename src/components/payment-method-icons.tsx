@@ -15,7 +15,7 @@ const GcbLogo = () => <Image src="https://upload.wikimedia.org/wikipedia/en/c/cb
 const EcobankLogo = () => <Image src="https://upload.wikimedia.org/wikipedia/commons/1/15/Ecobank_logo.svg" alt="Ecobank" width={80} height={48} className="object-contain" />;
 
 
-export const paymentMethodIcons: Record<string, React.FC> = {
+export const paymentMethodIcons: { [key: string]: () => JSX.Element } = {
     mtn: MtnLogo,
     vodafone: VodafoneLogo,
     airteltigo: AirtelTigoLogo,

@@ -169,6 +169,7 @@ export default function BulkPrintPage() {
             generatedAt: new Date().toISOString(),
             year: new Date().getFullYear(),
             totalAmountDue: totalAmountDue,
+            billType: 'property',
         };
     });
     
