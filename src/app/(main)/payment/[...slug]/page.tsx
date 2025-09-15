@@ -83,7 +83,9 @@ export default function PaymentPage() {
                 if (storedBill) {
                     const parsedBill: PaymentBill = JSON.parse(storedBill);
                     setBill(parsedBill);
-                    calculateAmountDue(parsedBill);
+                    if (parsedBill) {
+                      calculateAmountDue(parsedBill);
+                    }
                 } else {
                     toast({
                         variant: 'destructive',
