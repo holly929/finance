@@ -31,11 +31,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const storedUserJson = localStorage.getItem(USER_STORAGE_KEY);
       if (storedUserJson) {
         const storedUser = JSON.parse(storedUserJson);
-        // We still need to find the user from our "source of truth" in case details changed
         const foundUser = users.find(u => u.id === storedUser.id);
-        if (foundUser) {
-            setUser(foundUser);
-        }
+        setUser(foundUser || null);
       }
     } catch (e) {
       console.error("Could not parse user from localStorage", e);
@@ -79,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, pathname, router, loading]);
 
-  if (loading) {
+  if (loading && !user) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
