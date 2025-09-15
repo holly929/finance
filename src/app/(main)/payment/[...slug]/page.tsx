@@ -49,29 +49,30 @@ export default function PaymentPage() {
     const { updateBop } = useBopData();
     const { addBills } = useBillData();
 
-    const calculateAmountDue = (billToCalc: PaymentBill) => {
-        let due = 0;
-        if (billToCalc.type === 'property') {
-            const rateableValue = Number(getPropertyValue(billToCalc.data, 'Rateable Value')) || 0;
-            const rateImpost = Number(getPropertyValue(billToCalc.data, 'Rate Impost')) || 0;
-            const sanitation = Number(getPropertyValue(billToCalc.data, 'Sanitation Charged')) || 0;
-            const previousBalance = Number(getPropertyValue(billToCalc.data, 'Previous Balance')) || 0;
-            const payment = Number(getPropertyValue(billToCalc.data, 'Total Payment')) || 0;
-            due = (rateableValue * rateImpost) + sanitation + previousBalance - payment;
-        } else { // BOP
-            const permitFee = Number(getPropertyValue(billToCalc.data, 'Permit Fee')) || 0;
-            const payment = Number(getPropertyValue(billToCalc.data, 'Payment')) || 0;
-            due = permitFee - payment;
-        }
-        setAmountDue(due > 0 ? due : 0);
-        
-        const status = billToCalc.type === 'property' ? getBillStatus(billToCalc.data as Property) : getBopBillStatus(billToCalc.data as Bop);
-        if (status === 'Paid') {
-            setIsPaid(true);
-        }
-    };
-
     useEffect(() => {
+        const calculateAmountDue = (billToCalc: PaymentBill | null) => {
+            if (!billToCalc) return;
+            let due = 0;
+            if (billToCalc.type === 'property') {
+                const rateableValue = Number(getPropertyValue(billToCalc.data, 'Rateable Value')) || 0;
+                const rateImpost = Number(getPropertyValue(billToCalc.data, 'Rate Impost')) || 0;
+                const sanitation = Number(getPropertyValue(billToCalc.data, 'Sanitation Charged')) || 0;
+                const previousBalance = Number(getPropertyValue(billToCalc.data, 'Previous Balance')) || 0;
+                const payment = Number(getPropertyValue(billToCalc.data, 'Total Payment')) || 0;
+                due = (rateableValue * rateImpost) + sanitation + previousBalance - payment;
+            } else { // BOP
+                const permitFee = Number(getPropertyValue(billToCalc.data, 'Permit Fee')) || 0;
+                const payment = Number(getPropertyValue(billToCalc.data, 'Payment')) || 0;
+                due = permitFee - payment;
+            }
+            setAmountDue(due > 0 ? due : 0);
+            
+            const status = billToCalc.type === 'property' ? getBillStatus(billToCalc.data as Property) : getBopBillStatus(billToCalc.data as Bop);
+            if (status === 'Paid') {
+                setIsPaid(true);
+            }
+        };
+        
         try {
             const storedBill = localStorage.getItem('paymentBill');
             if (storedBill) {
