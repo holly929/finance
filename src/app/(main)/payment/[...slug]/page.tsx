@@ -54,17 +54,6 @@ export default function PaymentPage() {
         setIsClient(true);
     }, []);
 
-    useEffect(() => {
-        if (isClient) {
-            const storedBill = localStorage.getItem('paymentBill');
-            if (storedBill) {
-                const parsedBill: PaymentBill = JSON.parse(storedBill);
-                setBill(parsedBill);
-                calculateAmountDue(parsedBill);
-            }
-        }
-    }, [isClient]);
-
     const calculateAmountDue = (billToCalc: PaymentBill) => {
         let due = 0;
         if (billToCalc.type === 'property') {
@@ -87,42 +76,39 @@ export default function PaymentPage() {
         }
     };
 
+    useEffect(() => {
+        if (isClient) {
+            const storedBill = localStorage.getItem('paymentBill');
+            if (storedBill) {
+                try {
+                    const parsedBill: PaymentBill = JSON.parse(storedBill);
+                    setBill(parsedBill);
+                    calculateAmountDue(parsedBill);
+                } catch (error) {
+                    console.error("Failed to parse payment bill from localStorage", error);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: 'Could not load bill details for payment.',
+                    });
+                }
+            }
+        }
+    }, [isClient]);
+
     const handlePayment = async () => {
         if (!bill) return;
         setIsProcessing(true);
 
-        try {
-            const response = await fetch('/api/payment/initiate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    amount: amountDue,
-                    email: getPropertyValue(bill.data, 'Owner Name'), // Assuming owner name is used as email for mock
-                    billId: bill.data.id,
-                }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                router.push(data.authorization_url);
-            } else {
-                throw new Error(data.message || 'Failed to initiate payment');
-            }
-        } catch (error) {
-            console.error('Payment initiation failed:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Payment Error',
-                description: 'Could not initiate the payment process. Please try again.',
-            });
-            setIsProcessing(false);
-        }
+        // Simulate API call and redirect
+        // In a real app, this would be an API call to Paystack, and Paystack would redirect
+        setTimeout(() => {
+            const mockAuthUrl = `/payment/callback?status=success&reference=${Date.now()}&billId=${bill.data.id}&amount=${amountDue}`;
+            router.push(mockAuthUrl);
+        }, 1500);
     };
 
-    if (!isClient) {
+    if (!isClient || !bill) {
         return (
           <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -130,7 +116,7 @@ export default function PaymentPage() {
         );
     }
     
-    if (!bill) {
+    if (!bill && isClient) {
         return (
           <div className="flex h-screen items-center justify-center text-center">
             <div>
