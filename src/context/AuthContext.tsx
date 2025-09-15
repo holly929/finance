@@ -24,9 +24,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const { users } = useUserData();
+  const { users, loading: usersLoading } = useUserData();
 
   useEffect(() => {
+    if (usersLoading) {
+      return; // Wait for users to be loaded
+    }
     try {
       const storedUserJson = localStorage.getItem(USER_STORAGE_KEY);
       if (storedUserJson) {
@@ -40,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
         setLoading(false);
     }
-  }, [users]);
+  }, [users, usersLoading]);
 
   const login = (email: string, pass: string): User | null => {
     const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
@@ -76,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, pathname, router, loading]);
 
-  if (loading && !user) {
+  if (loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
