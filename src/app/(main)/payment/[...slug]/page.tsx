@@ -53,26 +53,7 @@ export default function PaymentPage() {
     useEffect(() => {
         setIsClient(true);
     }, []);
-
-    useEffect(() => {
-        if (isClient) {
-            const storedBill = localStorage.getItem('paymentBill');
-            if (storedBill) {
-                try {
-                    const parsedBill: PaymentBill = JSON.parse(storedBill);
-                    setBill(parsedBill);
-                } catch (error) {
-                    console.error("Failed to parse payment bill from localStorage", error);
-                    toast({
-                        variant: 'destructive',
-                        title: 'Error',
-                        description: 'Could not load bill details for payment.',
-                    });
-                }
-            }
-        }
-    }, [isClient, toast]);
-
+    
     const calculateAmountDue = (billToCalc: PaymentBill) => {
         let due = 0;
         if (billToCalc.type === 'property') {
@@ -94,12 +75,32 @@ export default function PaymentPage() {
             setIsPaid(true);
         }
     };
-    
+
     useEffect(() => {
-        if (bill) {
-            calculateAmountDue(bill);
+        if (isClient) {
+            try {
+                const storedBill = localStorage.getItem('paymentBill');
+                if (storedBill) {
+                    const parsedBill: PaymentBill = JSON.parse(storedBill);
+                    setBill(parsedBill);
+                    calculateAmountDue(parsedBill);
+                } else {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: 'No bill selected for payment.',
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to parse payment bill from localStorage", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Could not load bill details for payment.',
+                });
+            }
         }
-    }, [bill]);
+    }, [isClient, toast]);
 
 
     const handlePayment = async () => {
@@ -114,7 +115,7 @@ export default function PaymentPage() {
         }, 1500);
     };
 
-    if (!isClient) {
+    if (!isClient || !bill) {
         return (
           <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -132,10 +133,6 @@ export default function PaymentPage() {
             </div>
           </div>
         );
-    }
-
-    if (!bill) {
-        return null;
     }
 
     const getBillTitle = () => bill.type === 'property' ? 'Property Rate Bill' : 'B.O.P. Bill';
@@ -246,4 +243,3 @@ export default function PaymentPage() {
         </div>
     );
 }
-
