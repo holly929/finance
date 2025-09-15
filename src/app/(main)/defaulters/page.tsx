@@ -189,7 +189,7 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
                 />
               </TableHead>}
               <TableHead className="w-[120px]">Status</TableHead>
-              {headers.map((header) => (
+              {headers && headers.length > 0 && headers.map((header) => (
                 <TableHead key={header}>{header}</TableHead>
               ))}
             </TableRow>
@@ -222,14 +222,14 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
                 <Card key={row.id} className="transition-shadow hover:shadow-lg">
                     <CardHeader className="flex flex-row items-center gap-4 pb-2">
                         {!isViewer && <Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(checked) => handleSelectRow(row.id, !!checked)} />}
-                        <CardTitle className="text-base font-semibold">{getPropertyValue(row as Property, headers[0]) || 'N/A'}</CardTitle>
+                        <CardTitle className="text-base font-semibold">{headers && headers.length > 0 ? getPropertyValue(row as Property, headers[0]) || 'N/A' : 'N/A'}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm pl-6 pr-6 pb-4">
                         <div className="flex justify-between items-center text-xs">
                           <span className="font-semibold text-muted-foreground">Status</span>
                           <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
                         </div>
-                        {headers.slice(1).map(header => {
+                        {headers && headers.length > 0 && headers.slice(1).map(header => {
                         const value = getPropertyValue(row as Property, header);
                         if (header.toLowerCase() === 'id' || !value) return null;
                         return (

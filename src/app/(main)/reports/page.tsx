@@ -170,7 +170,7 @@ export default function ReportsPage() {
               <Table>
                   <TableHeader>
                   <TableRow>
-                      {headers.map((header) => (
+                      {headers && headers.length > 0 && headers.map((header) => (
                       <TableHead key={header}>{header}</TableHead>
                       ))}
                   </TableRow>
@@ -224,7 +224,7 @@ export default function ReportsPage() {
         {paginatedReportData.map(row => (
           <Card key={row.id} className="transition-shadow hover:shadow-lg">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold">{getPropertyValue(row, headers[0]) || 'N/A'}</CardTitle>
+              <CardTitle className="text-base font-semibold">{headers && headers.length > 0 ? getPropertyValue(row, headers[0]) || 'N/A' : 'N/A'}</CardTitle>
               <CardDescription>Property No: {getPropertyValue(row, 'Property No') || 'N/A'}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
