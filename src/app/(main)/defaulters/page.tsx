@@ -204,11 +204,16 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
                   />
                 </TableCell>}
                 <TableCell><Badge variant={statusVariant(row.status)}>{row.status}</Badge></TableCell>
-                {headers.map((header, cellIndex) => (
-                  <TableCell key={cellIndex} className={cellIndex === 0 ? 'font-medium' : ''}>
-                    {getPropertyValue(row as Property, header)}
-                  </TableCell>
-                ))}
+                {headers.map((header, cellIndex) => {
+                  const value = getPropertyValue(row as Property, header);
+                  return (
+                    <TableCell key={cellIndex} className={cellIndex === 0 ? 'font-medium' : ''}>
+                      {typeof value === 'object' && value !== null
+                        ? 'View Details'
+                        : String(value ?? '')}
+                    </TableCell>
+                  );
+                })}
               </TableRow>
             ))}
           </TableBody>
@@ -235,7 +240,11 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
                         return (
                             <div key={header} className="flex justify-between items-center text-xs">
                             <span className="font-semibold text-muted-foreground">{header}</span>
-                            <span className="text-right">{String(value)}</span>
+                            <span className="text-right">
+                              {typeof value === 'object' && value !== null
+                                ? 'View Details'
+                                : String(value)}
+                            </span>
                             </div>
                         );
                         })}
