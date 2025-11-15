@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -267,8 +266,8 @@ export default function PropertiesPage() {
                 {headers.map((header, cellIndex) => (
                   <TableCell key={cellIndex} className={cellIndex === 0 ? 'font-medium' : ''}>
                     {typeof getPropertyValue(row, header) === 'object' && getPropertyValue(row, header) !== null
-                      ? 'View Payments'
-                      : String(getPropertyValue(row, header))}
+                      ? 'View Details'
+                      : String(getPropertyValue(row, header) ?? '')}
                   </TableCell>
                 ))}
                 {!isViewer && 
@@ -361,7 +360,7 @@ export default function PropertiesPage() {
               return (
                 <div key={header} className="flex justify-between items-center text-xs">
                   <span className="font-semibold text-muted-foreground">{header}</span>
-                  <span className="text-right">{typeof value === 'object' && value !== null ? 'View Payments' : String(value)}</span>
+                  <span className="text-right">{typeof value === 'object' && value !== null ? 'View Details' : String(value)}</span>
                 </div>
               );
             })}

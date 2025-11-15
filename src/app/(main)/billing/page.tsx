@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -223,7 +222,7 @@ export default function BillingPage() {
                   <TableCell key={cellIndex} className={cellIndex === 0 ? 'font-medium' : ''}>
                     {typeof getPropertyValue(row, header) === 'object' && getPropertyValue(row, header) !== null
                       ? 'View Details'
-                      : String(getPropertyValue(row, header))}
+                      : String(getPropertyValue(row, header) ?? '')}
                   </TableCell>
                 ))}
                 <TableCell>
