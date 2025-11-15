@@ -258,7 +258,9 @@ export default function BopPage() {
               <TableRow key={row.id}>
                 {headers.map((header, cellIndex) => (
                   <TableCell key={cellIndex} className={cellIndex === 0 ? 'font-medium' : ''}>
-                    {getPropertyValue(row, header)}
+                    {typeof getPropertyValue(row, header) === 'object' && getPropertyValue(row, header) !== null
+                      ? 'View Payments'
+                      : String(getPropertyValue(row, header) ?? '')}
                   </TableCell>
                 ))}
                 {!isViewer && 
@@ -318,6 +320,9 @@ export default function BopPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={() => setViewingPaymentsBop(row)}>
+                      <Wallet className="mr-2 h-4 w-4" /> View Payments
+                  </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setEditingBop(row)}>
                       <FilePenLine className="mr-2 h-4 w-4" /> Edit
                   </DropdownMenuItem>
@@ -336,7 +341,11 @@ export default function BopPage() {
               return (
                 <div key={header} className="flex justify-between items-center text-xs">
                   <span className="font-semibold text-muted-foreground">{header}</span>
-                  <span className="text-right">{String(value)}</span>
+                  <span className="text-right">
+                    {typeof value === 'object' && value !== null
+                      ? 'View Payments'
+                      : String(value)}
+                  </span>
                 </div>
               );
             })}
@@ -541,3 +550,5 @@ export default function BopPage() {
     </>
   );
 }
+
+    
