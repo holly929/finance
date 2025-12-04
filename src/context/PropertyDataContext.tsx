@@ -4,12 +4,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Property } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { mockProperties } from '@/lib/mock-data';
 import { sendNewPropertySms } from '@/lib/sms-service';
-
-// In-memory store
-let inMemoryProperties: Property[] = mockProperties;
-let inMemoryHeaders: string[] = mockProperties.length > 0 ? Object.keys(mockProperties[0]).filter(key => key !== 'id') : ['Owner Name', 'Property No', 'Town', 'Rateable Value', 'Total Payment'];
+import { store } from '@/lib/store';
 
 interface PropertyContextType {
     properties: Property[];
@@ -27,13 +23,13 @@ const PropertyContext = createContext<PropertyContextType | undefined>(undefined
 
 export function PropertyProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [properties, setPropertiesState] = useState<Property[]>(inMemoryProperties);
-    const [headers, setHeadersState] = useState<string[]>(inMemoryHeaders);
+    const [properties, setPropertiesState] = useState<Property[]>(store.properties);
+    const [headers, setHeadersState] = useState<string[]>(store.propertyHeaders);
     const [loading, setLoading] = useState(false);
 
     const setProperties = (newProperties: Property[], newHeaders: string[]) => {
-        inMemoryProperties = newProperties;
-        inMemoryHeaders = newHeaders;
+        store.properties = newProperties;
+        store.propertyHeaders = newHeaders;
         setPropertiesState(newProperties);
         setHeadersState(newHeaders);
     };

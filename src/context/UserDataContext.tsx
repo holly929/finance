@@ -4,6 +4,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { store } from '@/lib/store';
+
 
 interface UserContextType {
     users: User[];
@@ -15,26 +17,13 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-const defaultAdminUser: User = {
-    id: 'user-0',
-    name: 'Admin',
-    email: 'admin@rateease.gov',
-    role: 'Admin',
-    password: 'password',
-    photoURL: '',
-};
-
-// In-memory store
-let inMemoryUsers: User[] = [defaultAdminUser];
-
-
 export function UserProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [users, setUsersState] = useState<User[]>(inMemoryUsers);
+    const [users, setUsersState] = useState<User[]>(store.users);
     const [loading, setLoading] = useState(false);
 
     const setUsers = (newUsers: User[]) => {
-        inMemoryUsers = newUsers;
+        store.users = newUsers;
         setUsersState(newUsers);
     };
 
@@ -54,7 +43,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const deleteUser = (id: string) => {
         const userToDelete = users.find(u => u.id === id);
-        if (userToDelete?.email === defaultAdminUser.email) {
+        if (userToDelete?.email === store.users.find(u => u.role === 'Admin')?.email) {
             toast({ variant: 'destructive', title: 'Delete Error', description: 'The default admin user cannot be deleted.' });
             return;
         }

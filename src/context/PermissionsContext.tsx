@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from '@/lib/types';
+import { store } from '@/lib/store';
 
 export const PERMISSION_PAGES = [
   'dashboard', 'properties', 'billing', 'bop', 'bop-billing', 'bills', 'defaulters', 'reports', 'users', 'settings', 'integrations', 'payment'
@@ -12,21 +13,6 @@ export const PERMISSION_PAGES = [
 export type PermissionPage = typeof PERMISSION_PAGES[number];
 export type UserRole = User['role'];
 export type RolePermissions = Record<UserRole, Partial<Record<PermissionPage, boolean>>>;
-
-const defaultPermissions: RolePermissions = {
-  Admin: {
-    dashboard: true, properties: true, billing: true, bop: true, 'bop-billing': true, bills: true, defaulters: true, reports: true,
-    users: true, settings: true, 'integrations': true, payment: true,
-  },
-  'Data Entry': {
-    dashboard: true, properties: true, billing: true, bop: true, 'bop-billing': true, bills: true, defaulters: true, reports: true,
-    users: false, settings: false, 'integrations': true, payment: true,
-  },
-  Viewer: {
-    dashboard: true, properties: false, billing: false, bop: false, 'bop-billing': false, bills: false, defaulters: false, reports: false,
-    users: false, settings: false, 'integrations': false, payment: true,
-  },
-};
 
 interface PermissionsContextType {
   permissions: RolePermissions;
@@ -37,16 +23,13 @@ interface PermissionsContextType {
 
 const PermissionsContext = createContext<PermissionsContextType | undefined>(undefined);
 
-// In-memory store
-let inMemoryPermissions: RolePermissions = defaultPermissions;
-
 export function PermissionsProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
-  const [permissions, setPermissions] = useState<RolePermissions>(inMemoryPermissions);
+  const [permissions, setPermissions] = useState<RolePermissions>(store.permissions);
   const [loading, setLoading] = useState(false);
 
   const updatePermissions = (newPermissions: RolePermissions) => {
-    inMemoryPermissions = newPermissions;
+    store.permissions = newPermissions;
     setPermissions(newPermissions);
     toast({ title: 'Permissions Updated', description: 'User role permissions have been updated for this session.' });
   };
@@ -76,5 +59,3 @@ export function usePermissions() {
   }
   return context;
 }
-
-    

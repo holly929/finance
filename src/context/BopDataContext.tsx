@@ -5,11 +5,7 @@ import React, { createContext, useContext, useState } from 'react';
 import type { Bop } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { sendNewPropertySms } from '@/lib/sms-service';
-import { mockBops } from '@/lib/mock-data';
-
-// In-memory store
-let inMemoryBopData: Bop[] = mockBops;
-let inMemoryHeaders: string[] = ['Business Name', 'Owner Name', 'Phone Number', 'Town', 'Permit Fee', 'Payment'];
+import { store } from '@/lib/store';
 
 interface BopContextType {
     bopData: Bop[];
@@ -27,13 +23,13 @@ const BopContext = createContext<BopContextType | undefined>(undefined);
 
 export function BopProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [bopData, setBopDataState] = useState<Bop[]>(inMemoryBopData);
-    const [headers, setHeadersState] = useState<string[]>(inMemoryHeaders);
+    const [bopData, setBopDataState] = useState<Bop[]>(store.bops);
+    const [headers, setHeadersState] = useState<string[]>(store.bopHeaders);
     const [loading, setLoading] = useState(false);
 
     const setBopData = (newData: Bop[], newHeaders: string[]) => {
-        inMemoryBopData = newData;
-        inMemoryHeaders = newHeaders;
+        store.bops = newData;
+        store.bopHeaders = newHeaders;
         setBopDataState(newData);
         setHeadersState(newHeaders);
     };

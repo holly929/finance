@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { Bill } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { sendBillGeneratedSms } from '@/lib/sms-service';
+import { store } from '@/lib/store';
 
 interface BillContextType {
     bills: Bill[];
@@ -14,16 +15,13 @@ interface BillContextType {
 
 const BillContext = createContext<BillContextType | undefined>(undefined);
 
-// In-memory store
-let inMemoryBills: Bill[] = [];
-
 export function BillProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [bills, setBillsState] = useState<Bill[]>(inMemoryBills);
+    const [bills, setBillsState] = useState<Bill[]>(store.bills);
     const [loading, setLoading] = useState(false);
 
     const setBills = (newBills: Bill[]) => {
-        inMemoryBills = newBills;
+        store.bills = newBills;
         setBillsState(newBills);
     };
 
