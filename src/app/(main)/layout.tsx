@@ -83,15 +83,12 @@ function ThemeToggle() {
 }
 
 function MainLayout({
-  children,
-  user,
-  logout,
+  children
 }: {
   children: React.ReactNode;
-  user: UserType | null;
-  logout: () => void;
 }) {
   const pathname = usePathname();
+  const { user, loading, logout } = useAuth();
   const { hasPermission } = usePermissions();
   const [systemName, setSystemName] = React.useState('RateEase');
   const [supportEmail, setSupportEmail] = React.useState('');
@@ -110,7 +107,7 @@ function MainLayout({
     return navItems.filter(item => hasPermission(user.role, item.href));
   }, [user, hasPermission]);
   
-  if (!user) {
+  if (loading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -235,24 +232,6 @@ function MainLayout({
   );
 }
 
-function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, logout } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  return (
-    <MainLayout user={user} logout={logout}>
-      {children}
-    </MainLayout>
-  );
-}
-
 export default function LayoutWithProviders({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider
@@ -267,7 +246,7 @@ export default function LayoutWithProviders({ children }: { children: React.Reac
             <PropertyProvider>
               <BopProvider>
                 <BillProvider>
-                  <AuthenticatedLayout>{children}</AuthenticatedLayout>
+                  <MainLayout>{children}</MainLayout>
                 </BillProvider>
               </BopProvider>
             </PropertyProvider>
