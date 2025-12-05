@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Property } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { sendNewPropertySms } from '@/lib/sms-service';
-import { store } from '@/lib/store';
+import { store, saveStore } from '@/lib/store';
 
 interface PropertyContextType {
     properties: Property[];
@@ -32,6 +32,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         store.propertyHeaders = newHeaders;
         setPropertiesState(newProperties);
         setHeadersState(newHeaders);
+        saveStore();
     };
     
     const addProperty = (property: Omit<Property, 'id'>) => {

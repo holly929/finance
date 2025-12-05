@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState } from 'react';
 import type { Bop } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { sendNewPropertySms } from '@/lib/sms-service';
-import { store } from '@/lib/store';
+import { store, saveStore } from '@/lib/store';
 
 interface BopContextType {
     bopData: Bop[];
@@ -32,6 +32,7 @@ export function BopProvider({ children }: { children: React.ReactNode }) {
         store.bopHeaders = newHeaders;
         setBopDataState(newData);
         setHeadersState(newHeaders);
+        saveStore();
     };
     
     const addBop = (bop: Omit<Bop, 'id'>) => {

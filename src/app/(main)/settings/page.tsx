@@ -22,7 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { Property } from '@/lib/types';
 import { PrintableContent } from '@/components/bill-dialog';
 import { Loader2 } from 'lucide-react';
-import { store } from '@/lib/store';
+import { store, saveStore } from '@/lib/store';
 
 const generalFormSchema = z.object({
   systemName: z.string().min(3, 'System name must be at least 3 characters.'),
@@ -153,11 +153,6 @@ export default function SettingsPage() {
     }
     if (store.settings.smsSettings) {
         smsForm.reset(store.settings.smsSettings);
-    } else {
-        smsForm.reset({
-            smsApiUrl: '',
-            smsApiKey: '',
-        });
     }
     setSettingsLoading(false);
   }, [headers, generalForm, appearanceForm, integrationsForm, smsForm]);
@@ -181,6 +176,7 @@ export default function SettingsPage() {
 
   const saveSettings = (key: string, data: any) => {
     store.settings[key] = data;
+    saveStore(); // Persist changes
     toast({ title: 'Settings Saved', description: `${key.replace('Settings', ' settings')} have been updated.`});
     if (key === 'generalSettings') {
         window.location.reload();
@@ -192,14 +188,15 @@ export default function SettingsPage() {
     saveSettings('generalSettings', data);
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof AppearanceSettings) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'assemblyLogo' | 'ghanaLogo' | 'signature') => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
+        appearanceForm.setValue(fieldName, result, { shouldDirty: true });
+        // Also update local state for preview
         setAppearanceSettings(prev => ({ ...prev, [fieldName]: result }));
-        appearanceForm.setValue(fieldName as any, result, { shouldDirty: true });
       };
       reader.readAsDataURL(file);
     }
@@ -210,6 +207,7 @@ export default function SettingsPage() {
   };
 
   const onAppearanceSave = (data: z.infer<typeof appearanceFormSchema>) => {
+    // Combine form data with image data from the state before saving
     const settingsToSave = { ...appearanceSettings, ...data };
     saveSettings('appearanceSettings', settingsToSave);
     saveSettings('billDisplaySettings', billFields);
@@ -330,7 +328,7 @@ export default function SettingsPage() {
                               <FormLabel>Assembly Logo</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'assemblyLogo')} /></FormControl>
                               <FormDescription>Used on login screen and bills.</FormDescription>
-                              <ImageUploadPreview src={appearanceSettings?.assemblyLogo || 'https://placehold.co/192x96.png'} alt="Assembly Logo Preview" dataAiHint="government logo" />
+                              <ImageUploadPreview src={appearanceSettings?.assemblyLogo || watchedAppearanceForm.assemblyLogo || 'https://placehold.co/192x96.png'} alt="Assembly Logo Preview" dataAiHint="government logo" />
                           </FormItem>
                           )}
                       />
@@ -339,7 +337,7 @@ export default function SettingsPage() {
                               <FormLabel>Ghana Coat of Arms</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'ghanaLogo')} /></FormControl>
                               <FormDescription>Used on printed bills.</FormDescription>
-                              <ImageUploadPreview src={appearanceSettings?.ghanaLogo || 'https://placehold.co/96x96.png'} alt="Ghana Logo Preview" dataAiHint="ghana coat arms" />
+                              <ImageUploadPreview src={appearanceSettings?.ghanaLogo || watchedAppearanceForm.ghanaLogo || 'https://placehold.co/96x96.png'} alt="Ghana Logo Preview" dataAiHint="ghana coat arms" />
                           </FormItem>
                           )}
                       />
@@ -348,7 +346,7 @@ export default function SettingsPage() {
                               <FormLabel>Coordinating Director's Signature</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'signature')} /></FormControl>
                               <FormDescription>Used on printed bills.</FormDescription>
-                              <ImageUploadPreview src={appearanceSettings?.signature || 'https://placehold.co/192x96.png'} alt="Signature Preview" dataAiHint="signature" />
+                              <ImageUploadPreview src={appearanceSettings?.signature || watchedAppearanceForm.signature || 'https://placehold.co/192x96.png'} alt="Signature Preview" dataAiHint="signature" />
                           </FormItem>
                           )}
                       />

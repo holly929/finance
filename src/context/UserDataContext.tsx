@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { store } from '@/lib/store';
+import { store, saveStore } from '@/lib/store';
 
 
 interface UserContextType {
@@ -25,6 +25,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const setUsers = (newUsers: User[]) => {
         store.users = newUsers;
         setUsersState(newUsers);
+        saveStore();
     };
 
     const addUser = (user: Omit<User, 'id'>) => {
@@ -43,7 +44,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const deleteUser = (id: string) => {
         const userToDelete = users.find(u => u.id === id);
-        if (userToDelete?.email === store.users.find(u => u.role === 'Admin')?.email) {
+        if (userToDelete?.email === 'admin@rateease.gov') {
             toast({ variant: 'destructive', title: 'Delete Error', description: 'The default admin user cannot be deleted.' });
             return;
         }

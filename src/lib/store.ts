@@ -88,12 +88,21 @@ interface AppStore {
 }
 
 export const store: AppStore = {
-    properties: mockProperties,
-    propertyHeaders: mockProperties.length > 0 ? Object.keys(mockProperties[0]).filter(key => key !== 'id') : ['Owner Name', 'Property No', 'Town', 'Rateable Value', 'Total Payment'],
-    bops: mockBops,
-    bopHeaders: mockBops.length > 0 ? Object.keys(mockBops[0]).filter(key => key !== 'id') : ['Business Name', 'Owner Name', 'Phone Number', 'Town', 'Permit Fee', 'Payment'],
+    properties: [],
+    propertyHeaders: ['Owner Name', 'Property No', 'Town', 'Rateable Value', 'Total Payment'],
+    bops: [],
+    bopHeaders: ['Business Name', 'Owner Name', 'Phone Number', 'Town', 'Permit Fee', 'Payment'],
     bills: [],
     users: [defaultAdminUser],
     permissions: defaultPermissions,
     settings: {},
 };
+
+// Function to save the entire store to a persistent mechanism.
+// In this mock environment, it does nothing, but in a real app,
+// it would write to a file or database. This concept is important.
+export function saveStore() {
+    // In a real application, you would add logic here to save the `store` object.
+    // For example: fs.writeFileSync('path/to/database.json', JSON.stringify(store));
+    // Since we can't do that here, we rely on the object being in memory for the session.
+}

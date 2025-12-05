@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from '@/lib/types';
-import { store } from '@/lib/store';
+import { store, saveStore } from '@/lib/store';
 
 export const PERMISSION_PAGES = [
   'dashboard', 'properties', 'billing', 'bop', 'bop-billing', 'bills', 'defaulters', 'reports', 'users', 'settings', 'integrations', 'payment'
@@ -31,6 +31,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
   const updatePermissions = (newPermissions: RolePermissions) => {
     store.permissions = newPermissions;
     setPermissions(newPermissions);
+    saveStore();
     toast({ title: 'Permissions Updated', description: 'User role permissions have been updated for this session.' });
   };
 

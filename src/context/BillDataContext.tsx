@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { Bill } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { sendBillGeneratedSms } from '@/lib/sms-service';
-import { store } from '@/lib/store';
+import { store, saveStore } from '@/lib/store';
 
 interface BillContextType {
     bills: Bill[];
@@ -23,6 +23,7 @@ export function BillProvider({ children }: { children: React.ReactNode }) {
     const setBills = (newBills: Bill[]) => {
         store.bills = newBills;
         setBillsState(newBills);
+        saveStore();
     };
 
     const addBills = async (newBillsData: Omit<Bill, 'id'>[]): Promise<boolean> => {
