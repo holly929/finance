@@ -44,27 +44,31 @@ export default function PaymentPage() {
     const [selectedMethod, setSelectedMethod] = useState('mtn');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isPaid, setIsPaid] = useState(false);
-
-    const { updateProperty } = usePropertyData();
-    const { updateBop } = useBopData();
-    const { addBills } = useBillData();
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        const storedBillJson = localStorage.getItem('paymentBill');
-        if (storedBillJson) {
-            try {
-                const parsedBill: PaymentBill = JSON.parse(storedBillJson);
-                setBill(parsedBill);
-            } catch (error) {
-                 console.error("Failed to parse payment bill from localStorage", error);
-                 toast({
-                    variant: 'destructive',
-                    title: 'Error',
-                    description: 'Could not load bill details for payment.',
-                });
+        setIsClient(true);
+    }, []);
+
+
+    useEffect(() => {
+        if (isClient) {
+            const storedBillJson = localStorage.getItem('paymentBill');
+            if (storedBillJson) {
+                try {
+                    const parsedBill: PaymentBill = JSON.parse(storedBillJson);
+                    setBill(parsedBill);
+                } catch (error) {
+                     console.error("Failed to parse payment bill from localStorage", error);
+                     toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: 'Could not load bill details for payment.',
+                    });
+                }
             }
         }
-    }, [toast]);
+    }, [isClient, toast]);
     
     useEffect(() => {
         if (bill) {
@@ -103,10 +107,24 @@ export default function PaymentPage() {
         }, 1500);
     };
 
-    if (!bill) {
+    if (!isClient) {
         return (
           <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        );
+    }
+    
+    if (!bill) {
+        return (
+          <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center">
+            <h2 className="text-2xl font-semibold">No Bill Selected</h2>
+            <p className="text-muted-foreground mt-2">
+                Please go to a billing page and select a bill to pay.
+            </p>
+            <Button onClick={() => router.push('/billing')} className="mt-4">
+                Go to Billing
+            </Button>
           </div>
         );
     }
@@ -122,7 +140,7 @@ export default function PaymentPage() {
             <div className="mb-6">
                 <Button variant="outline" size="sm" onClick={() => router.back()}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Billing
+                    Back
                 </Button>
             </div>
             
@@ -169,7 +187,7 @@ export default function PaymentPage() {
                                                         <RadioGroupItem value={method.id} id={method.id} />
                                                         {method.name}
                                                     </div>
-                                                    <div className="h-8 w-12 flex items-center justify-center">
+                                                    <div className="h-8 w-12 flex items-center justify-center relative">
                                                         {Icon && <Icon />}
                                                     </div>
                                                 </Label>
@@ -187,7 +205,7 @@ export default function PaymentPage() {
                                                         <RadioGroupItem value={method.id} id={method.id} />
                                                         {method.name}
                                                     </div>
-                                                    <div className="h-8 w-12 flex items-center justify-center">
+                                                    <div className="h-8 w-12 flex items-center justify-center relative">
                                                         {Icon && <Icon />}
                                                     </div>
                                                 </Label>
@@ -219,5 +237,3 @@ export default function PaymentPage() {
         </div>
     );
 }
-
-    

@@ -7,10 +7,11 @@ import JsBarcode from 'jsbarcode';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import type { Property, Bop, Bill } from '@/lib/types';
-import { Printer } from 'lucide-react';
+import { Printer, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getPropertyValue } from '@/lib/property-utils';
-import { inMemorySettings } from '@/lib/settings';
+import { store } from '@/lib/store';
+import Image from 'next/image';
 
 interface BillDialogProps {
   bill: Bill | null;
@@ -335,13 +336,13 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, {
         <div className="border-[3px] border-black p-1 relative h-full flex flex-col">
           <div className="absolute inset-0 z-0 flex items-center justify-center opacity-20 pointer-events-none">
               {settings.appearance?.ghanaLogo && (
-                  <img src={settings.appearance.ghanaLogo} alt="Watermark" width={400} height={400} style={{objectFit: 'contain'}} />
+                  <Image src={settings.appearance.ghanaLogo} alt="Watermark" width={400} height={400} style={{objectFit: 'contain'}} />
               )}
           </div>
           <div className="relative z-10 flex flex-col flex-grow">
             <header className="flex justify-between items-start mb-2">
                 <div className="w-1/4 flex justify-start items-center">
-                    {settings.appearance?.ghanaLogo && <img src={settings.appearance.ghanaLogo} alt="Ghana Coat of Arms" className="object-contain" style={{ width: isCompact ? '60px': '70px', height: isCompact ? '60px': '70px' }} />}
+                    {settings.appearance?.ghanaLogo && <Image src={settings.appearance.ghanaLogo} alt="Ghana Coat of Arms" className="object-contain" width={isCompact ? 60: 70} height={isCompact ? 60: 70} />}
                 </div>
                 <div className="w-1/2 text-center">
                     <h1 className="font-bold tracking-wide" style={{ fontSize: `${finalFontSize * 1.5}px` }}>{settings.general?.assemblyName?.toUpperCase() || 'DISTRICT ASSEMBLY'}</h1>
@@ -352,7 +353,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, {
                     <p style={{ fontSize: `${finalFontSize * 0.9}px` }}>TEL: {settings.general?.contactPhone}</p>
                 </div>
                 <div className="w-1/4 flex justify-end items-center">
-                    {settings.appearance?.assemblyLogo && <img src={settings.appearance.assemblyLogo} alt="Assembly Logo" className="object-contain" style={{ width: isCompact ? '60px': '70px', height: isCompact ? '60px': '70px' }} />}
+                    {settings.appearance?.assemblyLogo && <Image src={settings.appearance.assemblyLogo} alt="Assembly Logo" className="object-contain" width={isCompact ? 60: 70} height={isCompact ? 60: 70} />}
                 </div>
             </header>
             
@@ -370,7 +371,7 @@ export const PrintableContent = React.forwardRef<HTMLDivElement, {
                     <div className="flex-1 text-center">
                         <div className="mx-auto flex items-center justify-center" style={{ minHeight: isCompact ? '30px' : '40px' }}>
                             {settings.appearance?.signature && (
-                                <img src={settings.appearance.signature} alt="Signature" className="max-h-[64px] max-w-full object-contain" data-ai-hint="signature" />
+                                <Image src={settings.appearance.signature} alt="Signature" className="max-h-[64px] max-w-full object-contain" width={128} height={64} data-ai-hint="signature" />
                             )}
                         </div>
                         <p className="border-t-2 border-black max-w-[12rem] mx-auto mt-1 pt-1 font-bold">
@@ -392,15 +393,21 @@ PrintableContent.displayName = 'PrintableContent';
 
 
 export function BillDialog({ bill, isOpen, onOpenChange }: BillDialogProps) {
-  const [settings, setSettings] = useState<{general: GeneralSettings, appearance: AppearanceSettings}>({ general: {}, appearance: {} });
+  const [settings, setSettings] = useState<{general?: GeneralSettings, appearance?: AppearanceSettings}>({});
   const componentRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (isOpen) {
-      setSettings({
-        general: inMemorySettings.generalSettings || {},
-        appearance: inMemorySettings.appearanceSettings || {},
-      });
+      setIsLoading(true);
+      // Simulate loading settings
+      setTimeout(() => {
+        setSettings({
+            general: store.settings.generalSettings || {},
+            appearance: store.settings.appearanceSettings || {},
+        });
+        setIsLoading(false);
+      }, 100);
     }
   }, [isOpen]);
 
@@ -415,19 +422,26 @@ export function BillDialog({ bill, isOpen, onOpenChange }: BillDialogProps) {
       <DialogContent className="sm:max-w-[850px] p-0">
         <div className="max-h-[80vh] overflow-y-auto bg-muted">
           <div className="py-8">
-            <div className="w-[210mm] min-h-[297mm] mx-auto bg-white shadow-lg">
-              <PrintableContent 
-                ref={componentRef} 
-                data={bill.propertySnapshot} 
-                billType={bill.billType} 
-                settings={settings} 
-              />
-            </div>
+             {isLoading || !settings.general ? (
+                <div className="flex items-center justify-center h-[297mm]">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+             ) : (
+                <div className="w-[210mm] min-h-[297mm] mx-auto bg-white shadow-lg">
+                <PrintableContent 
+                    ref={componentRef} 
+                    data={bill.propertySnapshot} 
+                    billType={bill.billType} 
+                    settings={settings}
+                    displaySettings={store.settings.billDisplaySettings}
+                />
+                </div>
+             )}
           </div>
         </div>
         <DialogFooter className="p-6 bg-muted sm:justify-end border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-          <Button onClick={handlePrint}>
+          <Button onClick={handlePrint} disabled={isLoading}>
             <Printer className="mr-2 h-4 w-4" />
             Print Bill
           </Button>

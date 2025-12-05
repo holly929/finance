@@ -46,9 +46,8 @@ import { PermissionsProvider, usePermissions } from '@/context/PermissionsContex
 import { ProfileDialog } from '@/components/profile-dialog';
 import { BillProvider } from '@/context/BillDataContext';
 import { BopProvider } from '@/context/BopDataContext';
-import type { User as UserType } from '@/lib/types';
-import { inMemorySettings } from '@/lib/settings';
 import { ThemeProvider } from '@/components/theme-provider';
+import { store } from '@/lib/store';
 
 
 const navItems = [
@@ -95,7 +94,7 @@ function MainLayout({
   const [isProfileDialogOpen, setIsProfileDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
-    const generalSettings = inMemorySettings.generalSettings;
+    const generalSettings = store.settings.generalSettings;
     if (generalSettings) {
         setSystemName(generalSettings.systemName || 'RateEase');
         setSupportEmail(generalSettings.contactEmail || '');

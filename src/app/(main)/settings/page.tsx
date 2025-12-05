@@ -22,7 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { Property } from '@/lib/types';
 import { PrintableContent } from '@/components/bill-dialog';
 import { Loader2 } from 'lucide-react';
-import { inMemorySettings } from '@/lib/settings';
+import { store } from '@/lib/store';
 
 const generalFormSchema = z.object({
   systemName: z.string().min(3, 'System name must be at least 3 characters.'),
@@ -131,16 +131,16 @@ export default function SettingsPage() {
   
   useEffect(() => {
     setSettingsLoading(true);
-    if (inMemorySettings.generalSettings) {
-        generalForm.reset(inMemorySettings.generalSettings);
-        setGeneralSettings(inMemorySettings.generalSettings);
+    if (store.settings.generalSettings) {
+        generalForm.reset(store.settings.generalSettings);
+        setGeneralSettings(store.settings.generalSettings);
     }
-    if (inMemorySettings.appearanceSettings) {
-        appearanceForm.reset(inMemorySettings.appearanceSettings);
-        setAppearanceSettings(inMemorySettings.appearanceSettings);
+    if (store.settings.appearanceSettings) {
+        appearanceForm.reset(store.settings.appearanceSettings);
+        setAppearanceSettings(store.settings.appearanceSettings);
     }
-    if (inMemorySettings.billDisplaySettings) {
-        setBillFields(inMemorySettings.billDisplaySettings);
+    if (store.settings.billDisplaySettings) {
+        setBillFields(store.settings.billDisplaySettings);
     } else if (headers.length > 0) {
         const initialFields = headers.reduce((acc, header) => {
             if (header.toLowerCase() !== 'id') acc[header] = true;
@@ -148,11 +148,11 @@ export default function SettingsPage() {
         }, {} as Record<string, boolean>);
         setBillFields(initialFields);
     }
-    if (inMemorySettings.integrationsSettings) {
-        integrationsForm.reset(inMemorySettings.integrationsSettings);
+    if (store.settings.integrationsSettings) {
+        integrationsForm.reset(store.settings.integrationsSettings);
     }
-    if (inMemorySettings.smsSettings) {
-        smsForm.reset(inMemorySettings.smsSettings);
+    if (store.settings.smsSettings) {
+        smsForm.reset(store.settings.smsSettings);
     } else {
         smsForm.reset({
             smsApiUrl: '',
@@ -180,8 +180,8 @@ export default function SettingsPage() {
   };
 
   const saveSettings = (key: string, data: any) => {
-    inMemorySettings[key] = data;
-    toast({ title: 'Settings Saved', description: `${key.replace('Settings', ' settings')} have been updated for this session.`});
+    store.settings[key] = data;
+    toast({ title: 'Settings Saved', description: `${key.replace('Settings', ' settings')} have been updated.`});
     if (key === 'generalSettings') {
         window.location.reload();
     }
@@ -209,6 +209,7 @@ export default function SettingsPage() {
 
   const onAppearanceSave = (data: z.infer<typeof appearanceFormSchema>) => {
     const settingsToSave = { ...appearanceSettings, ...data };
+    setAppearanceSettings(settingsToSave);
     saveSettings('appearanceSettings', settingsToSave);
     saveSettings('billDisplaySettings', billFields);
   };
