@@ -197,7 +197,9 @@ export default function SettingsPage() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAppearanceSettings(prev => ({ ...prev, [fieldName]: reader.result as string }));
+        const result = reader.result as string;
+        setAppearanceSettings(prev => ({ ...prev, [fieldName]: result }));
+        appearanceForm.setValue(fieldName as any, result, { shouldDirty: true });
       };
       reader.readAsDataURL(file);
     }
@@ -209,7 +211,6 @@ export default function SettingsPage() {
 
   const onAppearanceSave = (data: z.infer<typeof appearanceFormSchema>) => {
     const settingsToSave = { ...appearanceSettings, ...data };
-    setAppearanceSettings(settingsToSave);
     saveSettings('appearanceSettings', settingsToSave);
     saveSettings('billDisplaySettings', billFields);
   };
