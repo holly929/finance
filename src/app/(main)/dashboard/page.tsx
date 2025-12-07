@@ -51,123 +51,119 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(true);
 
-  const [totalRevenue, setTotalRevenue] = React.useState(0);
-  const [totalBilled, setTotalBilled] = React.useState(0);
-  const [collectionRate, setCollectionRate] = React.useState(0);
-  const [totalOutstanding, setTotalOutstanding] = React.useState(0);
-  const [paymentStatus, setPaymentStatus] = React.useState<PaymentStatusData[]>([]);
-  const [revenueByPropertyType, setRevenueByPropertyType] = React.useState<RevenueByPropertyType[]>([]);
-  const [propertyTypeCounts, setPropertyTypeCounts] = React.useState<any[]>([]);
-  const [billedVsCollected, setBilledVsCollected] = React.useState<any[]>([]);
+  const dashboardData = React.useMemo(() => {
+    if (properties.length === 0) {
+      return {
+        totalRevenue: 0,
+        totalBilled: 0,
+        collectionRate: 0,
+        totalOutstanding: 0,
+        paymentStatus: [],
+        revenueByPropertyType: [],
+        propertyTypeCounts: [],
+        billedVsCollected: [],
+      };
+    }
 
+    let calculatedTotalRevenue = 0;
+    let calculatedTotalBilled = 0;
+    let calculatedTotalOutstanding = 0;
+    
+    let amountPaid = 0;
+    let amountPending = 0;
+    let amountOverdue = 0;
+
+    const revenueData: { [key: string]: number } = {};
+    const propertyCounts: { [key: string]: number } = {};
+
+    properties.forEach(p => {
+        const rateableValue = Number(getPropertyValue(p, 'Rateable Value')) || 0;
+        const rateImpost = Number(getPropertyValue(p, 'Rate Impost')) || 0;
+        const sanitation = Number(getPropertyValue(p, 'Sanitation Charged')) || 0;
+        const previousBalance = Number(getPropertyValue(p, 'Previous Balance')) || 0;
+        const payment = Number(getPropertyValue(p, 'Total Payment')) || 0;
+        
+        const grandTotalDue = (rateableValue * rateImpost) + sanitation + previousBalance;
+        calculatedTotalRevenue += payment;
+        
+        const type = getPropertyValue(p, 'Property Type') || 'Other';
+        if (!revenueData[type]) revenueData[type] = 0;
+        revenueData[type] += payment;
+
+        if(!propertyCounts[type]) propertyCounts[type] = 0;
+        propertyCounts[type]++;
+
+        const billStatus = getBillStatus(p);
+        const outstanding = grandTotalDue > payment ? grandTotalDue - payment : 0;
+        
+        if (grandTotalDue > 0) {
+          calculatedTotalBilled += grandTotalDue;
+          calculatedTotalOutstanding += outstanding;
+          
+          switch(billStatus) {
+            case 'Paid':
+              amountPaid += grandTotalDue;
+              break;
+            case 'Pending':
+              amountPending += outstanding;
+              amountPaid += payment;
+              break;
+            case 'Overdue':
+              amountOverdue += outstanding;
+               amountPaid += payment;
+              break;
+            default:
+              break;
+          }
+        }
+    });
+
+    const billedVsCollected = [
+      { name: 'Financials', billed: calculatedTotalBilled, collected: calculatedTotalRevenue }
+    ];
+    
+    const collectionRate = calculatedTotalBilled > 0 ? (calculatedTotalRevenue / calculatedTotalBilled) * 100 : 0;
+
+    const paymentStatusData: PaymentStatusData[] = [
+      { name: 'Paid', value: amountPaid, fill: 'hsl(var(--primary))' },
+      { name: 'Pending', value: amountPending, fill: 'hsl(var(--accent))' },
+      { name: 'Overdue', value: amountOverdue, fill: 'hsl(var(--destructive))' },
+    ];
+    
+    const paymentStatus = paymentStatusData.filter(d => d.value > 0.01);
+    
+    const revenueByPropertyType = Object.entries(revenueData).map(([name, revenue]) => ({ name, revenue })).filter(d => d.revenue > 0);
+
+    const propertyTypeCounts = Object.entries(propertyCounts).map(([name, count]) => ({
+        name,
+        value: count,
+        fill: `var(--color-${(name || 'other').toLowerCase().split(' ').join('')})`,
+    })).filter(d => d.value > 0);
+
+    return {
+      totalRevenue: calculatedTotalRevenue,
+      totalBilled: calculatedTotalBilled,
+      collectionRate,
+      totalOutstanding: calculatedTotalOutstanding,
+      paymentStatus,
+      revenueByPropertyType,
+      propertyTypeCounts,
+      billedVsCollected,
+    };
+  }, [properties]);
+  
   React.useEffect(() => {
     if (properties.length >= 0 && bills.length >= 0) {
       setLoading(false);
     }
   }, [properties, bills]);
-  
-
-  React.useEffect(() => {
-    if (properties.length > 0) {
-        let calculatedTotalRevenue = 0;
-        let calculatedTotalBilled = 0;
-        let calculatedTotalOutstanding = 0;
-        
-        let amountPaid = 0;
-        let amountPending = 0;
-        let amountOverdue = 0;
-
-        const revenueData: { [key: string]: number } = {};
-        const propertyCounts: { [key: string]: number } = {};
-
-        properties.forEach(p => {
-            const rateableValue = Number(getPropertyValue(p, 'Rateable Value')) || 0;
-            const rateImpost = Number(getPropertyValue(p, 'Rate Impost')) || 0;
-            const sanitation = Number(getPropertyValue(p, 'Sanitation Charged')) || 0;
-            const previousBalance = Number(getPropertyValue(p, 'Previous Balance')) || 0;
-            const payment = Number(getPropertyValue(p, 'Total Payment')) || 0;
-            
-            const grandTotalDue = (rateableValue * rateImpost) + sanitation + previousBalance;
-            calculatedTotalRevenue += payment;
-            
-            const type = getPropertyValue(p, 'Property Type') || 'Other';
-            if (!revenueData[type]) revenueData[type] = 0;
-            revenueData[type] += payment;
-
-            if(!propertyCounts[type]) propertyCounts[type] = 0;
-            propertyCounts[type]++;
-
-            const billStatus = getBillStatus(p);
-            const outstanding = grandTotalDue > payment ? grandTotalDue - payment : 0;
-            
-            if (grandTotalDue > 0) {
-              calculatedTotalBilled += grandTotalDue;
-              calculatedTotalOutstanding += outstanding;
-              
-              switch(billStatus) {
-                case 'Paid':
-                  amountPaid += grandTotalDue;
-                  break;
-                case 'Pending':
-                  amountPending += outstanding;
-                  amountPaid += payment;
-                  break;
-                case 'Overdue':
-                  amountOverdue += outstanding;
-                   amountPaid += payment;
-                  break;
-                default:
-                  break;
-              }
-            }
-        });
-        
-        setTotalRevenue(calculatedTotalRevenue);
-        setTotalOutstanding(calculatedTotalOutstanding);
-        setTotalBilled(calculatedTotalBilled);
-
-        setBilledVsCollected([
-          { name: 'Financials', billed: calculatedTotalBilled, collected: calculatedTotalRevenue }
-        ]);
-        
-        setCollectionRate(calculatedTotalBilled > 0 ? (calculatedTotalRevenue / calculatedTotalBilled) * 100 : 0);
-
-        const paymentStatusData: PaymentStatusData[] = [
-          { name: 'Paid', value: amountPaid, fill: 'hsl(var(--primary))' },
-          { name: 'Pending', value: amountPending, fill: 'hsl(var(--accent))' },
-          { name: 'Overdue', value: amountOverdue, fill: 'hsl(var(--destructive))' },
-        ];
-        
-        setPaymentStatus(paymentStatusData.filter(d => d.value > 0.01));
-        
-        const revenueByTypeData = Object.entries(revenueData).map(([name, revenue]) => ({ name, revenue })).filter(d => d.revenue > 0);
-        setRevenueByPropertyType(revenueByTypeData);
-
-        const propertyTypeCountsData = Object.entries(propertyCounts).map(([name, count]) => ({
-            name,
-            value: count,
-            fill: `var(--color-${(name || 'other').toLowerCase().split(' ').join('')})`,
-        })).filter(d => d.value > 0);
-        setPropertyTypeCounts(propertyTypeCountsData);
-
-    } else {
-        setTotalRevenue(0);
-        setTotalBilled(0);
-        setCollectionRate(0);
-        setTotalOutstanding(0);
-        setPaymentStatus([]);
-        setRevenueByPropertyType([]);
-        setPropertyTypeCounts([]);
-        setBilledVsCollected([]);
-    }
-  }, [properties]);
 
   const sortedBills = React.useMemo(() => {
     if (!bills) return [];
     return [...bills].sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
   }, [bills]);
   
-  const totalFinancialStatus = React.useMemo(() => paymentStatus.reduce((acc, curr) => acc + curr.value, 0), [paymentStatus]);
+  const totalFinancialStatus = React.useMemo(() => dashboardData.paymentStatus.reduce((acc, curr) => acc + curr.value, 0), [dashboardData.paymentStatus]);
   const hasData = properties.length > 0;
 
   const handleExport = (data: any[], fileName: string) => {
@@ -219,7 +215,7 @@ export default function DashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(dashboardData.totalRevenue)}</div>
             <p className="text-xs text-muted-foreground">Total payments received to date</p>
           </CardContent>
         </Card>
@@ -229,7 +225,7 @@ export default function DashboardPage() {
             <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalBilled)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(dashboardData.totalBilled)}</div>
             <p className="text-xs text-muted-foreground">Total value of all generated bills</p>
           </CardContent>
         </Card>
@@ -239,7 +235,7 @@ export default function DashboardPage() {
             <AlertCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalOutstanding)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(dashboardData.totalOutstanding)}</div>
             <p className="text-xs text-muted-foreground">Total value of unpaid bills</p>
           </CardContent>
         </Card>
@@ -263,15 +259,15 @@ export default function DashboardPage() {
                         <CardTitle>Total Billed vs. Collected</CardTitle>
                         <CardDescription>A comparison of the total amount billed versus what has been collected.</CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => handleExport(billedVsCollected, 'billed_vs_collected_summary')}>
+                    <Button variant="outline" size="sm" onClick={() => handleExport(dashboardData.billedVsCollected, 'billed_vs_collected_summary')}>
                         <Download className="h-4 w-4 mr-2" />
                         Export
                     </Button>
                 </CardHeader>
                 <CardContent>
-                  {hasData && billedVsCollected.length > 0 ? (
+                  {hasData && dashboardData.billedVsCollected.length > 0 ? (
                     <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                      <BarChart accessibilityLayer data={billedVsCollected} layout="vertical" barSize={32} barGap={8}>
+                      <BarChart accessibilityLayer data={dashboardData.billedVsCollected} layout="vertical" barSize={32} barGap={8}>
                         <CartesianGrid horizontal={false} />
                         <XAxis type="number" dataKey="value" hide />
                         <YAxis type="category" dataKey="name" hide />
@@ -285,11 +281,11 @@ export default function DashboardPage() {
                     <EmptyState message="Import data to see a billed vs. collected comparison."/>
                   )}
                 </CardContent>
-                {hasData && collectionRate > 0 && (
+                {hasData && dashboardData.collectionRate > 0 && (
                   <CardFooter className="border-t p-4">
                     <div className="flex w-full items-center gap-2 text-sm">
                         <div className="flex items-center gap-2 font-medium leading-none">
-                            <TrendingUp className="h-4 w-4 text-primary" /> Overall Collection Rate: {collectionRate.toFixed(1)}%
+                            <TrendingUp className="h-4 w-4 text-primary" /> Overall Collection Rate: {dashboardData.collectionRate.toFixed(1)}%
                         </div>
                     </div>
                   </CardFooter>
@@ -301,15 +297,15 @@ export default function DashboardPage() {
                   <CardTitle>Revenue by Property Type</CardTitle>
                   <CardDescription>Total revenue collected from different property types.</CardDescription>
                 </div>
-                 <Button variant="outline" size="sm" onClick={() => handleExport(revenueByPropertyType, 'revenue_by_property_type')}>
+                 <Button variant="outline" size="sm" onClick={() => handleExport(dashboardData.revenueByPropertyType, 'revenue_by_property_type')}>
                     <Download className="h-4 w-4 mr-2" />
                     Export
                 </Button>
               </CardHeader>
               <CardContent className="pl-2">
-                {hasData && revenueByPropertyType.length > 0 ? (
+                {hasData && dashboardData.revenueByPropertyType.length > 0 ? (
                     <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                        <BarChart accessibilityLayer data={revenueByPropertyType}>
+                        <BarChart accessibilityLayer data={dashboardData.revenueByPropertyType}>
                             <CartesianGrid vertical={false} />
                             <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
                             <YAxis tickFormatter={(value) => `GHS ${Number(value) / 1000}k`} />
@@ -333,13 +329,13 @@ export default function DashboardPage() {
                   <CardTitle>Financial Status</CardTitle>
                   <CardDescription>Breakdown of total billed amount by payment status.</CardDescription>
                 </div>
-                 <Button variant="outline" size="sm" onClick={() => handleExport(paymentStatus, 'financial_status_summary')}>
+                 <Button variant="outline" size="sm" onClick={() => handleExport(dashboardData.paymentStatus, 'financial_status_summary')}>
                     <Download className="h-4 w-4 mr-2" />
                     Export
                 </Button>
               </CardHeader>
               <CardContent>
-                {hasData && paymentStatus.length > 0 ? (
+                {hasData && dashboardData.paymentStatus.length > 0 ? (
                     <ChartContainer config={chartConfig} className="h-[300px] w-full">
                         <PieChart>
                             <Tooltip 
@@ -353,8 +349,8 @@ export default function DashboardPage() {
                                 )}
                             />} 
                             />
-                            <Pie data={paymentStatus} dataKey="value" nameKey="name" innerRadius={60} outerRadius={80} strokeWidth={5}>
-                            {paymentStatus.map((entry) => (
+                            <Pie data={dashboardData.paymentStatus} dataKey="value" nameKey="name" innerRadius={60} outerRadius={80} strokeWidth={5}>
+                            {dashboardData.paymentStatus.map((entry) => (
                                 <Cell key={`cell-${entry.name}`} fill={entry.fill} />
                             ))}
                             </Pie>
@@ -370,7 +366,7 @@ export default function DashboardPage() {
                     <EmptyState message="Import property data to see financial status." />
                 )}
               </CardContent>
-               {hasData && paymentStatus.length > 0 && (
+               {hasData && dashboardData.paymentStatus.length > 0 && (
                 <CardFooter className="border-t pt-4">
                      <div className="flex w-full items-start gap-2 text-sm">
                         <div className="grid gap-2">
@@ -388,13 +384,13 @@ export default function DashboardPage() {
                   <CardTitle>Property Type Distribution</CardTitle>
                   <CardDescription>Breakdown of properties by designated type.</CardDescription>
                 </div>
-                 <Button variant="outline" size="sm" onClick={() => handleExport(propertyTypeCounts.map(({fill, ...rest}) => rest), 'property_type_distribution')}>
+                 <Button variant="outline" size="sm" onClick={() => handleExport(dashboardData.propertyTypeCounts.map(({fill, ...rest}) => rest), 'property_type_distribution')}>
                     <Download className="h-4 w-4 mr-2" />
                     Export
                 </Button>
               </CardHeader>
               <CardContent>
-                {hasData && propertyTypeCounts.length > 0 ? (
+                {hasData && dashboardData.propertyTypeCounts.length > 0 ? (
                     <ChartContainer config={chartConfig} className="h-[300px] w-full">
                         <PieChart>
                             <Tooltip 
@@ -403,8 +399,8 @@ export default function DashboardPage() {
                                 formatter={(value, name) => `${value} ${name} Properties`}
                             />} 
                             />
-                            <Pie data={propertyTypeCounts} dataKey="value" nameKey="name" innerRadius={0} outerRadius={100} paddingAngle={2} >
-                            {propertyTypeCounts.map((entry) => (
+                            <Pie data={dashboardData.propertyTypeCounts} dataKey="value" nameKey="name" innerRadius={0} outerRadius={100} paddingAngle={2} >
+                            {dashboardData.propertyTypeCounts.map((entry) => (
                                 <Cell key={`cell-${entry.name}`} fill={entry.fill} />
                             ))}
                             </Pie>

@@ -16,11 +16,7 @@ const BillContext = createContext<BillContextType | undefined>(undefined);
 
 export function BillProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [bills, setBillsState] = useState<Bill[]>([]);
-
-    useEffect(() => {
-        setBillsState(store.bills);
-    }, []);
+    const [bills, setBillsState] = useState<Bill[]>(store.bills);
 
     const setBills = (newBills: Bill[]) => {
         store.bills = newBills;

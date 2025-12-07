@@ -22,8 +22,14 @@ export default function LoginPage() {
   const [email, setEmail] = React.useState('admin@rateease.gov');
   const [password, setPassword] = React.useState('password');
   const [isLoggingIn, setIsLoggingIn] = React.useState(false);
+  const [showContent, setShowContent] = React.useState(false);
 
   React.useEffect(() => {
+    // Prevent flash of content if already logged in and redirecting
+    const timer = setTimeout(() => {
+        setShowContent(true);
+    }, 100);
+
     const generalSettings = store.settings.generalSettings;
     const appearanceSettings = store.settings.appearanceSettings;
 
@@ -33,6 +39,8 @@ export default function LoginPage() {
     if (appearanceSettings && appearanceSettings.assemblyLogo) {
       setAssemblyLogo(appearanceSettings.assemblyLogo);
     }
+
+    return () => clearTimeout(timer);
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -58,6 +66,10 @@ export default function LoginPage() {
   };
 
   const isLoading = isLoggingIn || authLoading;
+
+  if (!showContent) {
+    return null; // Render nothing to prevent flicker
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4 relative overflow-hidden">

@@ -1,22 +1,21 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 
 const MOBILE_BREAKPOINT = 768
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false)
+  const [width, setWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
 
   useEffect(() => {
-    const checkDevice = () => {
-        setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    
-    // Check on mount
-    checkDevice()
+    if (typeof window === 'undefined') return;
 
-    window.addEventListener("resize", checkDevice)
+    const handleResize = () => {
+      setWidth(window.innerWidth);
+    };
     
-    return () => window.removeEventListener("resize", checkDevice)
-  }, [])
+    window.addEventListener("resize", handleResize);
+    
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  return isMobile
+  return useMemo(() => width < MOBILE_BREAKPOINT, [width]);
 }

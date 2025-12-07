@@ -22,14 +22,9 @@ const BopContext = createContext<BopContextType | undefined>(undefined);
 
 export function BopProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [bopData, setBopDataState] = useState<Bop[]>([]);
-    const [headers, setHeadersState] = useState<string[]>([]);
+    const [bopData, setBopDataState] = useState<Bop[]>(store.bops);
+    const [headers, setHeadersState] = useState<string[]>(store.bopHeaders);
     
-    useEffect(() => {
-        setBopDataState(store.bops);
-        setHeadersState(store.bopHeaders);
-    }, []);
-
     const setBopData = (newData: Bop[], newHeaders: string[]) => {
         store.bops = newData;
         store.bopHeaders = newHeaders;

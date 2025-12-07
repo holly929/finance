@@ -6,6 +6,7 @@ import type { User } from '@/lib/types';
 import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useUserData } from './UserDataContext';
+import { store } from '@/lib/store';
 
 interface AuthContextType {
   user: User | null;
@@ -24,26 +25,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const { users, loading: usersLoading } = useUserData();
+  const { users } = useUserData();
 
   useEffect(() => {
-    if (usersLoading) {
-      return; 
-    }
-    try {
-      const storedUserJson = localStorage.getItem(USER_STORAGE_KEY);
-      if (storedUserJson) {
-        const storedUser = JSON.parse(storedUserJson);
-        const foundUser = users.find(u => u.id === storedUser.id);
-        setUser(foundUser || null);
+    let isMounted = true;
+    const checkUser = () => {
+      try {
+        const storedUserJson = localStorage.getItem(USER_STORAGE_KEY);
+        if (storedUserJson) {
+          const storedUser = JSON.parse(storedUserJson);
+          if (isMounted) {
+            // Find the full user object from the main user list to ensure data is fresh
+            const fullUser = store.users.find(u => u.id === storedUser.id);
+            setUser(fullUser || null);
+          }
+        }
+      } catch (e) {
+        console.error("Could not parse user from localStorage", e);
+        localStorage.removeItem(USER_STORAGE_KEY);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    } catch (e) {
-      console.error("Could not parse user from localStorage", e);
-      localStorage.removeItem(USER_STORAGE_KEY);
-    } finally {
-        setLoading(false);
-    }
-  }, [users, usersLoading]);
+    };
+    
+    checkUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const login = async (email: string, pass: string): Promise<User | null> => {
     const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
@@ -68,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (loading) return; 
+    if (loading) return;
 
     const isAuthPage = pathname === '/login';
 
@@ -78,14 +90,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.replace('/dashboard');
     }
   }, [user, pathname, router, loading]);
-
-  if (loading || (!user && pathname !== '/login')) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-    );
+  
+  const isAuthCheckPage = pathname === '/login';
+  if (loading && !isAuthCheckPage) {
+      return (
+          <div className="flex h-screen w-full items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+      );
   }
+  
+  if (!user && !isAuthCheckPage) {
+      return (
+          <div className="flex h-screen w-full items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+      );
+  }
+
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, updateAuthUser }}>

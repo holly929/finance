@@ -22,14 +22,9 @@ const PropertyContext = createContext<PropertyContextType | undefined>(undefined
 
 export function PropertyProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [properties, setPropertiesState] = useState<Property[]>([]);
-    const [headers, setHeadersState] = useState<string[]>([]);
+    const [properties, setPropertiesState] = useState<Property[]>(store.properties);
+    const [headers, setHeadersState] = useState<string[]>(store.propertyHeaders);
     
-    useEffect(() => {
-        setPropertiesState(store.properties);
-        setHeadersState(store.propertyHeaders);
-    }, []);
-
     const setProperties = (newProperties: Property[], newHeaders: string[]) => {
         store.properties = newProperties;
         store.propertyHeaders = newHeaders;

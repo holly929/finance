@@ -12,20 +12,13 @@ interface UserContextType {
     addUser: (user: Omit<User, 'id'>) => void;
     updateUser: (updatedUser: User) => void;
     deleteUser: (id: string) => void;
-    loading: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [users, setUsersState] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        setUsersState(store.users);
-        setLoading(false);
-    }, []);
+    const [users, setUsersState] = useState<User[]>(store.users);
 
     const setUsers = (newUsers: User[]) => {
         store.users = newUsers;
@@ -58,7 +51,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <UserContext.Provider value={{ users, addUser, updateUser, deleteUser, loading }}>
+        <UserContext.Provider value={{ users, addUser, updateUser, deleteUser }}>
             {children}
         </UserContext.Provider>
     );
