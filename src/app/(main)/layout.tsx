@@ -39,14 +39,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { UserProvider } from '@/context/UserDataContext';
+import { useAuth } from '@/context/AuthContext';
 import { PropertyProvider } from '@/context/PropertyDataContext';
 import { PermissionsProvider, usePermissions } from '@/context/PermissionsContext';
 import { ProfileDialog } from '@/components/profile-dialog';
 import { BillProvider } from '@/context/BillDataContext';
 import { BopProvider } from '@/context/BopDataContext';
-import { ThemeProvider } from '@/components/theme-provider';
 import { store } from '@/lib/store';
 
 
@@ -233,25 +231,14 @@ function MainLayout({
 
 export default function LayoutWithProviders({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      <UserProvider>
-        <AuthProvider>
-          <PermissionsProvider>
-            <PropertyProvider>
-              <BopProvider>
-                <BillProvider>
-                  <MainLayout>{children}</MainLayout>
-                </BillProvider>
-              </BopProvider>
-            </PropertyProvider>
-          </PermissionsProvider>
-        </AuthProvider>
-      </UserProvider>
-    </ThemeProvider>
+    <PermissionsProvider>
+      <PropertyProvider>
+        <BopProvider>
+          <BillProvider>
+            <MainLayout>{children}</MainLayout>
+          </BillProvider>
+        </BopProvider>
+      </PropertyProvider>
+    </PermissionsProvider>
   );
 }
