@@ -21,7 +21,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const USER_STORAGE_KEY = 'rateease.user';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const storedUserJson = localStorage.getItem(USER_STORAGE_KEY);
+      return storedUserJson ? JSON.parse(storedUserJson) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
@@ -35,7 +43,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (storedUserJson) {
           const storedUser = JSON.parse(storedUserJson);
           if (isMounted) {
-            // Find the full user object from the main user list to ensure data is fresh
             const fullUser = store.users.find(u => u.id === storedUser.id);
             setUser(fullUser || null);
           }

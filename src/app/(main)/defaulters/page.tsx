@@ -109,24 +109,24 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
         return data.filter(row => selectedRows.includes(row.id));
     }, [data, selectedRows]);
 
-    const chartDataByType = React.useMemo(() => {
+    const chartDataByTown = React.useMemo(() => {
         const counts: { [key: string]: number } = {};
         filteredData.forEach(item => {
-            const type = getPropertyValue(item as Property, 'Property Type') || 'Unknown';
-            counts[type] = (counts[type] || 0) + 1;
-        });
-        return Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a,b) => b.count - a.count);
-    }, [filteredData]);
-    
-     const chartDataByTown = React.useMemo(() => {
-        const counts: { [key: string]: number } = {};
-        filteredData.forEach(item => {
-            const town = getPropertyValue(item as Property, 'Town') || 'Unknown';
+            const town = getPropertyValue(item, 'Town') || 'Unknown';
             counts[town] = (counts[town] || 0) + 1;
         });
         return Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a,b) => b.count - a.count);
     }, [filteredData]);
 
+    const chartDataByType = React.useMemo(() => {
+        const counts: { [key: string]: number } = {};
+        filteredData.forEach(item => {
+            const type = getPropertyValue(item, 'Property Type') || 'Unknown';
+            counts[type] = (counts[type] || 0) + 1;
+        });
+        return Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a,b) => b.count - a.count);
+    }, [filteredData]);
+    
     const totalAmountOwed = React.useMemo(() => {
         return filteredData.reduce((acc, item) => {
             if (title === 'property') {
@@ -205,7 +205,7 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
                 </TableCell>}
                 <TableCell><Badge variant={statusVariant(row.status)}>{row.status}</Badge></TableCell>
                 {headers.map((header, cellIndex) => {
-                  const value = getPropertyValue(row as Property, header);
+                  const value = getPropertyValue(row, header);
                   return (
                     <TableCell key={cellIndex} className={cellIndex === 0 ? 'font-medium' : ''}>
                       {typeof value === 'object' && value !== null
@@ -347,7 +347,7 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
                     </CardFooter>
                 )}
             </Card>
-            <SmsDialog isOpen={isSmsDialogOpen} onOpenChange={setIsSmsDialogOpen} selectedProperties={selectedItems as Property[]} />
+            <SmsDialog isOpen={isSmsDialogOpen} onOpenChange={setIsSmsDialogOpen} selectedProperties={selectedItems} />
         </div>
     );
 }
@@ -358,13 +358,8 @@ export default function DefaultersPage() {
   const { user: authUser } = useAuth();
   const isViewer = authUser?.role === 'Viewer';
   const isMobile = useIsMobile();
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(false);
 
-  React.useEffect(() => {
-    if (properties.length >= 0 && bopData.length >= 0) {
-      setLoading(false);
-    }
-  }, [properties, bopData]);
 
   const propertyDefaulters = React.useMemo<PropertyWithStatus[]>(() => {
     return properties

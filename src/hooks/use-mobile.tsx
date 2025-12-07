@@ -3,7 +3,9 @@ import { useState, useEffect, useMemo } from "react"
 const MOBILE_BREAKPOINT = 768
 
 export function useIsMobile() {
-  const [width, setWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
+  const [width, setWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : MOBILE_BREAKPOINT
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

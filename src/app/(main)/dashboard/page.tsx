@@ -49,7 +49,7 @@ export default function DashboardPage() {
   const { properties } = usePropertyData();
   const { bills } = useBillData();
   const { toast } = useToast();
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(false);
 
   const dashboardData = React.useMemo(() => {
     if (properties.length === 0) {
@@ -150,13 +150,8 @@ export default function DashboardPage() {
       propertyTypeCounts,
       billedVsCollected,
     };
-  }, [properties]);
-  
-  React.useEffect(() => {
-    if (properties.length >= 0 && bills.length >= 0) {
-      setLoading(false);
-    }
   }, [properties, bills]);
+  
 
   const sortedBills = React.useMemo(() => {
     if (!bills) return [];
