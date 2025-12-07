@@ -39,8 +39,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { UserProvider } from '@/context/UserDataContext';
 import { PropertyProvider } from '@/context/PropertyDataContext';
-import { useAuth } from '@/context/AuthContext';
 import { PermissionsProvider, usePermissions } from '@/context/PermissionsContext';
 import { ProfileDialog } from '@/components/profile-dialog';
 import { BillProvider } from '@/context/BillDataContext';
@@ -238,15 +239,19 @@ export default function LayoutWithProviders({ children }: { children: React.Reac
       enableSystem
       disableTransitionOnChange
     >
-      <PermissionsProvider>
-        <PropertyProvider>
-          <BopProvider>
-            <BillProvider>
-              <MainLayout>{children}</MainLayout>
-            </BillProvider>
-          </BopProvider>
-        </PropertyProvider>
-      </PermissionsProvider>
+      <UserProvider>
+        <AuthProvider>
+          <PermissionsProvider>
+            <PropertyProvider>
+              <BopProvider>
+                <BillProvider>
+                  <MainLayout>{children}</MainLayout>
+                </BillProvider>
+              </BopProvider>
+            </PropertyProvider>
+          </PermissionsProvider>
+        </AuthProvider>
+      </UserProvider>
     </ThemeProvider>
   );
 }
