@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -65,7 +66,8 @@ export default function PropertiesPage() {
   const { user: authUser } = useAuth();
   const isViewer = authUser?.role === 'Viewer';
 
-  const { properties, headers, setProperties, deleteProperty, updateProperty, loading, deleteAllProperties } = usePropertyData();
+  const { properties, headers, setProperties, deleteProperty, updateProperty, deleteAllProperties } = usePropertyData();
+  const [loading, setLoading] = React.useState(true);
   
   const [filter, setFilter] = React.useState('');
   const [editingProperty, setEditingProperty] = React.useState<Property | null>(null);
@@ -80,6 +82,12 @@ export default function PropertiesPage() {
   }>({ inProgress: false, total: 0, processed: 0 });
 
   const [isDragging, setIsDragging] = React.useState(false);
+
+  React.useEffect(() => {
+    if(properties.length >= 0) {
+      setLoading(false);
+    }
+  }, [properties]);
 
   const filteredData = React.useMemo(() => {
     if (!filter) return properties;
@@ -149,7 +157,6 @@ export default function PropertiesPage() {
         let allNewData: Property[] = [];
         let currentIndex = 0;
         
-        // This function processes the data in chunks, preventing the browser from freezing
         const processChunk = () => {
           if (currentIndex >= dataRows.length) {
               setProperties(allNewData, newHeaders);
@@ -175,7 +182,7 @@ export default function PropertiesPage() {
           setImportStatus(prev => ({ ...prev, processed: nextIndex }));
           currentIndex = nextIndex;
           
-          setTimeout(processChunk, 0); // Yield to the main thread
+          setTimeout(processChunk, 0); 
         }
         
         processChunk();
@@ -420,11 +427,7 @@ export default function PropertiesPage() {
             </div>
             </CardHeader>
             <CardContent>
-            {loading ? (
-                <div className="h-96 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-            ) : (isMobile ? renderMobileView() : renderDesktopView())}
+            {isMobile ? renderMobileView() : renderDesktopView()}
             </CardContent>
             {totalPages > 1 && (
               <CardFooter className="flex justify-between items-center border-t pt-4">
@@ -565,5 +568,3 @@ export default function PropertiesPage() {
     </>
   );
 }
-
-    

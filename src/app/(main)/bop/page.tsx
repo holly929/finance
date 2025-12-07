@@ -65,7 +65,8 @@ export default function BopPage() {
   const { user: authUser } = useAuth();
   const isViewer = authUser?.role === 'Viewer';
 
-  const { bopData, headers, setBopData, deleteBop, updateBop, loading, deleteAllBop } = useBopData();
+  const { bopData, headers, setBopData, deleteBop, updateBop, deleteAllBop } = useBopData();
+  const [loading, setLoading] = React.useState(true);
   
   const [filter, setFilter] = React.useState('');
   const [editingBop, setEditingBop] = React.useState<Bop | null>(null);
@@ -80,6 +81,12 @@ export default function BopPage() {
   }>({ inProgress: false, total: 0, processed: 0 });
 
   const [isDragging, setIsDragging] = React.useState(false);
+  
+  React.useEffect(() => {
+    if(bopData.length >= 0) {
+      setLoading(false);
+    }
+  }, [bopData]);
 
   const filteredData = React.useMemo(() => {
     if (!filter) return bopData;
@@ -405,11 +412,7 @@ export default function BopPage() {
             </div>
             </CardHeader>
             <CardContent>
-            {loading ? (
-                <div className="h-96 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-            ) : (isMobile ? renderMobileView() : renderDesktopView())}
+            {isMobile ? renderMobileView() : renderDesktopView()}
             </CardContent>
             {totalPages > 1 && (
               <CardFooter className="flex justify-between items-center border-t pt-4">
@@ -550,5 +553,3 @@ export default function BopPage() {
     </>
   );
 }
-
-    

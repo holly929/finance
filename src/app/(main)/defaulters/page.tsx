@@ -353,12 +353,18 @@ function DefaulterList<T extends Property | Bop>({ data, headers, isMobile, onDe
 }
 
 export default function DefaultersPage() {
-  const { properties, headers: propertyHeaders, loading: propertiesLoading, deleteProperties } = usePropertyData();
-  const { bopData, headers: bopHeaders, loading: bopLoading, deleteBops } = useBopData();
+  const { properties, headers: propertyHeaders, deleteProperties } = usePropertyData();
+  const { bopData, headers: bopHeaders, deleteBops } = useBopData();
   const { user: authUser } = useAuth();
   const isViewer = authUser?.role === 'Viewer';
   const isMobile = useIsMobile();
-  const loading = propertiesLoading || bopLoading;
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (properties.length >= 0 && bopData.length >= 0) {
+      setLoading(false);
+    }
+  }, [properties, bopData]);
 
   const propertyDefaulters = React.useMemo<PropertyWithStatus[]>(() => {
     return properties

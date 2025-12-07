@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Bop } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { sendNewPropertySms } from '@/lib/sms-service';
@@ -16,16 +16,19 @@ interface BopContextType {
     deleteBop: (id: string) => void;
     deleteBops: (ids: string[]) => void;
     deleteAllBop: () => void;
-    loading: boolean;
 }
 
 const BopContext = createContext<BopContextType | undefined>(undefined);
 
 export function BopProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [bopData, setBopDataState] = useState<Bop[]>(store.bops);
-    const [headers, setHeadersState] = useState<string[]>(store.bopHeaders);
-    const [loading, setLoading] = useState(false);
+    const [bopData, setBopDataState] = useState<Bop[]>([]);
+    const [headers, setHeadersState] = useState<string[]>([]);
+    
+    useEffect(() => {
+        setBopDataState(store.bops);
+        setHeadersState(store.bopHeaders);
+    }, []);
 
     const setBopData = (newData: Bop[], newHeaders: string[]) => {
         store.bops = newData;
@@ -42,7 +45,6 @@ export function BopProvider({ children }: { children: React.ReactNode }) {
         };
         const updatedBopData = [...bopData, newBop];
         setBopData(updatedBopData, headers);
-        // Trigger SMS notification
         sendNewPropertySms(newBop);
     };
 
@@ -66,7 +68,7 @@ export function BopProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <BopContext.Provider value={{ bopData, headers, setBopData, addBop, updateBop, deleteBop, deleteBops, deleteAllBop, loading }}>
+        <BopContext.Provider value={{ bopData, headers, setBopData, addBop, updateBop, deleteBop, deleteBops, deleteAllBop }}>
             {children}
         </BopContext.Provider>
     );

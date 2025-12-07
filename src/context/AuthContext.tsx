@@ -10,7 +10,7 @@ import { useUserData } from './UserDataContext';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, pass: string) => User | null;
+  login: (email: string, pass: string) => Promise<User | null>;
   logout: () => void;
   updateAuthUser: (user: User) => void;
 }
@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (usersLoading) {
-      return; // Wait for users to be loaded
+      return; 
     }
     try {
       const storedUserJson = localStorage.getItem(USER_STORAGE_KEY);
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [users, usersLoading]);
 
-  const login = (email: string, pass: string): User | null => {
+  const login = async (email: string, pass: string): Promise<User | null> => {
     const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
 
     if (foundUser) {
@@ -73,13 +73,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isAuthPage = pathname === '/login';
 
     if (!user && !isAuthPage) {
-        router.push('/login');
+        router.replace('/login');
     } else if (user && isAuthPage) {
-        router.push('/dashboard');
+        router.replace('/dashboard');
     }
   }, [user, pathname, router, loading]);
 
-  if (loading) {
+  if (loading || (!user && pathname !== '/login')) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

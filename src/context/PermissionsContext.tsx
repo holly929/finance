@@ -16,7 +16,6 @@ export type RolePermissions = Record<UserRole, Partial<Record<PermissionPage, bo
 
 interface PermissionsContextType {
   permissions: RolePermissions;
-  loading: boolean;
   updatePermissions: (newPermissions: RolePermissions) => void;
   hasPermission: (role: UserRole, page: string) => boolean;
 }
@@ -26,13 +25,16 @@ const PermissionsContext = createContext<PermissionsContextType | undefined>(und
 export function PermissionsProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const [permissions, setPermissions] = useState<RolePermissions>(store.permissions);
-  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setPermissions(store.permissions);
+  }, []);
 
   const updatePermissions = (newPermissions: RolePermissions) => {
     store.permissions = newPermissions;
     setPermissions(newPermissions);
     saveStore();
-    toast({ title: 'Permissions Updated', description: 'User role permissions have been updated for this session.' });
+    toast({ title: 'Permissions Updated', description: 'User role permissions have been updated.' });
   };
 
   const hasPermission = (role: UserRole, pagePath: string): boolean => {
@@ -47,7 +49,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
   };
 
   return (
-    <PermissionsContext.Provider value={{ permissions, loading, updatePermissions, hasPermission }}>
+    <PermissionsContext.Provider value={{ permissions, updatePermissions, hasPermission }}>
       {children}
     </PermissionsContext.Provider>
   );

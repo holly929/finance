@@ -16,16 +16,19 @@ interface PropertyContextType {
     deleteProperty: (id: string) => void;
     deleteProperties: (ids: string[]) => void;
     deleteAllProperties: () => void;
-    loading: boolean;
 }
 
 const PropertyContext = createContext<PropertyContextType | undefined>(undefined);
 
 export function PropertyProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [properties, setPropertiesState] = useState<Property[]>(store.properties);
-    const [headers, setHeadersState] = useState<string[]>(store.propertyHeaders);
-    const [loading, setLoading] = useState(false);
+    const [properties, setPropertiesState] = useState<Property[]>([]);
+    const [headers, setHeadersState] = useState<string[]>([]);
+    
+    useEffect(() => {
+        setPropertiesState(store.properties);
+        setHeadersState(store.propertyHeaders);
+    }, []);
 
     const setProperties = (newProperties: Property[], newHeaders: string[]) => {
         store.properties = newProperties;
@@ -42,7 +45,6 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         };
         const updatedProperties = [...properties, newProperty];
         setProperties(updatedProperties, headers);
-        // Trigger SMS notification
         sendNewPropertySms(newProperty);
     };
 
@@ -66,7 +68,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <PropertyContext.Provider value={{ properties, headers, setProperties, addProperty, updateProperty, deleteProperty, deleteProperties, deleteAllProperties, loading }}>
+        <PropertyContext.Provider value={{ properties, headers, setProperties, addProperty, updateProperty, deleteProperty, deleteProperties, deleteAllProperties }}>
             {children}
         </PropertyContext.Provider>
     );

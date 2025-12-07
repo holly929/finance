@@ -113,7 +113,13 @@ export default function UserManagementPage() {
         {paginatedUsers.length > 0 ? (
             paginatedUsers.map((user) => (
                 <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell className="font-medium flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                          <AvatarImage src={user.photoURL} alt={user.name} />
+                          <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      {user.name}
+                    </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
                         <Badge variant={roleVariant(user.role)}>{user.role}</Badge>

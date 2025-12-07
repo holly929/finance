@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Landmark, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { inMemorySettings } from '@/lib/settings';
+import { store } from '@/lib/store';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,13 +22,10 @@ export default function LoginPage() {
   const [email, setEmail] = React.useState('admin@rateease.gov');
   const [password, setPassword] = React.useState('password');
   const [isLoggingIn, setIsLoggingIn] = React.useState(false);
-  const [isMounted, setIsMounted] = React.useState(false);
-
 
   React.useEffect(() => {
-    setIsMounted(true);
-    const generalSettings = inMemorySettings.generalSettings;
-    const appearanceSettings = inMemorySettings.appearanceSettings;
+    const generalSettings = store.settings.generalSettings;
+    const appearanceSettings = store.settings.appearanceSettings;
 
     if (generalSettings && generalSettings.systemName) {
       setSystemName(generalSettings.systemName);
@@ -61,14 +58,6 @@ export default function LoginPage() {
   };
 
   const isLoading = isLoggingIn || authLoading;
-
-  if (!isMounted) {
-    return (
-       <div className="flex h-screen w-full items-center justify-center bg-background">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-       </div>
-    );
-  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4 relative overflow-hidden">

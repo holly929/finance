@@ -93,8 +93,8 @@ const mockPropertyForPreview: Property = {
 export default function SettingsPage() {
   useRequirePermission();
   const { headers } = usePropertyData();
-  const { permissions, updatePermissions, loading: permissionsLoading } = usePermissions();
-  const [settingsLoading, setSettingsLoading] = useState(true);
+  const { permissions, updatePermissions } = usePermissions();
+  const [loading, setLoading] = React.useState(true);
 
   const [generalSettings, setGeneralSettings] = useState<any | null>(null);
   const [appearanceSettings, setAppearanceSettings] = useState<Partial<AppearanceSettings>>({});
@@ -130,7 +130,7 @@ export default function SettingsPage() {
   });
   
   useEffect(() => {
-    setSettingsLoading(true);
+    setLoading(true);
     if (store.settings.generalSettings) {
         generalForm.reset(store.settings.generalSettings);
         setGeneralSettings(store.settings.generalSettings);
@@ -154,7 +154,7 @@ export default function SettingsPage() {
     if (store.settings.smsSettings) {
         smsForm.reset(store.settings.smsSettings);
     }
-    setSettingsLoading(false);
+    setLoading(false);
   }, [headers, generalForm, appearanceForm, integrationsForm, smsForm]);
   
   useEffect(() => {
@@ -176,10 +176,10 @@ export default function SettingsPage() {
 
   const saveSettings = (key: string, data: any) => {
     store.settings[key] = data;
-    saveStore(); // Persist changes
+    saveStore(); 
     toast({ title: 'Settings Saved', description: `${key.replace('Settings', ' settings')} have been updated.`});
     if (key === 'generalSettings') {
-        window.location.reload();
+        window.dispatchEvent(new Event('storage'));
     }
   }
 
@@ -195,7 +195,6 @@ export default function SettingsPage() {
       reader.onloadend = () => {
         const result = reader.result as string;
         appearanceForm.setValue(fieldName, result, { shouldDirty: true });
-        // Also update local state for preview
         setAppearanceSettings(prev => ({ ...prev, [fieldName]: result }));
       };
       reader.readAsDataURL(file);
@@ -207,8 +206,11 @@ export default function SettingsPage() {
   };
 
   const onAppearanceSave = (data: z.infer<typeof appearanceFormSchema>) => {
-    // Combine form data with image data from the state before saving
-    const settingsToSave = { ...appearanceSettings, ...data };
+    const { assemblyLogo, ghanaLogo, signature, ...restOfData } = data;
+    const settingsToSave = { 
+        ...appearanceSettings, 
+        ...restOfData 
+    };
     saveSettings('appearanceSettings', settingsToSave);
     saveSettings('billDisplaySettings', billFields);
   };
@@ -234,7 +236,7 @@ export default function SettingsPage() {
 
   const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
-  if (settingsLoading) {
+  if (loading) {
     return (
         <div className="flex h-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -328,7 +330,7 @@ export default function SettingsPage() {
                               <FormLabel>Assembly Logo</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'assemblyLogo')} /></FormControl>
                               <FormDescription>Used on login screen and bills.</FormDescription>
-                              <ImageUploadPreview src={appearanceSettings?.assemblyLogo || watchedAppearanceForm.assemblyLogo || 'https://placehold.co/192x96.png'} alt="Assembly Logo Preview" dataAiHint="government logo" />
+                              <ImageUploadPreview src={appearanceSettings?.assemblyLogo || 'https://placehold.co/192x96.png'} alt="Assembly Logo Preview" dataAiHint="government logo" />
                           </FormItem>
                           )}
                       />
@@ -337,7 +339,7 @@ export default function SettingsPage() {
                               <FormLabel>Ghana Coat of Arms</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'ghanaLogo')} /></FormControl>
                               <FormDescription>Used on printed bills.</FormDescription>
-                              <ImageUploadPreview src={appearanceSettings?.ghanaLogo || watchedAppearanceForm.ghanaLogo || 'https://placehold.co/96x96.png'} alt="Ghana Logo Preview" dataAiHint="ghana coat arms" />
+                              <ImageUploadPreview src={appearanceSettings?.ghanaLogo || 'https://placehold.co/96x96.png'} alt="Ghana Logo Preview" dataAiHint="ghana coat arms" />
                           </FormItem>
                           )}
                       />
@@ -346,7 +348,7 @@ export default function SettingsPage() {
                               <FormLabel>Coordinating Director's Signature</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'signature')} /></FormControl>
                               <FormDescription>Used on printed bills.</FormDescription>
-                              <ImageUploadPreview src={appearanceSettings?.signature || watchedAppearanceForm.signature || 'https://placehold.co/192x96.png'} alt="Signature Preview" dataAiHint="signature" />
+                              <ImageUploadPreview src={appearanceSettings?.signature || 'https://placehold.co/192x96.png'} alt="Signature Preview" dataAiHint="signature" />
                           </FormItem>
                           )}
                       />
@@ -435,35 +437,33 @@ export default function SettingsPage() {
                     <CardDescription>Define which user roles can access each page. Admins always have full access.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {permissionsLoading ? <Loader2 className="mx-auto my-8 h-8 w-8 animate-spin" /> : (
-                        <div className="overflow-x-auto">
-                           <Table><TableHeader><TableRow>
-                                <TableHead>Page / Feature</TableHead>
-                                {Object.keys(localPermissions).map(role => (
-                                    <TableHead key={role} className="text-center">{capitalize(role)}</TableHead>
-                                ))}
-                            </TableRow></TableHeader>
-                            <TableBody>
-                                {PERMISSION_PAGES.map(page => (
-                                    <TableRow key={page}>
-                                        <TableCell className="font-medium">{permissionPageLabels[page as PermissionPage]}</TableCell>
-                                        {Object.keys(localPermissions).map(role => (
-                                            <TableCell key={`${role}-${page}`} className="text-center">
-                                                <Checkbox
-                                                    checked={localPermissions[role as UserRole]?.[page as keyof typeof localPermissions[UserRole]]}
-                                                    onCheckedChange={(checked) => handlePermissionChange(role as UserRole, page, !!checked)}
-                                                    disabled={role === 'Admin'}
-                                                />
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                            </TableBody></Table>
-                        </div>
-                    )}
+                    <div className="overflow-x-auto">
+                        <Table><TableHeader><TableRow>
+                            <TableHead>Page / Feature</TableHead>
+                            {Object.keys(localPermissions).map(role => (
+                                <TableHead key={role} className="text-center">{capitalize(role)}</TableHead>
+                            ))}
+                        </TableRow></TableHeader>
+                        <TableBody>
+                            {PERMISSION_PAGES.map(page => (
+                                <TableRow key={page}>
+                                    <TableCell className="font-medium">{permissionPageLabels[page as PermissionPage]}</TableCell>
+                                    {Object.keys(localPermissions).map(role => (
+                                        <TableCell key={`${role}-${page}`} className="text-center">
+                                            <Checkbox
+                                                checked={localPermissions[role as UserRole]?.[page as keyof typeof localPermissions[UserRole]]}
+                                                onCheckedChange={(checked) => handlePermissionChange(role as UserRole, page, !!checked)}
+                                                disabled={role === 'Admin'}
+                                            />
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))}
+                        </TableBody></Table>
+                    </div>
                 </CardContent>
                 <CardFooter className="border-t px-6 py-4">
-                    <Button onClick={onPermissionsSave} disabled={permissionsLoading}>Save Permissions</Button>
+                    <Button onClick={onPermissionsSave}>Save Permissions</Button>
                 </CardFooter>
             </Card>
         </TabsContent>

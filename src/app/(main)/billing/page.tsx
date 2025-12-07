@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -54,7 +55,8 @@ export default function BillingPage() {
   const { user: authUser } = useAuth();
   const isViewer = authUser?.role === 'Viewer';
   
-  const { properties, headers, updateProperty, deleteProperty, deleteProperties, loading } = usePropertyData();
+  const { properties, updateProperty, deleteProperty, deleteProperties } = usePropertyData();
+  const [loading, setLoading] = React.useState(true);
 
   const [filter, setFilter] = React.useState('');
   const [activeTab, setActiveTab] = React.useState('all');
@@ -64,6 +66,17 @@ export default function BillingPage() {
   const isMobile = useIsMobile();
   const [currentPage, setCurrentPage] = React.useState(1);
   const [isSmsDialogOpen, setIsSmsDialogOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if(properties.length > 0) {
+      setLoading(false)
+    }
+    // Also consider a timeout or a different condition to set loading to false
+    // if properties might legitimately be an empty array.
+    const timer = setTimeout(() => setLoading(false), 2000); // Failsafe
+    return () => clearTimeout(timer);
+  }, [properties]);
+
 
   const handleViewBill = (property: Property) => {
     localStorage.setItem('selectedPropertiesForPrinting', JSON.stringify([property]));
@@ -120,7 +133,7 @@ export default function BillingPage() {
 
   const propertiesWithStatus = React.useMemo<PropertyWithStatus[]>(() => {
     return properties.map(p => ({ ...p, status: getBillStatus(p) }));
-  }, [properties]); // Explicitly type the result
+  }, [properties]);
 
   const filteredData = React.useMemo(() => {
     let intermediateData = propertiesWithStatus;
@@ -467,5 +480,3 @@ export default function BillingPage() {
     </>
   );
 }
-
-    

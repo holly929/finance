@@ -46,9 +46,10 @@ const EmptyState = ({ message }: { message: string }) => (
 
 
 export default function DashboardPage() {
-  const { properties, loading: propertiesLoading } = usePropertyData();
-  const { bills, loading: billsLoading } = useBillData();
+  const { properties } = usePropertyData();
+  const { bills } = useBillData();
   const { toast } = useToast();
+  const [loading, setLoading] = React.useState(true);
 
   const [totalRevenue, setTotalRevenue] = React.useState(0);
   const [totalBilled, setTotalBilled] = React.useState(0);
@@ -58,8 +59,13 @@ export default function DashboardPage() {
   const [revenueByPropertyType, setRevenueByPropertyType] = React.useState<RevenueByPropertyType[]>([]);
   const [propertyTypeCounts, setPropertyTypeCounts] = React.useState<any[]>([]);
   const [billedVsCollected, setBilledVsCollected] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (properties.length >= 0 && bills.length >= 0) {
+      setLoading(false);
+    }
+  }, [properties, bills]);
   
-  const loading = propertiesLoading || billsLoading;
 
   React.useEffect(() => {
     if (properties.length > 0) {

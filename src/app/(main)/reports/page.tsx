@@ -33,7 +33,8 @@ const chartConfig: ChartConfig = {
 const ROWS_PER_PAGE = 10;
 
 export default function ReportsPage() {
-  const { properties, headers, loading } = usePropertyData();
+  const { properties, headers } = usePropertyData();
+  const [loading, setLoading] = React.useState(true);
   const { toast } = useToast();
   const { user: authUser } = useAuth();
   const isViewer = authUser?.role === 'Viewer';
@@ -48,6 +49,12 @@ export default function ReportsPage() {
     status: 'all',
     propertyType: 'all',
   });
+  
+  React.useEffect(() => {
+    if(properties.length >= 0) {
+      setLoading(false);
+    }
+  }, [properties]);
 
   const totalPages = Math.ceil(reportData.length / ROWS_PER_PAGE);
   const paginatedReportData = React.useMemo(() => {
@@ -79,7 +86,6 @@ export default function ReportsPage() {
       setReportData(filteredProperties);
       setCurrentPage(1);
 
-      // Generate chart data from the report
       if (filteredProperties.length > 0) {
         const statusCounts: Record<BillStatus, number> = { 'Paid': 0, 'Pending': 0, 'Overdue': 0, 'Unbilled': 0 };
         const typeRevenue: { [key: string]: number } = {};

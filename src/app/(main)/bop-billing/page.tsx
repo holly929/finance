@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -55,7 +56,8 @@ export default function BopBillingPage() {
   const { user: authUser } = useAuth();
   const isViewer = authUser?.role === 'Viewer';
   
-  const { bopData, headers, updateBop, deleteBop, deleteBops, loading } = useBopData();
+  const { bopData, headers, updateBop, deleteBop, deleteBops } = useBopData();
+  const [loading, setLoading] = React.useState(true);
 
   const [filter, setFilter] = React.useState('');
   const [activeTab, setActiveTab] = React.useState('all');
@@ -65,6 +67,14 @@ export default function BopBillingPage() {
   const isMobile = useIsMobile();
   const [currentPage, setCurrentPage] = React.useState(1);
   const [isSmsDialogOpen, setIsSmsDialogOpen] = React.useState(false);
+  
+  React.useEffect(() => {
+    if(bopData.length > 0) {
+      setLoading(false)
+    }
+    const timer = setTimeout(() => setLoading(false), 2000); // Failsafe
+    return () => clearTimeout(timer);
+  }, [bopData]);
 
   const handleViewBill = (bop: Bop) => {
     localStorage.setItem('selectedBopsForPrinting', JSON.stringify([bop]));
@@ -464,5 +474,3 @@ export default function BopBillingPage() {
     </>
   );
 }
-
-    

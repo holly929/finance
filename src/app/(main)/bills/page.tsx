@@ -35,7 +35,8 @@ const formatDate = (isoString: string) => new Date(isoString).toLocaleDateString
 export default function BillsPage() {
   useRequirePermission();
   const router = useRouter();
-  const { bills, loading } = useBillData();
+  const { bills } = useBillData();
+  const [loading, setLoading] = React.useState(true);
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
@@ -45,6 +46,12 @@ export default function BillsPage() {
   const [viewingBill, setViewingBill] = React.useState<Bill | null>(null);
   const [viewingPaymentsBill, setViewingPaymentsBill] = React.useState<Bill | null>(null);
   const [selectedRows, setSelectedRows] = React.useState<string[]>([]);
+  
+  React.useEffect(() => {
+    if(bills.length >= 0) {
+      setLoading(false);
+    }
+  }, [bills]);
 
   const availableYears = React.useMemo(() => {
     if (!bills) return [];

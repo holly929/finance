@@ -10,15 +10,17 @@ import { store, saveStore } from '@/lib/store';
 interface BillContextType {
     bills: Bill[];
     addBills: (newBills: Omit<Bill, 'id'>[]) => Promise<boolean>;
-    loading: boolean;
 }
 
 const BillContext = createContext<BillContextType | undefined>(undefined);
 
 export function BillProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [bills, setBillsState] = useState<Bill[]>(store.bills);
-    const [loading, setLoading] = useState(false);
+    const [bills, setBillsState] = useState<Bill[]>([]);
+
+    useEffect(() => {
+        setBillsState(store.bills);
+    }, []);
 
     const setBills = (newBills: Bill[]) => {
         store.bills = newBills;
@@ -35,7 +37,6 @@ export function BillProvider({ children }: { children: React.ReactNode }) {
             const updatedBills = [...bills, ...billsWithIds];
             setBills(updatedBills);
 
-            // Trigger SMS notifications for the newly created bills
             sendBillGeneratedSms(billsWithIds);
             
             return true;
@@ -50,7 +51,7 @@ export function BillProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <BillContext.Provider value={{ bills, addBills, loading }}>
+        <BillContext.Provider value={{ bills, addBills }}>
             {children}
         </BillContext.Provider>
     );
