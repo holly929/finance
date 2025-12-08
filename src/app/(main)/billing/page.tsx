@@ -55,7 +55,7 @@ export default function BillingPage() {
   const { user: authUser } = useAuth();
   const isViewer = authUser?.role === 'Viewer';
   
-  const { properties, updateProperty, deleteProperty, deleteProperties } = usePropertyData();
+  const { properties, headers, updateProperty, deleteProperty, deleteProperties } = usePropertyData();
   const [loading, setLoading] = React.useState(true);
 
   const [filter, setFilter] = React.useState('');
