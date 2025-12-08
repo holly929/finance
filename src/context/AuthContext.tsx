@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { User } from '@/lib/types';
 import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
@@ -21,15 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const USER_STORAGE_KEY = 'rateease.user';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const storedUserJson = localStorage.getItem(USER_STORAGE_KEY);
-      return storedUserJson ? JSON.parse(storedUserJson) : null;
-    } catch (e) {
-      return null;
-    }
-  });
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
@@ -75,11 +67,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return null;
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem(USER_STORAGE_KEY);
     setUser(null);
     router.push('/login');
-  };
+  }, [router]);
 
   const updateAuthUser = (updatedUser: User) => {
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
@@ -108,13 +100,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
   
   if (!user && !isAuthCheckPage) {
-      return (
-          <div className="flex h-screen w-full items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-      );
+      return null;
   }
-
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, updateAuthUser }}>
