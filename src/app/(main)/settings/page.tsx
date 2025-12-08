@@ -142,7 +142,6 @@ export default function SettingsPage() {
     saveStore();
     toast({ title: 'Settings Saved', description: `${friendlyName} settings have been updated.` });
     
-    // Force a re-render or context update if necessary
     if (key === 'generalSettings') {
         window.dispatchEvent(new Event('storage'));
     }
@@ -168,8 +167,9 @@ export default function SettingsPage() {
     setBillFields(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
-  const onAppearanceSave = (data: z.infer<typeof appearanceFormSchema>) => {
-    saveData('appearanceSettings', data, 'Appearance');
+  const onAppearanceSave = () => {
+    const appearanceData = appearanceForm.getValues();
+    saveData('appearanceSettings', appearanceData, 'Appearance');
     saveData('billDisplaySettings', billFields, 'Bill Display');
   };
 
@@ -563,3 +563,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    
