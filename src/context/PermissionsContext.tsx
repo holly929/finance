@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from '@/lib/types';
 import { store, saveStore } from '@/lib/store';
@@ -26,10 +26,6 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
   const { toast } = useToast();
   const [permissions, setPermissions] = useState<RolePermissions>(store.permissions);
 
-  useEffect(() => {
-    setPermissions(store.permissions);
-  }, []);
-
   const updatePermissions = (newPermissions: RolePermissions) => {
     store.permissions = newPermissions;
     setPermissions(newPermissions);
@@ -45,7 +41,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
         return true;
     }
     
-    return permissions[role]?.[page] ?? false;
+    return store.permissions[role]?.[page] ?? false;
   };
 
   return (

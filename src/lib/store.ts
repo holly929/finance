@@ -1,3 +1,4 @@
+
 // This file acts as a centralized in-memory database for the application.
 // All data contexts will read from and write to this single source of truth,
 // ensuring that data is shared and consistent across all user sessions
@@ -57,7 +58,19 @@ function getDefaultStore(): AppStore {
         bills: [],
         users: [defaultAdminUser],
         permissions: defaultPermissions,
-        settings: {},
+        settings: {
+            generalSettings: {
+                systemName: 'RateEase',
+                assemblyName: 'District Assembly',
+                postalAddress: 'P.O. Box 1, District Capital',
+                contactPhone: '012-345-6789',
+                contactEmail: 'contact@assembly.gov.gh'
+            },
+            appearanceSettings: {},
+            integrationsSettings: {},
+            smsSettings: {},
+            billDisplaySettings: {},
+        },
     };
 }
 
@@ -68,29 +81,35 @@ function loadStore(): AppStore {
     if (typeof window === 'undefined') {
         return getDefaultStore();
     }
-    if (storeInitialized) {
+    
+    if (storeInitialized && store) {
         return store;
     }
+
     try {
         const stored = window.localStorage.getItem(STORE_KEY);
         if (stored) {
             const parsedStore = JSON.parse(stored);
-            // Ensure all keys from default store are present
             const defaultStore = getDefaultStore();
-            for (const key in defaultStore) {
-                if (!(key in parsedStore)) {
-                    (parsedStore as any)[key] = (defaultStore as any)[key];
-                }
-            }
-             storeInitialized = true;
-            return parsedStore;
+            // Deep merge to ensure all nested default settings are present if missing
+            const mergedSettings = {
+                ...defaultStore.settings,
+                ...parsedStore.settings,
+            };
+            parsedStore.settings = mergedSettings;
+            
+            store = { ...defaultStore, ...parsedStore };
+
+            storeInitialized = true;
+            return store;
         }
     } catch (e) {
         console.error("Failed to load store from localStorage", e);
     }
 
     storeInitialized = true;
-    return getDefaultStore();
+    store = getDefaultStore();
+    return store;
 }
 
 store = loadStore();

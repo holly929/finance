@@ -25,7 +25,7 @@ export function BopProvider({ children }: { children: React.ReactNode }) {
     const [bopData, setBopDataState] = useState<Bop[]>(store.bops);
     const [headers, setHeadersState] = useState<string[]>(store.bopHeaders);
     
-    const setBopData = (newData: Bop[], newHeaders: string[]) => {
+    const setAndPersistBopData = (newData: Bop[], newHeaders: string[]) => {
         store.bops = newData;
         store.bopHeaders = newHeaders;
         setBopDataState(newData);
@@ -38,32 +38,32 @@ export function BopProvider({ children }: { children: React.ReactNode }) {
             id: `bop-${Date.now()}`,
             ...bop
         };
-        const updatedBopData = [...bopData, newBop];
-        setBopData(updatedBopData, headers);
+        const updatedBopData = [...store.bops, newBop];
+        setAndPersistBopData(updatedBopData, headers);
         sendNewPropertySms(newBop);
     };
 
     const updateBop = (updatedBop: Bop) => {
-        const updatedData = bopData.map(b => b.id === updatedBop.id ? updatedBop : b);
-        setBopData(updatedData, headers);
+        const updatedData = store.bops.map(b => b.id === updatedBop.id ? updatedBop : b);
+        setAndPersistBopData(updatedData, headers);
     };
 
     const deleteBop = (id: string) => {
-        const updatedData = bopData.filter(b => b.id !== id);
-        setBopData(updatedData, headers);
+        const updatedData = store.bops.filter(b => b.id !== id);
+        setAndPersistBopData(updatedData, headers);
     };
     
     const deleteBops = (ids: string[]) => {
-        const updatedData = bopData.filter(b => !ids.includes(b.id));
-        setBopData(updatedData, headers);
+        const updatedData = store.bops.filter(b => !ids.includes(b.id));
+        setAndPersistBopData(updatedData, headers);
     }
     
     const deleteAllBop = () => {
-        setBopData([], []);
+        setAndPersistBopData([], []);
     };
 
     return (
-        <BopContext.Provider value={{ bopData, headers, setBopData, addBop, updateBop, deleteBop, deleteBops, deleteAllBop }}>
+        <BopContext.Provider value={{ bopData, headers, setBopData: setAndPersistBopData, addBop, updateBop, deleteBop, deleteBops, deleteAllBop }}>
             {children}
         </BopContext.Provider>
     );

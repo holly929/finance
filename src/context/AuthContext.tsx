@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (storedUserJson) {
           const storedUser = JSON.parse(storedUserJson);
           if (isMounted) {
+            // Find the full, up-to-date user object from the central store
             const fullUser = store.users.find(u => u.id === storedUser.id);
             setUser(fullUser || null);
           }
@@ -51,8 +52,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     checkUser();
 
+    // Listen for storage changes to sync across tabs
+    const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === USER_STORAGE_KEY) {
+            checkUser();
+        }
+    }
+    window.addEventListener('storage', handleStorageChange);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 

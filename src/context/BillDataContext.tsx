@@ -18,7 +18,7 @@ export function BillProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
     const [bills, setBillsState] = useState<Bill[]>(store.bills);
 
-    const setBills = (newBills: Bill[]) => {
+    const setAndPersistBills = (newBills: Bill[]) => {
         store.bills = newBills;
         setBillsState(newBills);
         saveStore();
@@ -30,8 +30,8 @@ export function BillProvider({ children }: { children: React.ReactNode }) {
                 ...b,
                 id: `bill-${Date.now()}-${Math.random()}`,
             }));
-            const updatedBills = [...bills, ...billsWithIds];
-            setBills(updatedBills);
+            const updatedBills = [...store.bills, ...billsWithIds];
+            setAndPersistBills(updatedBills);
 
             sendBillGeneratedSms(billsWithIds);
             

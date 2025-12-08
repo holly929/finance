@@ -25,7 +25,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     const [properties, setPropertiesState] = useState<Property[]>(store.properties);
     const [headers, setHeadersState] = useState<string[]>(store.propertyHeaders);
     
-    const setProperties = (newProperties: Property[], newHeaders: string[]) => {
+    const setAndPersistProperties = (newProperties: Property[], newHeaders: string[]) => {
         store.properties = newProperties;
         store.propertyHeaders = newHeaders;
         setPropertiesState(newProperties);
@@ -38,32 +38,32 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
             id: `prop-${Date.now()}`,
             ...property
         };
-        const updatedProperties = [...properties, newProperty];
-        setProperties(updatedProperties, headers);
+        const updatedProperties = [...store.properties, newProperty];
+        setAndPersistProperties(updatedProperties, headers);
         sendNewPropertySms(newProperty);
     };
 
     const updateProperty = (updatedProperty: Property) => {
-        const updatedProperties = properties.map(p => p.id === updatedProperty.id ? updatedProperty : p);
-        setProperties(updatedProperties, headers);
+        const updatedProperties = store.properties.map(p => p.id === updatedProperty.id ? updatedProperty : p);
+        setAndPersistProperties(updatedProperties, headers);
     };
 
     const deleteProperty = (id: string) => {
-        const updatedProperties = properties.filter(p => p.id !== id);
-        setProperties(updatedProperties, headers);
+        const updatedProperties = store.properties.filter(p => p.id !== id);
+        setAndPersistProperties(updatedProperties, headers);
     };
     
     const deleteProperties = (ids: string[]) => {
-        const updatedProperties = properties.filter(p => !ids.includes(p.id));
-        setProperties(updatedProperties, headers);
+        const updatedProperties = store.properties.filter(p => !ids.includes(p.id));
+        setAndPersistProperties(updatedProperties, headers);
     }
     
     const deleteAllProperties = () => {
-        setProperties([], []);
+        setAndPersistProperties([], []);
     };
 
     return (
-        <PropertyContext.Provider value={{ properties, headers, setProperties, addProperty, updateProperty, deleteProperty, deleteProperties, deleteAllProperties }}>
+        <PropertyContext.Provider value={{ properties, headers, setProperties: setAndPersistProperties, addProperty, updateProperty, deleteProperty, deleteProperties, deleteAllProperties }}>
             {children}
         </PropertyContext.Provider>
     );

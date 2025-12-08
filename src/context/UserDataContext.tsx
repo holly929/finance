@@ -6,7 +6,6 @@ import type { User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { store, saveStore } from '@/lib/store';
 
-
 interface UserContextType {
     users: User[];
     addUser: (user: Omit<User, 'id'>) => void;
@@ -20,7 +19,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
     const [users, setUsersState] = useState<User[]>(store.users);
 
-    const setUsers = (newUsers: User[]) => {
+    const setAndPersistUsers = (newUsers: User[]) => {
         store.users = newUsers;
         setUsersState(newUsers);
         saveStore();
@@ -31,23 +30,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             id: `user-${Date.now()}`,
             ...user
         };
-        const updatedUsers = [...users, newUser];
-        setUsers(updatedUsers);
+        const updatedUsers = [...store.users, newUser];
+        setAndPersistUsers(updatedUsers);
     };
 
     const updateUser = (updatedUser: User) => {
-        const updatedUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u);
-        setUsers(updatedUsers);
+        const updatedUsers = store.users.map(u => u.id === updatedUser.id ? updatedUser : u);
+        setAndPersistUsers(updatedUsers);
     };
 
     const deleteUser = (id: string) => {
-        const userToDelete = users.find(u => u.id === id);
+        const userToDelete = store.users.find(u => u.id === id);
         if (userToDelete?.email === 'admin@rateease.gov') {
             toast({ variant: 'destructive', title: 'Delete Error', description: 'The default admin user cannot be deleted.' });
             return;
         }
-        const updatedUsers = users.filter(u => u.id !== id);
-        setUsers(updatedUsers);
+        const updatedUsers = store.users.filter(u => u.id !== id);
+        setAndPersistUsers(updatedUsers);
     };
 
     return (

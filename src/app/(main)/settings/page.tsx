@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -94,53 +94,37 @@ export default function SettingsPage() {
 
   const generalForm = useForm<z.infer<typeof generalFormSchema>>({
     resolver: zodResolver(generalFormSchema),
-    defaultValues: store.settings.generalSettings || { systemName: 'RateEase', assemblyName: 'District Assembly', postalAddress: 'P.O. Box 1', contactPhone: '0123456789', contactEmail: 'contact@assembly.gov' },
+    defaultValues: store.settings.generalSettings,
   });
 
   const appearanceForm = useForm<z.infer<typeof appearanceFormSchema>>({
     resolver: zodResolver(appearanceFormSchema),
-    defaultValues: store.settings.appearanceSettings || { billWarningText: '', fontFamily: 'sans', fontSize: 12, accentColor: '#000000' },
+    defaultValues: store.settings.appearanceSettings,
   });
   
   const integrationsForm = useForm<z.infer<typeof integrationsFormSchema>>({
     resolver: zodResolver(integrationsFormSchema),
-    defaultValues: store.settings.integrationsSettings || { googleSheetUrl: '', bopGoogleSheetUrl: '' },
+    defaultValues: store.settings.integrationsSettings,
   });
 
   const smsForm = useForm<z.infer<typeof smsFormSchema>>({
     resolver: zodResolver(smsFormSchema),
-    defaultValues: store.settings.smsSettings || {
-      smsApiUrl: '',
-      smsApiKey: '',
-      smsSenderId: '',
-      enableSmsOnNewProperty: false,
-      newPropertyMessageTemplate: "Dear {{Owner Name}}, your property ({{Property No}}) has been successfully registered with the District Assembly. Thank you.",
-      enableSmsOnBillGenerated: false,
-      billGeneratedMessageTemplate: "Dear {{Owner Name}}, your property rate bill for {{Year}} is ready. Amount Due: GHS {{Total Amount Due}}. Please arrange for payment. Thank you.",
-    },
+    defaultValues: store.settings.smsSettings,
   });
-  
-  useEffect(() => {
-    setLoading(true);
-    // Initialize form defaults from the store
+
+  const resetForms = useCallback(() => {
     generalForm.reset(store.settings.generalSettings);
     appearanceForm.reset(store.settings.appearanceSettings);
     integrationsForm.reset(store.settings.integrationsSettings);
     smsForm.reset(store.settings.smsSettings);
-
-    // Bill display fields
-    if (store.settings.billDisplaySettings) {
-        setBillFields(store.settings.billDisplaySettings);
-    } else if (headers.length > 0) {
-        const initialFields = headers.reduce((acc, header) => {
-            if (header.toLowerCase() !== 'id') acc[header] = true;
-            return acc;
-        }, {} as Record<string, boolean>);
-        setBillFields(initialFields);
-    }
-    
+    setBillFields(store.settings.billDisplaySettings || {});
+  }, [generalForm, appearanceForm, integrationsForm, smsForm]);
+  
+  useEffect(() => {
+    setLoading(true);
+    resetForms();
     setLoading(false);
-  }, [headers, generalForm, appearanceForm, integrationsForm, smsForm]);
+  }, [resetForms]);
   
   useEffect(() => {
     setLocalPermissions(permissions);
@@ -153,18 +137,19 @@ export default function SettingsPage() {
     appearance: watchedAppearanceForm
   };
 
-  const saveData = (key: keyof typeof store.settings, data: any) => {
+  const saveData = (key: keyof typeof store.settings, data: any, friendlyName: string) => {
     store.settings[key] = data;
     saveStore();
-    toast({ title: 'Settings Saved', description: `${key.replace('Settings', ' settings').replace(/([A-Z])/g, ' $1').trim()} have been updated.` });
+    toast({ title: 'Settings Saved', description: `${friendlyName} settings have been updated.` });
     
-    if (key === 'generalSettings' && typeof window !== 'undefined') {
+    // Force a re-render or context update if necessary
+    if (key === 'generalSettings') {
         window.dispatchEvent(new Event('storage'));
     }
   };
 
   function onGeneralSave(data: z.infer<typeof generalFormSchema>) {
-    saveData('generalSettings', data);
+    saveData('generalSettings', data, 'General');
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'assemblyLogo' | 'ghanaLogo' | 'signature') => {
@@ -184,20 +169,16 @@ export default function SettingsPage() {
   };
 
   const onAppearanceSave = (data: z.infer<typeof appearanceFormSchema>) => {
-    const settingsToSave = { 
-      ...store.settings.appearanceSettings,
-      ...data
-    };
-    saveData('appearanceSettings', settingsToSave);
-    saveData('billDisplaySettings', billFields);
+    saveData('appearanceSettings', data, 'Appearance');
+    saveData('billDisplaySettings', billFields, 'Bill Display');
   };
 
   function onIntegrationsSave(data: z.infer<typeof integrationsFormSchema>) {
-    saveData('integrationsSettings', data);
+    saveData('integrationsSettings', data, 'Integrations');
   }
   
   function onSmsSave(data: z.infer<typeof smsFormSchema>) {
-    saveData('smsSettings', data);
+    saveData('smsSettings', data, 'SMS');
   }
 
   const onPermissionsSave = () => {
@@ -307,7 +288,7 @@ export default function SettingsPage() {
                               <FormLabel>Assembly Logo</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'assemblyLogo')} /></FormControl>
                               <FormDescription>Used on login screen and bills.</FormDescription>
-                              <ImageUploadPreview src={field.value || store.settings.appearanceSettings?.assemblyLogo || 'https://placehold.co/192x96.png'} alt="Assembly Logo Preview" dataAiHint="government logo" />
+                              <ImageUploadPreview src={field.value} alt="Assembly Logo Preview" dataAiHint="government logo" />
                           </FormItem>
                           )}
                       />
@@ -316,7 +297,7 @@ export default function SettingsPage() {
                               <FormLabel>Ghana Coat of Arms</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'ghanaLogo')} /></FormControl>
                               <FormDescription>Used on printed bills.</FormDescription>
-                              <ImageUploadPreview src={field.value || store.settings.appearanceSettings?.ghanaLogo || 'https://placehold.co/96x96.png'} alt="Ghana Logo Preview" dataAiHint="ghana coat arms" />
+                              <ImageUploadPreview src={field.value} alt="Ghana Logo Preview" dataAiHint="ghana coat arms" />
                           </FormItem>
                           )}
                       />
@@ -325,7 +306,7 @@ export default function SettingsPage() {
                               <FormLabel>Coordinating Director's Signature</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'signature')} /></FormControl>
                               <FormDescription>Used on printed bills.</FormDescription>
-                              <ImageUploadPreview src={field.value || store.settings.appearanceSettings?.signature || 'https://placehold.co/192x96.png'} alt="Signature Preview" dataAiHint="signature" />
+                              <ImageUploadPreview src={field.value} alt="Signature Preview" dataAiHint="signature" />
                           </FormItem>
                           )}
                       />
@@ -582,5 +563,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
-    
