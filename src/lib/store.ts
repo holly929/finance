@@ -1,4 +1,3 @@
-
 // This file acts as a centralized in-memory database for the application.
 // All data contexts will read from and write to this single source of truth,
 // ensuring that data is shared and consistent across all user sessions
@@ -6,6 +5,8 @@
 
 import type { Property, Bop, Bill, User, Payment } from './types';
 import { PERMISSION_PAGES, type RolePermissions, type UserRole } from '@/context/PermissionsContext';
+
+const STORE_KEY = 'rateease.store';
 
 // --- Default Data ---
 
@@ -47,22 +48,56 @@ interface AppStore {
     settings: { [key: string]: any };
 }
 
-export const store: AppStore = {
-    properties: [],
-    propertyHeaders: ['Owner Name', 'Property No', 'Town', 'Rateable Value', 'Total Payment'],
-    bops: [],
-    bopHeaders: ['Business Name', 'Owner Name', 'Phone Number', 'Town', 'Permit Fee', 'Payment'],
-    bills: [],
-    users: [defaultAdminUser],
-    permissions: defaultPermissions,
-    settings: {},
-};
-
-// Function to save the entire store to a persistent mechanism.
-// In this mock environment, it does nothing, but in a real app,
-// it would write to a file or database. This concept is important.
-export function saveStore() {
-    // In a real application, you would add logic here to save the `store` object.
-    // For example: fs.writeFileSync('path/to/database.json', JSON.stringify(store));
-    // Since we can't do that here, we rely on the object being in memory for the session.
+function getDefaultStore(): AppStore {
+    return {
+        properties: [],
+        propertyHeaders: ['Owner Name', 'Property No', 'Town', 'Rateable Value', 'Total Payment'],
+        bops: [],
+        bopHeaders: ['Business Name', 'Owner Name', 'Phone Number', 'Town', 'Permit Fee', 'Payment'],
+        bills: [],
+        users: [defaultAdminUser],
+        permissions: defaultPermissions,
+        settings: {},
+    };
 }
+
+let store: AppStore;
+
+function loadStore(): AppStore {
+    if (typeof window === 'undefined') {
+        return getDefaultStore();
+    }
+    try {
+        const stored = window.localStorage.getItem(STORE_KEY);
+        if (stored) {
+            const parsedStore = JSON.parse(stored);
+            // Ensure all keys from default store are present
+            const defaultStore = getDefaultStore();
+            for (const key in defaultStore) {
+                if (!(key in parsedStore)) {
+                    (parsedStore as any)[key] = (defaultStore as any)[key];
+                }
+            }
+            return parsedStore;
+        }
+    } catch (e) {
+        console.error("Failed to load store from localStorage", e);
+    }
+    return getDefaultStore();
+}
+
+store = loadStore();
+
+
+export function saveStore() {
+    if (typeof window !== 'undefined') {
+        try {
+            window.localStorage.setItem(STORE_KEY, JSON.stringify(store));
+        } catch (e) {
+            console.error("Failed to save store to localStorage", e);
+        }
+    }
+}
+
+// Re-export store to be used by contexts
+export { store };

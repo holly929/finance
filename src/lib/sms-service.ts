@@ -1,6 +1,6 @@
 
-import type { Property, Bill } from './types';
-import { inMemorySettings } from './settings';
+import type { Property, Bill, Bop } from './types';
+import { store } from './store';
 import { getPropertyValue } from './property-utils';
 import { toast } from '@/hooks/use-toast';
 
@@ -8,10 +8,10 @@ import { toast } from '@/hooks/use-toast';
 // make an HTTP request to an SMS provider's API.
 
 export function getSmsConfig() {
-    return inMemorySettings.smsSettings || {};
+    return store.settings.smsSettings || {};
 }
 
-function compileTemplate(template: string, data: Property | Bill): string {
+function compileTemplate(template: string, data: Property | Bop | Bill): string {
     if (!template) return '';
     return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, key) => {
         let value: any;
@@ -22,12 +22,12 @@ function compileTemplate(template: string, data: Property | Bill): string {
             } else {
                 value = getPropertyValue(bill.propertySnapshot, key);
             }
-        } else { // It's a Property object
+        } else { // It's a Property or Bop object
             value = getPropertyValue(data as Property, key);
         }
         
         // Format numbers to 2 decimal places if applicable
-        if (typeof value === 'number' && ['totalAmountDue', 'Rateable Value', 'Total Payment'].includes(key)) {
+        if (typeof value === 'number' && ['totalAmountDue', 'Rateable Value', 'Total Payment', 'Permit Fee', 'Payment'].includes(key)) {
             return value.toFixed(2);
         }
         
@@ -79,11 +79,11 @@ async function sendSingleSms(phoneNumber: string, message: string): Promise<bool
 /**
  * Sends SMS to multiple properties with a custom message.
  * Used for bulk messaging from the Billing page.
- * @param properties An array of properties to send SMS to.
+ * @param items An array of properties or BOPs to send SMS to.
  * @param messageTemplate The custom message template.
  * @returns An array of results for each attempt.
  */
-export async function sendSms(properties: Property[], messageTemplate: string): Promise<{ propertyId: string; success: boolean; }[]> {
+export async function sendSms(items: (Property | Bop)[], messageTemplate: string): Promise<{ propertyId: string; success: boolean; }[]> {
     const config = getSmsConfig();
     if (!config.smsApiUrl) {
         // The dialog itself will show a warning, so a toast here is redundant.
@@ -93,14 +93,14 @@ export async function sendSms(properties: Property[], messageTemplate: string): 
     
     const results = [];
 
-    for (const prop of properties) {
-        const phoneNumber = getPropertyValue(prop, 'Phone Number');
+    for (const item of items) {
+        const phoneNumber = getPropertyValue(item, 'Phone Number');
         if (phoneNumber && String(phoneNumber).trim()) {
-            const message = compileTemplate(messageTemplate, prop);
+            const message = compileTemplate(messageTemplate, item);
             const success = await sendSingleSms(String(phoneNumber), message);
-            results.push({ propertyId: prop.id, success });
+            results.push({ propertyId: item.id, success });
         } else {
-             results.push({ propertyId: prop.id, success: false });
+             results.push({ propertyId: item.id, success: false });
         }
     }
     return results;
@@ -111,7 +111,7 @@ export async function sendSms(properties: Property[], messageTemplate: string): 
  * Triggered from the PropertyDataContext.
  * @param property The newly created property.
  */
-export async function sendNewPropertySms(property: Property) {
+export async function sendNewPropertySms(property: Property | Bop) {
     const config = getSmsConfig();
     const { enableSmsOnNewProperty, newPropertyMessageTemplate } = config;
 

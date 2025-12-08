@@ -94,31 +94,33 @@ export default function SettingsPage() {
   useRequirePermission();
   const { headers } = usePropertyData();
   const { permissions, updatePermissions } = usePermissions();
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = useState(true);
 
+  // Local state for UI previews
   const [generalSettings, setGeneralSettings] = useState<any | null>(null);
   const [appearanceSettings, setAppearanceSettings] = useState<Partial<AppearanceSettings>>({});
+  
   const [billFields, setBillFields] = useState<Record<string, boolean>>({});
   const [localPermissions, setLocalPermissions] = useState(permissions);
 
   const generalForm = useForm<z.infer<typeof generalFormSchema>>({
     resolver: zodResolver(generalFormSchema),
-    defaultValues: { systemName: 'RateEase', assemblyName: 'District Assembly', postalAddress: 'P.O. Box 1', contactPhone: '0123456789', contactEmail: 'contact@assembly.gov' },
+    defaultValues: store.settings.generalSettings || { systemName: 'RateEase', assemblyName: 'District Assembly', postalAddress: 'P.O. Box 1', contactPhone: '0123456789', contactEmail: 'contact@assembly.gov' },
   });
 
   const appearanceForm = useForm<z.infer<typeof appearanceFormSchema>>({
     resolver: zodResolver(appearanceFormSchema),
-    defaultValues: { billWarningText: '', fontFamily: 'sans', fontSize: 12, accentColor: '#000000' },
+    defaultValues: store.settings.appearanceSettings || { billWarningText: '', fontFamily: 'sans', fontSize: 12, accentColor: '#000000' },
   });
   
   const integrationsForm = useForm<z.infer<typeof integrationsFormSchema>>({
     resolver: zodResolver(integrationsFormSchema),
-    defaultValues: { googleSheetUrl: '', bopGoogleSheetUrl: '' },
+    defaultValues: store.settings.integrationsSettings || { googleSheetUrl: '', bopGoogleSheetUrl: '' },
   });
 
   const smsForm = useForm<z.infer<typeof smsFormSchema>>({
     resolver: zodResolver(smsFormSchema),
-    defaultValues: {
+    defaultValues: store.settings.smsSettings || {
       smsApiUrl: '',
       smsApiKey: '',
       smsSenderId: '',
@@ -131,14 +133,17 @@ export default function SettingsPage() {
   
   useEffect(() => {
     setLoading(true);
-    if (store.settings.generalSettings) {
-        generalForm.reset(store.settings.generalSettings);
-        setGeneralSettings(store.settings.generalSettings);
-    }
-    if (store.settings.appearanceSettings) {
-        appearanceForm.reset(store.settings.appearanceSettings);
-        setAppearanceSettings(store.settings.appearanceSettings);
-    }
+    // Initialize form defaults from the store
+    generalForm.reset(store.settings.generalSettings);
+    appearanceForm.reset(store.settings.appearanceSettings);
+    integrationsForm.reset(store.settings.integrationsSettings);
+    smsForm.reset(store.settings.smsSettings);
+    
+    // Initialize UI preview state
+    setGeneralSettings(store.settings.generalSettings);
+    setAppearanceSettings(store.settings.appearanceSettings || {});
+
+    // Bill display fields
     if (store.settings.billDisplaySettings) {
         setBillFields(store.settings.billDisplaySettings);
     } else if (headers.length > 0) {
@@ -148,12 +153,7 @@ export default function SettingsPage() {
         }, {} as Record<string, boolean>);
         setBillFields(initialFields);
     }
-    if (store.settings.integrationsSettings) {
-        integrationsForm.reset(store.settings.integrationsSettings);
-    }
-    if (store.settings.smsSettings) {
-        smsForm.reset(store.settings.smsSettings);
-    }
+    
     setLoading(false);
   }, [headers, generalForm, appearanceForm, integrationsForm, smsForm]);
   
@@ -174,18 +174,20 @@ export default function SettingsPage() {
     },
   };
 
-  const saveSettings = (key: string, data: any) => {
+  const saveData = (key: keyof typeof store.settings, data: any) => {
     store.settings[key] = data;
-    saveStore(); 
-    toast({ title: 'Settings Saved', description: `${key.replace('Settings', ' settings')} have been updated.`});
-    if (key === 'generalSettings') {
+    saveStore();
+    toast({ title: 'Settings Saved', description: `${key.replace('Settings', ' settings')} have been updated.` });
+    
+    // Dispatch storage event to notify other components (like layout) of changes
+    if (key === 'generalSettings' && typeof window !== 'undefined') {
         window.dispatchEvent(new Event('storage'));
     }
-  }
+  };
 
   function onGeneralSave(data: z.infer<typeof generalFormSchema>) {
-    setGeneralSettings(data);
-    saveSettings('generalSettings', data);
+    setGeneralSettings(data); // Update local state for preview
+    saveData('generalSettings', data);
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'assemblyLogo' | 'ghanaLogo' | 'signature') => {
@@ -206,21 +208,21 @@ export default function SettingsPage() {
   };
 
   const onAppearanceSave = (data: z.infer<typeof appearanceFormSchema>) => {
-    const { assemblyLogo, ghanaLogo, signature, ...restOfData } = data;
+    // Combine form data with potentially updated image data from local state
     const settingsToSave = { 
         ...appearanceSettings, 
-        ...restOfData 
+        ...data,
     };
-    saveSettings('appearanceSettings', settingsToSave);
-    saveSettings('billDisplaySettings', billFields);
+    saveData('appearanceSettings', settingsToSave);
+    saveData('billDisplaySettings', billFields);
   };
 
   function onIntegrationsSave(data: z.infer<typeof integrationsFormSchema>) {
-    saveSettings('integrationsSettings', data);
+    saveData('integrationsSettings', data);
   }
   
   function onSmsSave(data: z.infer<typeof smsFormSchema>) {
-    saveSettings('smsSettings', data);
+    saveData('smsSettings', data);
   }
 
   const onPermissionsSave = () => {

@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, MessageSquare } from 'lucide-react';
 
-import type { Property } from '@/lib/types';
+import type { Property, Bop } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -19,7 +19,7 @@ import { getPropertyValue } from '@/lib/property-utils';
 interface SmsDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  selectedProperties: Property[];
+  selectedProperties: (Property | Bop)[];
 }
 
 const smsFormSchema = z.object({
@@ -85,7 +85,7 @@ export function SmsDialog({ isOpen, onOpenChange, selectedProperties }: SmsDialo
        toast({
         variant: 'destructive',
         title: 'No Recipients',
-        description: `None of the selected properties have a valid phone number.`,
+        description: `None of the selected items have a valid phone number.`,
       });
     } else {
       toast({
@@ -108,7 +108,7 @@ export function SmsDialog({ isOpen, onOpenChange, selectedProperties }: SmsDialo
             Send Bulk SMS
           </DialogTitle>
           <DialogDescription>
-            Compose a message to send to the {recipientCount} selected properties with a valid phone number.
+            Compose a message to send to the {recipientCount} selected items with a valid phone number.
             You can use placeholders like {'{{Owner Name}}'}.
           </DialogDescription>
         </DialogHeader>
