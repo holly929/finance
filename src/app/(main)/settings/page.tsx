@@ -167,6 +167,9 @@ export default function SettingsPage() {
     general: generalSettings,
     appearance: {
       ...appearanceSettings,
+      assemblyLogo: watchedAppearanceForm.assemblyLogo || appearanceSettings.assemblyLogo,
+      ghanaLogo: watchedAppearanceForm.ghanaLogo || appearanceSettings.ghanaLogo,
+      signature: watchedAppearanceForm.signature || appearanceSettings.signature,
       billWarningText: watchedAppearanceForm.billWarningText,
       fontFamily: watchedAppearanceForm.fontFamily,
       fontSize: watchedAppearanceForm.fontSize,
@@ -197,7 +200,6 @@ export default function SettingsPage() {
       reader.onloadend = () => {
         const result = reader.result as string;
         appearanceForm.setValue(fieldName, result, { shouldDirty: true });
-        setAppearanceSettings(prev => ({ ...prev, [fieldName]: result }));
       };
       reader.readAsDataURL(file);
     }
@@ -208,10 +210,10 @@ export default function SettingsPage() {
   };
 
   const onAppearanceSave = (data: z.infer<typeof appearanceFormSchema>) => {
-    // Combine form data with potentially updated image data from local state
+    // Combine base settings, any existing images, and the new form data
     const settingsToSave = { 
-        ...appearanceSettings, 
-        ...data,
+      ...store.settings.appearanceSettings,
+      ...data
     };
     saveData('appearanceSettings', settingsToSave);
     saveData('billDisplaySettings', billFields);
@@ -332,7 +334,7 @@ export default function SettingsPage() {
                               <FormLabel>Assembly Logo</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'assemblyLogo')} /></FormControl>
                               <FormDescription>Used on login screen and bills.</FormDescription>
-                              <ImageUploadPreview src={appearanceSettings?.assemblyLogo || 'https://placehold.co/192x96.png'} alt="Assembly Logo Preview" dataAiHint="government logo" />
+                              <ImageUploadPreview src={field.value || appearanceSettings?.assemblyLogo || 'https://placehold.co/192x96.png'} alt="Assembly Logo Preview" dataAiHint="government logo" />
                           </FormItem>
                           )}
                       />
@@ -341,7 +343,7 @@ export default function SettingsPage() {
                               <FormLabel>Ghana Coat of Arms</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'ghanaLogo')} /></FormControl>
                               <FormDescription>Used on printed bills.</FormDescription>
-                              <ImageUploadPreview src={appearanceSettings?.ghanaLogo || 'https://placehold.co/96x96.png'} alt="Ghana Logo Preview" dataAiHint="ghana coat arms" />
+                              <ImageUploadPreview src={field.value || appearanceSettings?.ghanaLogo || 'https://placehold.co/96x96.png'} alt="Ghana Logo Preview" dataAiHint="ghana coat arms" />
                           </FormItem>
                           )}
                       />
@@ -350,7 +352,7 @@ export default function SettingsPage() {
                               <FormLabel>Coordinating Director's Signature</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'signature')} /></FormControl>
                               <FormDescription>Used on printed bills.</FormDescription>
-                              <ImageUploadPreview src={appearanceSettings?.signature || 'https://placehold.co/192x96.png'} alt="Signature Preview" dataAiHint="signature" />
+                              <ImageUploadPreview src={field.value || appearanceSettings?.signature || 'https://placehold.co/192x96.png'} alt="Signature Preview" dataAiHint="signature" />
                           </FormItem>
                           )}
                       />
