@@ -62,10 +62,14 @@ function getDefaultStore(): AppStore {
 }
 
 let store: AppStore;
+let storeInitialized = false;
 
 function loadStore(): AppStore {
     if (typeof window === 'undefined') {
         return getDefaultStore();
+    }
+    if (storeInitialized) {
+        return store;
     }
     try {
         const stored = window.localStorage.getItem(STORE_KEY);
@@ -78,11 +82,14 @@ function loadStore(): AppStore {
                     (parsedStore as any)[key] = (defaultStore as any)[key];
                 }
             }
+             storeInitialized = true;
             return parsedStore;
         }
     } catch (e) {
         console.error("Failed to load store from localStorage", e);
     }
+
+    storeInitialized = true;
     return getDefaultStore();
 }
 
