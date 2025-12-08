@@ -57,15 +57,7 @@ const smsFormSchema = z.object({
   billGeneratedMessageTemplate: z.string().max(320, "Message cannot exceed 2 SMS pages (320 chars).").optional(),
 });
 
-type AppearanceSettings = {
-    assemblyLogo: string;
-    ghanaLogo: string;
-    signature: string;
-    billWarningText: string;
-    fontFamily: 'sans' | 'serif' | 'mono';
-    fontSize: number;
-    accentColor: string;
-};
+type AppearanceSettings = z.infer<typeof appearanceFormSchema>;
 
 const ImageUploadPreview = ({ src, alt, dataAiHint }: { src: string | null, alt: string, dataAiHint?: string }) => {
     if (!src) return null;
@@ -97,9 +89,6 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
 
   // Local state for UI previews
-  const [generalSettings, setGeneralSettings] = useState<any | null>(null);
-  const [appearanceSettings, setAppearanceSettings] = useState<Partial<AppearanceSettings>>({});
-  
   const [billFields, setBillFields] = useState<Record<string, boolean>>({});
   const [localPermissions, setLocalPermissions] = useState(permissions);
 
@@ -138,10 +127,6 @@ export default function SettingsPage() {
     appearanceForm.reset(store.settings.appearanceSettings);
     integrationsForm.reset(store.settings.integrationsSettings);
     smsForm.reset(store.settings.smsSettings);
-    
-    // Initialize UI preview state
-    setGeneralSettings(store.settings.generalSettings);
-    setAppearanceSettings(store.settings.appearanceSettings || {});
 
     // Bill display fields
     if (store.settings.billDisplaySettings) {
@@ -164,32 +149,21 @@ export default function SettingsPage() {
   const watchedAppearanceForm = appearanceForm.watch();
   
   const settingsForPreview = {
-    general: generalSettings,
-    appearance: {
-      ...appearanceSettings,
-      assemblyLogo: watchedAppearanceForm.assemblyLogo || appearanceSettings.assemblyLogo,
-      ghanaLogo: watchedAppearanceForm.ghanaLogo || appearanceSettings.ghanaLogo,
-      signature: watchedAppearanceForm.signature || appearanceSettings.signature,
-      billWarningText: watchedAppearanceForm.billWarningText,
-      fontFamily: watchedAppearanceForm.fontFamily,
-      fontSize: watchedAppearanceForm.fontSize,
-      accentColor: watchedAppearanceForm.accentColor,
-    },
+    general: generalForm.getValues(),
+    appearance: watchedAppearanceForm
   };
 
   const saveData = (key: keyof typeof store.settings, data: any) => {
     store.settings[key] = data;
     saveStore();
-    toast({ title: 'Settings Saved', description: `${key.replace('Settings', ' settings')} have been updated.` });
+    toast({ title: 'Settings Saved', description: `${key.replace('Settings', ' settings').replace(/([A-Z])/g, ' $1').trim()} have been updated.` });
     
-    // Dispatch storage event to notify other components (like layout) of changes
     if (key === 'generalSettings' && typeof window !== 'undefined') {
         window.dispatchEvent(new Event('storage'));
     }
   };
 
   function onGeneralSave(data: z.infer<typeof generalFormSchema>) {
-    setGeneralSettings(data); // Update local state for preview
     saveData('generalSettings', data);
   }
 
@@ -210,7 +184,6 @@ export default function SettingsPage() {
   };
 
   const onAppearanceSave = (data: z.infer<typeof appearanceFormSchema>) => {
-    // Combine base settings, any existing images, and the new form data
     const settingsToSave = { 
       ...store.settings.appearanceSettings,
       ...data
@@ -334,7 +307,7 @@ export default function SettingsPage() {
                               <FormLabel>Assembly Logo</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'assemblyLogo')} /></FormControl>
                               <FormDescription>Used on login screen and bills.</FormDescription>
-                              <ImageUploadPreview src={field.value || appearanceSettings?.assemblyLogo || 'https://placehold.co/192x96.png'} alt="Assembly Logo Preview" dataAiHint="government logo" />
+                              <ImageUploadPreview src={field.value || store.settings.appearanceSettings?.assemblyLogo || 'https://placehold.co/192x96.png'} alt="Assembly Logo Preview" dataAiHint="government logo" />
                           </FormItem>
                           )}
                       />
@@ -343,7 +316,7 @@ export default function SettingsPage() {
                               <FormLabel>Ghana Coat of Arms</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'ghanaLogo')} /></FormControl>
                               <FormDescription>Used on printed bills.</FormDescription>
-                              <ImageUploadPreview src={field.value || appearanceSettings?.ghanaLogo || 'https://placehold.co/96x96.png'} alt="Ghana Logo Preview" dataAiHint="ghana coat arms" />
+                              <ImageUploadPreview src={field.value || store.settings.appearanceSettings?.ghanaLogo || 'https://placehold.co/96x96.png'} alt="Ghana Logo Preview" dataAiHint="ghana coat arms" />
                           </FormItem>
                           )}
                       />
@@ -352,7 +325,7 @@ export default function SettingsPage() {
                               <FormLabel>Coordinating Director's Signature</FormLabel>
                               <FormControl><Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'signature')} /></FormControl>
                               <FormDescription>Used on printed bills.</FormDescription>
-                              <ImageUploadPreview src={field.value || appearanceSettings?.signature || 'https://placehold.co/192x96.png'} alt="Signature Preview" dataAiHint="signature" />
+                              <ImageUploadPreview src={field.value || store.settings.appearanceSettings?.signature || 'https://placehold.co/192x96.png'} alt="Signature Preview" dataAiHint="signature" />
                           </FormItem>
                           )}
                       />
@@ -609,3 +582,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    
