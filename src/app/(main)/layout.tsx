@@ -46,6 +46,9 @@ import { ProfileDialog } from '@/components/profile-dialog';
 import { BillProvider } from '@/context/BillDataContext';
 import { BopProvider } from '@/context/BopDataContext';
 import { store } from '@/lib/store';
+import { ThemeProvider } from "@/components/theme-provider"
+import { UserProvider } from '@/context/UserDataContext';
+import { AuthProvider } from '@/context/AuthContext';
 
 
 const navItems = [
