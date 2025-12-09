@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { store, saveStore } from '@/lib/store';
@@ -11,13 +11,20 @@ interface UserContextType {
     addUser: (user: Omit<User, 'id'>) => void;
     updateUser: (updatedUser: User) => void;
     deleteUser: (id: string) => void;
+    loading: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const [users, setUsersState] = useState<User[]>(store.users);
+    const [users, setUsersState] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setUsersState(store.users);
+        setLoading(false);
+    }, []);
 
     const setAndPersistUsers = (newUsers: User[]) => {
         store.users = newUsers;
@@ -50,7 +57,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <UserContext.Provider value={{ users, addUser, updateUser, deleteUser }}>
+        <UserContext.Provider value={{ users, addUser, updateUser, deleteUser, loading }}>
             {children}
         </UserContext.Provider>
     );
