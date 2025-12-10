@@ -400,14 +400,12 @@ export function BillDialog({ bill, isOpen, onOpenChange }: BillDialogProps) {
   useEffect(() => {
     if (isOpen) {
       setIsLoading(true);
-      // Simulate loading settings
-      setTimeout(() => {
-        setSettings({
-            general: store.settings.generalSettings || {},
-            appearance: store.settings.appearanceSettings || {},
-        });
-        setIsLoading(false);
-      }, 100);
+      // Simulate loading settings - in a real app this might be async
+      setSettings({
+          general: store.settings.generalSettings || {},
+          appearance: store.settings.appearanceSettings || {},
+      });
+      setIsLoading(false);
     }
   }, [isOpen]);
 

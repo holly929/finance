@@ -17,6 +17,7 @@ import { useBillData } from '@/context/BillDataContext';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getPropertyValue } from '@/lib/property-utils';
+import { store } from '@/lib/store';
 
 type GeneralSettings = {
   assemblyName?: string;
@@ -134,16 +135,20 @@ export default function BulkPrintPage() {
 
   useEffect(() => {
     setIsClient(true);
-    // Settings are now in-memory and not persisted, so they will be default.
-    // A centralized settings service would be needed to fetch them here.
-    const loadData = async () => {
+    const loadData = () => {
         try {
             const storedProperties = localStorage.getItem('selectedPropertiesForPrinting');
             if (storedProperties) {
                 setAllProperties(JSON.parse(storedProperties));
             }
+            // Load settings from the central store
+            setSettings({
+                general: store.settings.generalSettings || {},
+                appearance: store.settings.appearanceSettings || {},
+            });
         } catch (error) {
             console.error("Could not load data", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not load data for printing.' });
         }
     }
     loadData();
