@@ -4,7 +4,7 @@
 // ensuring that data is shared and consistent across all user sessions
 // within the same server process.
 
-import type { Property, Bop, Bill, User, Payment } from './types';
+import type { Property, Bop, Bill, User, Payment, ActivityLog } from './types';
 import { PERMISSION_PAGES, type RolePermissions, type UserRole } from '@/context/PermissionsContext';
 
 const STORE_KEY = 'rateease.store';
@@ -23,15 +23,15 @@ const defaultAdminUser: User = {
 const defaultPermissions: RolePermissions = {
   Admin: {
     dashboard: true, properties: true, billing: true, bop: true, 'bop-billing': true, bills: true, defaulters: true, reports: true,
-    users: true, settings: true, 'integrations': true, payment: true,
+    users: true, settings: true, 'integrations': true, payment: true, 'activity-logs': true,
   },
   'Data Entry': {
     dashboard: true, properties: true, billing: true, bop: true, 'bop-billing': true, bills: true, defaulters: true, reports: true,
-    users: false, settings: false, 'integrations': true, payment: true,
+    users: false, settings: false, 'integrations': true, payment: true, 'activity-logs': false,
   },
   Viewer: {
     dashboard: true, properties: false, billing: false, bop: false, 'bop-billing': false, bills: false, defaulters: false, reports: false,
-    users: false, settings: false, 'integrations': false, payment: true,
+    users: false, settings: false, 'integrations': false, payment: true, 'activity-logs': false,
   },
 };
 
@@ -46,6 +46,7 @@ interface AppStore {
     bills: Bill[];
     users: User[];
     permissions: RolePermissions;
+    activityLogs: ActivityLog[];
     settings: { [key: string]: any };
 }
 
@@ -58,6 +59,7 @@ function getDefaultStore(): AppStore {
         bills: [],
         users: [defaultAdminUser],
         permissions: defaultPermissions,
+        activityLogs: [],
         settings: {
             generalSettings: {
                 systemName: 'RateEase',

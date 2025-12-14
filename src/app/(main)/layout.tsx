@@ -23,6 +23,7 @@ import {
   Store,
   AlertCircle,
   CreditCard,
+  History,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -39,7 +40,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth } from '@/context/AuthContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PropertyProvider } from '@/context/PropertyDataContext';
 import { PermissionsProvider, usePermissions } from '@/context/PermissionsContext';
 import { ProfileDialog } from '@/components/profile-dialog';
@@ -48,7 +49,7 @@ import { BopProvider } from '@/context/BopDataContext';
 import { store } from '@/lib/store';
 import { ThemeProvider } from "@/components/theme-provider"
 import { UserProvider } from '@/context/UserDataContext';
-import { AuthProvider } from '@/context/AuthContext';
+import { ActivityLogProvider } from '@/context/ActivityLogContext';
 
 
 const navItems = [
@@ -63,6 +64,7 @@ const navItems = [
   { href: '/reports', icon: LineChart, label: 'Reports' },
   { href: '/integrations', icon: Plug, label: 'Integrations' },
   { href: '/users', icon: Users, label: 'User Management' },
+  { href: '/activity-logs', icon: History, label: 'Activity Logs' },
   { href: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -265,14 +267,20 @@ function MainLayout({
 
 export default function LayoutWithProviders({ children }: { children: React.ReactNode }) {
   return (
-    <PermissionsProvider>
-      <PropertyProvider>
-        <BopProvider>
-          <BillProvider>
-            <MainLayout>{children}</MainLayout>
-          </BillProvider>
-        </BopProvider>
-      </PropertyProvider>
-    </PermissionsProvider>
+    <UserProvider>
+      <AuthProvider>
+        <PermissionsProvider>
+          <ActivityLogProvider>
+            <PropertyProvider>
+              <BopProvider>
+                <BillProvider>
+                  <MainLayout>{children}</MainLayout>
+                </BillProvider>
+              </BopProvider>
+            </PropertyProvider>
+          </ActivityLogProvider>
+        </PermissionsProvider>
+      </AuthProvider>
+    </UserProvider>
   );
 }

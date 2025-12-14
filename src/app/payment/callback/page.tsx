@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -10,6 +11,7 @@ import { useBopData } from '@/context/BopDataContext';
 import { useBillData } from '@/context/BillDataContext';
 import type { Payment, Property, Bop, Bill } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useActivityLog } from '@/context/ActivityLogContext';
 
 const formatCurrency = (value: number) => `GHS ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -17,6 +19,7 @@ export default function PaymentCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { addLog } = useActivityLog();
 
   const [status, setStatus] = useState<'processing' | 'success' | 'failed'>('processing');
   const [message, setMessage] = useState('Processing your payment...');
@@ -50,6 +53,7 @@ export default function PaymentCallbackPage() {
         const totalPayment = updatedPayments.reduce((sum, p) => sum + p.amount, 0);
         const updatedRecord = { ...property, payments: updatedPayments, 'Total Payment': totalPayment };
         updateProperty(updatedRecord);
+        addLog('Payment Received', `GHS ${amount.toFixed(2)} for Property No: ${property['Property No']}`);
         
         addBills([{
             propertyId: billId,
@@ -76,6 +80,8 @@ export default function PaymentCallbackPage() {
         const totalPayment = updatedPayments.reduce((sum, p) => sum + p.amount, 0);
         const updatedRecord = { ...bop, payments: updatedPayments, 'Payment': totalPayment };
         updateBop(updatedRecord);
+        addLog('Payment Received', `GHS ${amount.toFixed(2)} for Business: ${bop['Business Name']}`);
+
 
         addBills([{
             propertyId: billId,
@@ -99,7 +105,7 @@ export default function PaymentCallbackPage() {
       setMessage('Payment failed or was cancelled.');
       toast({ variant: 'destructive', title: 'Payment Failed', description: 'The payment was not successful.' });
     }
-  }, [searchParams, properties, bopData, updateProperty, updateBop, addBills, toast]);
+  }, [searchParams, properties, bopData, updateProperty, updateBop, addBills, toast, addLog]);
 
   return (
     <div className="flex h-screen items-center justify-center">

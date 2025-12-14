@@ -6,6 +6,7 @@ import type { Bop } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { sendNewPropertySms } from '@/lib/sms-service';
 import { store, saveStore } from '@/lib/store';
+import { useActivityLog } from './ActivityLogContext';
 
 interface BopContextType {
     bopData: Bop[];
@@ -22,6 +23,7 @@ const BopContext = createContext<BopContextType | undefined>(undefined);
 
 export function BopProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
+    const { addLog } = useActivityLog();
     const [bopData, setBopDataState] = useState<Bop[]>(store.bops);
     const [headers, setHeadersState] = useState<string[]>(store.bopHeaders);
     
@@ -40,26 +42,35 @@ export function BopProvider({ children }: { children: React.ReactNode }) {
         };
         const updatedBopData = [...store.bops, newBop];
         setAndPersistBopData(updatedBopData, headers);
+        addLog('Created BOP Record', `Business Name: ${newBop['Business Name']}`);
         sendNewPropertySms(newBop);
     };
 
     const updateBop = (updatedBop: Bop) => {
         const updatedData = store.bops.map(b => b.id === updatedBop.id ? updatedBop : b);
         setAndPersistBopData(updatedData, headers);
+        addLog('Updated BOP Record', `Business Name: ${updatedBop['Business Name']}`);
     };
 
     const deleteBop = (id: string) => {
+        const bopToDelete = store.bops.find(b => b.id === id);
         const updatedData = store.bops.filter(b => b.id !== id);
         setAndPersistBopData(updatedData, headers);
+        if (bopToDelete) {
+            addLog('Deleted BOP Record', `Business Name: ${bopToDelete['Business Name']}`);
+        }
     };
     
     const deleteBops = (ids: string[]) => {
         const updatedData = store.bops.filter(b => !ids.includes(b.id));
         setAndPersistBopData(updatedData, headers);
+        addLog('Deleted Multiple BOP Records', `${ids.length} records deleted`);
     }
     
     const deleteAllBop = () => {
+        const count = store.bops.length;
         setAndPersistBopData([], []);
+        addLog('Deleted All BOP Records', `${count} records deleted`);
     };
 
     return (

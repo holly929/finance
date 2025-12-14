@@ -7,6 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useUserData } from './UserDataContext';
 import { store } from '@/lib/store';
+import { useActivityLog } from './ActivityLogContext';
 
 interface AuthContextType {
   user: User | null;
@@ -26,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { users } = useUserData();
+  const { addLog } = useActivityLog();
 
   useEffect(() => {
     let isMounted = true;
@@ -72,16 +74,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (foundUser) {
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(foundUser));
       setUser(foundUser);
+      addLog('User Login');
       return foundUser;
     }
     return null;
   };
 
   const logout = useCallback(() => {
+    addLog('User Logout');
     localStorage.removeItem(USER_STORAGE_KEY);
     setUser(null);
     router.push('/login');
-  }, [router]);
+  }, [router, addLog]);
 
   const updateAuthUser = (updatedUser: User) => {
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
@@ -92,15 +96,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (loading) return;
 
     const isAuthPage = pathname === '/login';
+    const isPublicPage = isAuthPage || pathname === '/';
 
-    if (!user && !isAuthPage) {
+    if (!user && !isPublicPage) {
         router.replace('/login');
-    } else if (user && isAuthPage) {
+    } else if (user && isPublicPage) {
         router.replace('/dashboard');
     }
   }, [user, pathname, router, loading]);
   
-  const isAuthCheckPage = pathname === '/login';
+  const isAuthCheckPage = pathname === '/login' || pathname === '/';
   if (loading && !isAuthCheckPage) {
       return (
           <div className="flex h-screen w-full items-center justify-center">

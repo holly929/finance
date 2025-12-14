@@ -7,7 +7,7 @@ import type { User } from '@/lib/types';
 import { store, saveStore } from '@/lib/store';
 
 export const PERMISSION_PAGES = [
-  'dashboard', 'properties', 'billing', 'bop', 'bop-billing', 'bills', 'defaulters', 'reports', 'users', 'settings', 'integrations', 'payment'
+  'dashboard', 'properties', 'billing', 'bop', 'bop-billing', 'bills', 'defaulters', 'reports', 'users', 'settings', 'integrations', 'payment', 'activity-logs'
 ] as const;
 
 export type PermissionPage = typeof PERMISSION_PAGES[number];

@@ -6,6 +6,7 @@ import type { Property } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { sendNewPropertySms } from '@/lib/sms-service';
 import { store, saveStore } from '@/lib/store';
+import { useActivityLog } from './ActivityLogContext';
 
 interface PropertyContextType {
     properties: Property[];
@@ -22,6 +23,7 @@ const PropertyContext = createContext<PropertyContextType | undefined>(undefined
 
 export function PropertyProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
+    const { addLog } = useActivityLog();
     const [properties, setPropertiesState] = useState<Property[]>(store.properties);
     const [headers, setHeadersState] = useState<string[]>(store.propertyHeaders);
     
@@ -40,26 +42,35 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         };
         const updatedProperties = [...store.properties, newProperty];
         setAndPersistProperties(updatedProperties, headers);
+        addLog('Created Property', `Property No: ${newProperty['Property No']}`);
         sendNewPropertySms(newProperty);
     };
 
     const updateProperty = (updatedProperty: Property) => {
         const updatedProperties = store.properties.map(p => p.id === updatedProperty.id ? updatedProperty : p);
         setAndPersistProperties(updatedProperties, headers);
+        addLog('Updated Property', `Property No: ${updatedProperty['Property No']}`);
     };
 
     const deleteProperty = (id: string) => {
+        const propertyToDelete = store.properties.find(p => p.id === id);
         const updatedProperties = store.properties.filter(p => p.id !== id);
         setAndPersistProperties(updatedProperties, headers);
+        if (propertyToDelete) {
+             addLog('Deleted Property', `Property No: ${propertyToDelete['Property No']}`);
+        }
     };
     
     const deleteProperties = (ids: string[]) => {
         const updatedProperties = store.properties.filter(p => !ids.includes(p.id));
         setAndPersistProperties(updatedProperties, headers);
+        addLog('Deleted Multiple Properties', `${ids.length} properties deleted`);
     }
     
     const deleteAllProperties = () => {
+        const count = store.properties.length;
         setAndPersistProperties([], []);
+        addLog('Deleted All Properties', `${count} properties deleted`);
     };
 
     return (

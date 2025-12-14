@@ -1,3 +1,4 @@
+
 export type Payment = {
   id: string;
   amount: number;
@@ -88,4 +89,14 @@ export type User = {
 export type RevenueByPropertyType = {
   name: string;
   revenue: number;
+};
+
+export type ActivityLog = {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  action: string;
+  details?: string;
 };
