@@ -47,9 +47,8 @@ import { ProfileDialog } from '@/components/profile-dialog';
 import { BillProvider } from '@/context/BillDataContext';
 import { BopProvider } from '@/context/BopDataContext';
 import { store } from '@/lib/store';
-import { ThemeProvider } from "@/components/theme-provider"
 import { UserProvider } from '@/context/UserDataContext';
-import { ActivityLogProvider } from '@/context/ActivityLogContext';
+import { ActivityLogProvider, useActivityLog } from '@/context/ActivityLogContext';
 
 
 const navItems = [
@@ -168,7 +167,15 @@ const MobileNav = React.memo(function MobileNav({ systemName, filteredNavItems }
 });
 MobileNav.displayName = 'MobileNav';
 
-const Header = React.memo(function Header({ systemName, logout, supportEmail, onProfileOpen, filteredNavItems }: { systemName: string, logout: () => void, supportEmail: string, onProfileOpen: () => void, filteredNavItems: any[] }) {
+function Header({ systemName, supportEmail, onProfileOpen, filteredNavItems }: { systemName: string, logout: () => void, supportEmail: string, onProfileOpen: () => void, filteredNavItems: any[] }) {
+  const { logout } = useAuth();
+  const { addLog } = useActivityLog();
+
+  const handleLogout = () => {
+    addLog('User Logout');
+    logout();
+  }
+
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-card px-4 md:h-[60px] md:px-6">
       <MobileNav systemName={systemName} filteredNavItems={filteredNavItems} />
@@ -200,15 +207,14 @@ const Header = React.memo(function Header({ systemName, logout, supportEmail, on
             Support
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={logout}>
+          <DropdownMenuItem onClick={handleLogout}>
             Logout
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
   );
-});
-Header.displayName = 'Header';
+}
 
 
 function MainLayout({
