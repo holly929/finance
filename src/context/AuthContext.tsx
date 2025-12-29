@@ -3,8 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { User } from '@/lib/types';
-import { useRouter, usePathname } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useUserData } from './UserDataContext';
 import { store } from '@/lib/store';
 import { useActivityLog } from './ActivityLogContext';
@@ -25,9 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
   const { users } = useUserData();
-  const { addLog } = useActivityLog();
 
   useEffect(() => {
     let isMounted = true;
@@ -37,7 +34,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (storedUserJson) {
           const storedUser = JSON.parse(storedUserJson);
           if (isMounted) {
-            // Find the full, up-to-date user object from the central store
             const fullUser = store.users.find(u => u.id === storedUser.id);
             setUser(fullUser || null);
           }
@@ -54,7 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     checkUser();
 
-    // Listen for storage changes to sync across tabs
     const handleStorageChange = (e: StorageEvent) => {
         if (e.key === USER_STORAGE_KEY) {
             checkUser();
@@ -74,8 +69,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (foundUser) {
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(foundUser));
       setUser(foundUser);
-      // Log the action here, where the context is available
-      addLog('User Login');
       return foundUser;
     }
     return null;
@@ -91,32 +84,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
     setUser(updatedUser);
   };
-
-  useEffect(() => {
-    if (loading) return;
-
-    const isAuthPage = pathname === '/login';
-    const isPublicPage = isAuthPage || pathname === '/';
-
-    if (!user && !isPublicPage) {
-        router.replace('/login');
-    } else if (user && isPublicPage) {
-        router.replace('/dashboard');
-    }
-  }, [user, pathname, router, loading]);
-  
-  const isAuthCheckPage = pathname === '/login' || pathname === '/';
-  if (loading && !isAuthCheckPage) {
-      return (
-          <div className="flex h-screen w-full items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-      );
-  }
-  
-  if (!user && !isAuthCheckPage) {
-      return null;
-  }
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, updateAuthUser }}>

@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Home,
   FileText,
@@ -224,6 +224,8 @@ function MainLayout({
 }) {
   const { user, loading, logout } = useAuth();
   const { hasPermission } = usePermissions();
+  const router = useRouter();
+  const pathname = usePathname();
   const [systemName, setSystemName] = React.useState('RateEase');
   const [supportEmail, setSupportEmail] = React.useState('');
   const [isProfileDialogOpen, setIsProfileDialogOpen] = React.useState(false);
@@ -240,6 +242,12 @@ function MainLayout({
     if (!user) return [];
     return navItems.filter(item => hasPermission(user.role, item.href));
   }, [user, hasPermission]);
+  
+  React.useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login');
+    }
+  }, [user, loading, router]);
   
   if (loading || !user) {
     return (

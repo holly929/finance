@@ -5,7 +5,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { store, saveStore } from '@/lib/store';
-import { useActivityLog } from './ActivityLogContext';
 
 interface UserContextType {
     users: User[];
@@ -19,7 +18,6 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
-    const { addLog } = useActivityLog();
     const [users, setUsersState] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -41,13 +39,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         };
         const updatedUsers = [...store.users, newUser];
         setAndPersistUsers(updatedUsers);
-        addLog('Created User', `New user: ${newUser.email} (${newUser.role})`);
     };
 
     const updateUser = (updatedUser: User) => {
         const updatedUsers = store.users.map(u => u.id === updatedUser.id ? updatedUser : u);
         setAndPersistUsers(updatedUsers);
-        addLog('Updated User', `Updated user: ${updatedUser.email}`);
     };
 
     const deleteUser = (id: string) => {
@@ -60,7 +56,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         const updatedUsers = store.users.filter(u => u.id !== id);
         setAndPersistUsers(updatedUsers);
-        addLog('Deleted User', `Deleted user: ${userToDelete.email}`);
     };
 
     return (

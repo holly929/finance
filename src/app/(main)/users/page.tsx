@@ -41,6 +41,7 @@ import {
 import { useRequirePermission } from '@/hooks/useRequirePermission';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useActivityLog } from '@/context/ActivityLogContext';
 
 const ROWS_PER_PAGE = 10;
 
@@ -48,6 +49,7 @@ export default function UserManagementPage() {
   useRequirePermission();
   const { users, addUser, updateUser, deleteUser, loading } = useUserData();
   const { toast } = useToast();
+  const { addLog } = useActivityLog();
   
   const [editingUser, setEditingUser] = React.useState<Partial<User> | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -70,15 +72,18 @@ export default function UserManagementPage() {
   const handleSaveUser = (user: Omit<User, 'id'> | User) => {
     if ('id' in user) {
         updateUser(user);
+        addLog('Updated User', `Updated user: ${user.email}`);
         toast({ title: 'User Updated', description: `Details for ${user.name} have been updated.` });
     } else {
         addUser(user);
+        addLog('Created User', `New user: ${user.email} (${user.role})`);
         toast({ title: 'User Added', description: `${user.name} has been added to the system.` });
     }
   }
 
   const handleDeleteUser = (user: User) => {
     deleteUser(user.id);
+    addLog('Deleted User', `Deleted user: ${user.email}`);
     toast({ variant: 'destructive', title: 'User Deleted', description: `${user.name} has been removed from the system.` });
   }
 
