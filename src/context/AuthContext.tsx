@@ -7,6 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useUserData } from './UserDataContext';
 import { store } from '@/lib/store';
+import { useActivityLog } from './ActivityLogContext';
 
 interface AuthContextType {
   user: User | null;
@@ -26,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { users } = useUserData();
+  const { addLog } = useActivityLog();
 
   useEffect(() => {
     let isMounted = true;
@@ -72,6 +74,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (foundUser) {
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(foundUser));
       setUser(foundUser);
+      // Log the action here, where the context is available
+      addLog('User Login');
       return foundUser;
     }
     return null;

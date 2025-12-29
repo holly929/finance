@@ -11,13 +11,11 @@ import { Landmark, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { store } from '@/lib/store';
-import { useActivityLog } from '@/context/ActivityLogContext';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { login, loading: authLoading } = useAuth();
-  const { addLog } = useActivityLog();
   
   const [systemName, setSystemName] = React.useState('RateEase');
   const [assemblyLogo, setAssemblyLogo] = React.useState<string | null>(null);
@@ -44,7 +42,6 @@ export default function LoginPage() {
     const loggedInUser = await login(email, password);
 
     if (loggedInUser) {
-      addLog('User Login');
       toast({
         title: 'Login Successful',
         description: `Welcome back, ${loggedInUser.name}!`,
