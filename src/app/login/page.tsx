@@ -9,19 +9,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Landmark, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthContext';
 import { store } from '@/lib/store';
+import type { User } from '@/lib/types';
+
+const USER_STORAGE_KEY = 'rateease.user';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { login, loading: authLoading } = useAuth();
   
   const [systemName, setSystemName] = React.useState('RateEase');
   const [assemblyLogo, setAssemblyLogo] = React.useState<string | null>(null);
   const [email, setEmail] = React.useState('admin@rateease.gov');
   const [password, setPassword] = React.useState('password');
-  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
 
   React.useEffect(() => {
     const generalSettings = store.settings.generalSettings;
@@ -37,14 +38,31 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoggingIn(true);
+    setIsLoading(true);
     
-    const loggedInUser = await login(email, password);
+    // Simulate a short delay
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-    if (loggedInUser) {
+    const foundUser = store.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
+
+    if (foundUser) {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(foundUser));
+      
+      // Manually add login log
+      const newLog = {
+          id: `log-${Date.now()}-${Math.random()}`,
+          timestamp: new Date().toISOString(),
+          userId: foundUser.id,
+          userName: foundUser.name,
+          userEmail: foundUser.email,
+          action: 'User Login',
+          details: `User ${foundUser.name} logged in.`,
+      };
+      store.activityLogs = [newLog, ...store.activityLogs];
+
       toast({
         title: 'Login Successful',
-        description: `Welcome back, ${loggedInUser.name}!`,
+        description: `Welcome back, ${foundUser.name}!`,
       });
       router.push('/dashboard');
     } else {
@@ -53,11 +71,10 @@ export default function LoginPage() {
         title: 'Login Failed',
         description: 'Invalid email or password. Please try again.',
       });
-       setIsLoggingIn(false);
+       setIsLoading(false);
     }
   };
 
-  const isLoading = isLoggingIn || authLoading;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4 relative overflow-hidden">
