@@ -222,7 +222,7 @@ function MainLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const { hasPermission } = usePermissions();
   const router = useRouter();
   const pathname = usePathname();
@@ -238,16 +238,16 @@ function MainLayout({
     }
   }, []);
 
-  const filteredNavItems = React.useMemo(() => {
-    if (!user) return [];
-    return navItems.filter(item => hasPermission(user.role, item.href));
-  }, [user, hasPermission]);
-  
   React.useEffect(() => {
     if (!loading && !user) {
       router.replace('/login');
     }
   }, [user, loading, router]);
+
+  const filteredNavItems = React.useMemo(() => {
+    if (!user) return [];
+    return navItems.filter(item => hasPermission(user.role, item.href));
+  }, [user, hasPermission]);
   
   if (loading || !user) {
     return (
@@ -264,7 +264,7 @@ function MainLayout({
           <div className="flex flex-col">
             <Header 
               systemName={systemName} 
-              logout={logout}
+              logout={useAuth().logout}
               supportEmail={supportEmail}
               onProfileOpen={() => setIsProfileDialogOpen(true)}
               filteredNavItems={filteredNavItems}
@@ -281,20 +281,20 @@ function MainLayout({
 
 export default function LayoutWithProviders({ children }: { children: React.ReactNode }) {
   return (
-    <UserProvider>
       <AuthProvider>
-        <PermissionsProvider>
-          <ActivityLogProvider>
-            <PropertyProvider>
-              <BopProvider>
-                <BillProvider>
-                  <MainLayout>{children}</MainLayout>
-                </BillProvider>
-              </BopProvider>
-            </PropertyProvider>
-          </ActivityLogProvider>
-        </PermissionsProvider>
+        <UserProvider>
+            <PermissionsProvider>
+            <ActivityLogProvider>
+                <PropertyProvider>
+                <BopProvider>
+                    <BillProvider>
+                    <MainLayout>{children}</MainLayout>
+                    </BillProvider>
+                </BopProvider>
+                </PropertyProvider>
+            </ActivityLogProvider>
+            </PermissionsProvider>
+        </UserProvider>
       </AuthProvider>
-    </UserProvider>
   );
 }
