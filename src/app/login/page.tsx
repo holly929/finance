@@ -43,7 +43,7 @@ export default function LoginPage() {
     // Simulate a short delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    const foundUser = store.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
+    const foundUser = store.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
 
     if (foundUser) {
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(foundUser));
