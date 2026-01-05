@@ -9,6 +9,7 @@ import { store } from '@/lib/store';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateAuthUser: (user: User) => void;
 }
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const storedUserJson = localStorage.getItem(USER_STORAGE_KEY);
       if (storedUserJson) {
         const storedUser = JSON.parse(storedUserJson);
+        // Re-validate with the main user list for up-to-date roles/info
         const fullUser = store.users.find(u => u.id === storedUser.id);
         setUser(fullUser || null);
       } else {
@@ -56,6 +58,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [checkUser]);
 
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const foundUser = store.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+
+    if (foundUser) {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(foundUser));
+        setUser(foundUser);
+        
+        const newLog = {
+            id: `log-${Date.now()}-${Math.random()}`,
+            timestamp: new Date().toISOString(),
+            userId: foundUser.id,
+            userName: foundUser.name,
+            userEmail: foundUser.email,
+            action: 'User Login',
+            details: `User ${foundUser.name} logged in.`,
+        };
+        store.activityLogs = [newLog, ...store.activityLogs];
+        
+        return true;
+    }
+    return false;
+  };
+
+
   const logout = useCallback(() => {
     localStorage.removeItem(USER_STORAGE_KEY);
     setUser(null);
@@ -68,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout, updateAuthUser }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateAuthUser }}>
       {children}
     </AuthContext.Provider>
   );

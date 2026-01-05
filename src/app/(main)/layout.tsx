@@ -167,7 +167,7 @@ const MobileNav = React.memo(function MobileNav({ systemName, filteredNavItems }
 });
 MobileNav.displayName = 'MobileNav';
 
-function Header({ systemName, supportEmail, onProfileOpen, filteredNavItems }: { systemName: string, logout: () => void, supportEmail: string, onProfileOpen: () => void, filteredNavItems: any[] }) {
+function Header({ systemName, supportEmail, onProfileOpen, filteredNavItems }: { systemName: string, supportEmail: string, onProfileOpen: () => void, filteredNavItems: any[] }) {
   const { logout } = useAuth();
   const { addLog } = useActivityLog();
 
@@ -264,7 +264,6 @@ function MainLayout({
           <div className="flex flex-col">
             <Header 
               systemName={systemName} 
-              logout={useAuth().logout}
               supportEmail={supportEmail}
               onProfileOpen={() => setIsProfileDialogOpen(true)}
               filteredNavItems={filteredNavItems}
@@ -281,20 +280,16 @@ function MainLayout({
 
 export default function LayoutWithProviders({ children }: { children: React.ReactNode }) {
   return (
-      <AuthProvider>
-        <UserProvider>
-            <PermissionsProvider>
-            <ActivityLogProvider>
-                <PropertyProvider>
-                <BopProvider>
-                    <BillProvider>
-                    <MainLayout>{children}</MainLayout>
-                    </BillProvider>
-                </BopProvider>
-                </PropertyProvider>
-            </ActivityLogProvider>
-            </PermissionsProvider>
-        </UserProvider>
-      </AuthProvider>
+    <PermissionsProvider>
+      <ActivityLogProvider>
+          <PropertyProvider>
+          <BopProvider>
+              <BillProvider>
+              <MainLayout>{children}</MainLayout>
+              </BillProvider>
+          </BopProvider>
+          </PropertyProvider>
+      </ActivityLogProvider>
+    </PermissionsProvider>
   );
 }

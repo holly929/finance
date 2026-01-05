@@ -3,6 +3,8 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/components/theme-provider';
+import { AuthProvider } from '@/context/AuthContext';
+import { UserProvider } from '@/context/UserDataContext';
 
 export const metadata: Metadata = {
   title: 'RateEase',
@@ -30,8 +32,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster />
+          <UserProvider>
+            <AuthProvider>
+              {children}
+              <Toaster />
+            </AuthProvider>
+          </UserProvider>
         </ThemeProvider>
       </body>
     </html>

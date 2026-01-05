@@ -10,19 +10,18 @@ import { Label } from '@/components/ui/label';
 import { Landmark, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { store } from '@/lib/store';
-import type { User } from '@/lib/types';
-
-const USER_STORAGE_KEY = 'rateease.user';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { login, user, loading } = useAuth();
   
   const [systemName, setSystemName] = React.useState('RateEase');
   const [assemblyLogo, setAssemblyLogo] = React.useState<string | null>(null);
   const [email, setEmail] = React.useState('admin@rateease.gov');
   const [password, setPassword] = React.useState('password');
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
 
   React.useEffect(() => {
     const generalSettings = store.settings.generalSettings;
@@ -35,34 +34,25 @@ export default function LoginPage() {
       setAssemblyLogo(appearanceSettings.assemblyLogo);
     }
   }, []);
+  
+  React.useEffect(() => {
+    // Redirect if user is already logged in
+    if (!loading && user) {
+        router.replace('/dashboard');
+    }
+  }, [user, loading, router]);
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsLoggingIn(true);
     
-    // Simulate a short delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const success = await login(email, password);
 
-    const foundUser = store.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-
-    if (foundUser) {
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(foundUser));
-      
-      // Manually add login log
-      const newLog = {
-          id: `log-${Date.now()}-${Math.random()}`,
-          timestamp: new Date().toISOString(),
-          userId: foundUser.id,
-          userName: foundUser.name,
-          userEmail: foundUser.email,
-          action: 'User Login',
-          details: `User ${foundUser.name} logged in.`,
-      };
-      store.activityLogs = [newLog, ...store.activityLogs];
-
+    if (success) {
       toast({
         title: 'Login Successful',
-        description: `Welcome back, ${foundUser.name}!`,
+        description: `Welcome back!`,
       });
       router.push('/dashboard');
     } else {
@@ -71,10 +61,18 @@ export default function LoginPage() {
         title: 'Login Failed',
         description: 'Invalid email or password. Please try again.',
       });
-       setIsLoading(false);
+       setIsLoggingIn(false);
     }
   };
 
+  // Render nothing or a loader while checking auth state to prevent flash of login page
+  if(loading || (!loading && user)) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4 relative overflow-hidden">
@@ -104,7 +102,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isLoggingIn}
                 />
               </div>
               <div className="space-y-2">
@@ -115,13 +113,13 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isLoggingIn}
                 />
               </div>
             </CardContent>
             <CardFooter className="px-6 pb-6 pt-4">
-              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" className="w-full" size="lg" disabled={isLoggingIn}>
+                {isLoggingIn && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign In
               </Button>
             </CardFooter>
