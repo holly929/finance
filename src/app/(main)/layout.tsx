@@ -170,10 +170,12 @@ MobileNav.displayName = 'MobileNav';
 function Header({ systemName, supportEmail, onProfileOpen, filteredNavItems }: { systemName: string, supportEmail: string, onProfileOpen: () => void, filteredNavItems: any[] }) {
   const { logout } = useAuth();
   const { addLog } = useActivityLog();
+  const router = useRouter();
 
   const handleLogout = () => {
     addLog('User Logout');
     logout();
+    router.push('/');
   }
 
   return (
@@ -225,7 +227,6 @@ function MainLayout({
   const { user, loading } = useAuth();
   const { hasPermission } = usePermissions();
   const router = useRouter();
-  const pathname = usePathname();
   const [systemName, setSystemName] = React.useState('RateEase');
   const [supportEmail, setSupportEmail] = React.useState('');
   const [isProfileDialogOpen, setIsProfileDialogOpen] = React.useState(false);
