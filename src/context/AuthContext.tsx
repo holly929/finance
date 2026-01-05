@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { User } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { store } from '@/lib/store';
+import { useActivityLog } from './ActivityLogContext';
 
 interface AuthContextType {
   user: User | null;
@@ -67,18 +68,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (foundUser) {
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(foundUser));
         setUser(foundUser);
-        
-        const newLog = {
-            id: `log-${Date.now()}-${Math.random()}`,
-            timestamp: new Date().toISOString(),
-            userId: foundUser.id,
-            userName: foundUser.name,
-            userEmail: foundUser.email,
-            action: 'User Login',
-            details: `User ${foundUser.name} logged in.`,
-        };
-        store.activityLogs = [newLog, ...store.activityLogs];
-        
         return true;
     }
     return false;
@@ -88,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem(USER_STORAGE_KEY);
     setUser(null);
-    router.push('/login');
+    router.push('/');
   }, [router]);
 
   const updateAuthUser = (updatedUser: User) => {
