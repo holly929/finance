@@ -170,12 +170,10 @@ MobileNav.displayName = 'MobileNav';
 function Header({ systemName, supportEmail, onProfileOpen, filteredNavItems }: { systemName: string, supportEmail: string, onProfileOpen: () => void, filteredNavItems: any[] }) {
   const { logout } = useAuth();
   const { addLog } = useActivityLog();
-  const router = useRouter();
 
   const handleLogout = () => {
     addLog('User Logout');
     logout();
-    router.push('/');
   }
 
   return (
