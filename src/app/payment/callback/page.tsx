@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { useActivityLog } from '@/context/ActivityLogContext';
 
 const formatCurrency = (value: number) => `GHS ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-export default function PaymentCallbackPage() {
+function CallbackClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -124,5 +124,19 @@ export default function PaymentCallbackPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+const SuspenseFallback = () => (
+  <div className="flex h-screen items-center justify-center">
+    <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
+  </div>
+);
+
+export default function PaymentCallbackPage() {
+  return (
+    <Suspense fallback={<SuspenseFallback />}>
+      <CallbackClient />
+    </Suspense>
   );
 }
